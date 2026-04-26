@@ -21,10 +21,18 @@ _LOG_ICON_ERR = "✗"
 class MainFrame(wx.Frame):
     """Main application window: query editor + result grid + status log."""
 
-    def __init__(self, con_i, server_name: str, on_disconnect: Callable[[], None] | None = None) -> None:
+    def __init__(
+        self, con_i, server_name: str, on_disconnect: Callable[[], None] | None = None
+    ) -> None:
+        try:
+            server_url: str = con_i.con_i_url()
+        except Exception:
+            server_url = ""
         super().__init__(
             None,
-            title=f"ODS Pilot — {server_name}",
+            title=f"ODS Pilot — {server_name}  [{server_url}]"
+            if server_url
+            else f"ODS Pilot — {server_name}",
             size=(1100, 750),
             style=wx.DEFAULT_FRAME_STYLE,
         )
@@ -35,7 +43,10 @@ class MainFrame(wx.Frame):
         self._is_disconnecting = False
 
         self._build_ui()
-        self._log(f"Connected to {server_name}", ok=True)
+        log_msg = f"Connected to {server_name}"
+        if server_url:
+            log_msg += f"  —  {server_url}"
+        self._log(log_msg, ok=True)
         self.Centre()
 
     # ------------------------------------------------------------------
@@ -90,6 +101,7 @@ class MainFrame(wx.Frame):
 
         vbox.Add(self._log_list, proportion=1, flag=wx.EXPAND | wx.ALL, border=2)
         panel.SetSizer(vbox)
+        self._log_list.Bind(wx.EVT_SIZE, self._on_log_list_resize)
         return panel
 
     def _build_menu(self) -> None:
@@ -161,6 +173,14 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Log helpers
     # ------------------------------------------------------------------
+
+    def _on_log_list_resize(self, event: wx.SizeEvent) -> None:
+        # Keep the Query column (index 3) filling whatever width is left
+        fixed = sum(self._log_list.GetColumnWidth(i) for i in range(3))
+        remaining = self._log_list.GetClientSize().width - fixed
+        if remaining > 0:
+            self._log_list.SetColumnWidth(3, remaining)
+        event.Skip()
 
     def _log(self, message: str, ok: bool = True) -> None:
         ts = datetime.now(tz=UTC).strftime("%H:%M:%S")

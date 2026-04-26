@@ -30,8 +30,7 @@ class OdsPilotApp(wx.App):
         )
         if config is None:
             wx.MessageBox(
-                f"No saved server found matching {name_or_id!r}.\n"
-                "Falling back to server list.",
+                f"No saved server found matching {name_or_id!r}.\nFalling back to server list.",
                 "Server Not Found",
                 wx.OK | wx.ICON_WARNING,
             )
