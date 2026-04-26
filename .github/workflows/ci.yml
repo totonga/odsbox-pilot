@@ -53,9 +53,32 @@ jobs:
       - name: Run unit tests
         run: uv run pytest tests/unit/ -v
 
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Audit for known vulnerabilities
+        run: |
+          # CVE-2026-3219 affects pip itself (no fix released yet); ignore it so
+          # that vulnerabilities in actual project dependencies still fail CI.
+          uv run pip-audit --strict --ignore-vuln CVE-2026-3219
+
   release:
     name: Release
-    needs: [lint, test]
+    needs: [lint, test, audit]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     concurrency: release
