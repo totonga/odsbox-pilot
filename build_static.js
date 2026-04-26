@@ -15,9 +15,11 @@ await esbuild.build({
   stdin: {
     contents: `
 // CodeMirror 6 — JSON editor bootstrap exposed as window.cm
-import { EditorState } from "@codemirror/state";
+import { EditorState, RangeSetBuilder } from "@codemirror/state";
 import {
   EditorView,
+  ViewPlugin,
+  Decoration,
   keymap,
   highlightSpecialChars,
   highlightActiveLine,
@@ -31,9 +33,41 @@ import {
   foldGutter,
   bracketMatching,
   indentOnInput,
+  syntaxTree,
 } from "@codemirror/language";
 import { lintGutter, linter } from "@codemirror/lint";
 import { json, jsonParseLinter } from "@codemirror/lang-json";
+
+// JAQuel $-keyword highlighter ─────────────────────────────────────────────
+const _jaquelMark = Decoration.mark({ class: "cm-jaquel-key" });
+
+function _buildJaquelDecorations(view) {
+  const builder = new RangeSetBuilder();
+  syntaxTree(view.state).iterate({
+    enter(node) {
+      // PropertyName is the JSON object key node in @codemirror/lang-json
+      if (node.name === "PropertyName") {
+        const text = view.state.sliceDoc(node.from, node.to);
+        if (text.startsWith('"$')) {
+          builder.add(node.from, node.to, _jaquelMark);
+        }
+      }
+    },
+  });
+  return builder.finish();
+}
+
+const jaquelHighlighter = ViewPlugin.fromClass(
+  class {
+    constructor(view) { this.decorations = _buildJaquelDecorations(view); }
+    update(update) {
+      if (update.docChanged || update.viewportChanged)
+        this.decorations = _buildJaquelDecorations(update.view);
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
+// ──────────────────────────────────────────────────────────────────────────
 
 let _view = null;
 
@@ -64,9 +98,11 @@ function createEditor(domId, initialContent) {
       json(),
       linter(jsonParseLinter()),
       lintGutter(),
+      jaquelHighlighter,
       EditorView.theme({
         "&": { height: "100%", fontSize: "13px", fontFamily: "Consolas, monospace" },
         ".cm-scroller": { overflow: "auto" },
+        ".cm-jaquel-key": { color: "#9c27b0", fontWeight: "bold" },
       }),
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {

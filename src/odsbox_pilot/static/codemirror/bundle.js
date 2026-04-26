@@ -21395,6 +21395,33 @@
   }
 
   // <stdin>
+  var _jaquelMark = Decoration.mark({ class: "cm-jaquel-key" });
+  function _buildJaquelDecorations(view) {
+    const builder = new RangeSetBuilder();
+    syntaxTree(view.state).iterate({
+      enter(node) {
+        if (node.name === "PropertyName") {
+          const text = view.state.sliceDoc(node.from, node.to);
+          if (text.startsWith('"$')) {
+            builder.add(node.from, node.to, _jaquelMark);
+          }
+        }
+      }
+    });
+    return builder.finish();
+  }
+  var jaquelHighlighter = ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        this.decorations = _buildJaquelDecorations(view);
+      }
+      update(update) {
+        if (update.docChanged || update.viewportChanged)
+          this.decorations = _buildJaquelDecorations(update.view);
+      }
+    },
+    { decorations: (v) => v.decorations }
+  );
   var _view = null;
   function createEditor(domId, initialContent) {
     const target = document.getElementById(domId);
@@ -21424,9 +21451,11 @@
         json(),
         linter(jsonParseLinter()),
         lintGutter(),
+        jaquelHighlighter,
         EditorView.theme({
           "&": { height: "100%", fontSize: "13px", fontFamily: "Consolas, monospace" },
-          ".cm-scroller": { overflow: "auto" }
+          ".cm-scroller": { overflow: "auto" },
+          ".cm-jaquel-key": { color: "#9c27b0", fontWeight: "bold" }
         }),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
