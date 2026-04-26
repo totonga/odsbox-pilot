@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 import wx  # type: ignore[import-untyped]
@@ -20,7 +21,7 @@ _LOG_ICON_ERR = "✗"
 class MainFrame(wx.Frame):
     """Main application window: query editor + result grid + status log."""
 
-    def __init__(self, con_i, server_name: str) -> None:
+    def __init__(self, con_i, server_name: str, on_disconnect: Callable[[], None] | None = None) -> None:
         super().__init__(
             None,
             title=f"ODS Pilot — {server_name}",
@@ -30,6 +31,8 @@ class MainFrame(wx.Frame):
         self._con_i = con_i
         self._history = QueryHistory()
         self._settings = AppSettings.load()
+        self._on_disconnect_cb = on_disconnect
+        self._is_disconnecting = False
 
         self._build_ui()
         self._log(f"Connected to {server_name}", ok=True)
@@ -240,11 +243,15 @@ class MainFrame(wx.Frame):
             self._show_error(str(exc))
 
     def _on_disconnect(self, _event: wx.Event) -> None:
-        self._close_connection()
+        self._is_disconnecting = True
         self.Close()
 
     def _on_close(self, event: wx.CloseEvent) -> None:
         self._close_connection()
+        if self._is_disconnecting and self._on_disconnect_cb is not None:
+            wx.CallAfter(self._on_disconnect_cb)
+        else:
+            wx.GetApp().ExitMainLoop()
         event.Skip()
 
     def _close_connection(self) -> None:

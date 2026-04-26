@@ -12,6 +12,11 @@ from odsbox_pilot.connection.server_list_dialog import ServerListDialog
 
 class OdsPilotApp(wx.App):
     def OnInit(self) -> bool:  # noqa: N802
+        self.SetExitOnFrameDelete(False)
+        return self._run_connection_loop()
+
+    def _run_connection_loop(self) -> bool:
+        """Show the server list and connect.  Returns True if a frame was opened."""
         manager = ServerConfigManager()
         dlg = ServerListDialog(None, manager)
 
@@ -19,17 +24,13 @@ class OdsPilotApp(wx.App):
             result = dlg.ShowModal()
             if result != wx.ID_OK:
                 dlg.Destroy()
-                return False  # user closed the dialog — exit
+                return False
 
             config = dlg.selected_config
             if config is None:
                 dlg.Destroy()
                 return False
 
-            # Try to connect (opens ConnectDialog flow via Save & Connect path,
-            # but here the user clicked "Connect" from the list which means the
-            # config already exists — we just need to open ConnectDialog in
-            # connect-only mode to resolve the secret and build a ConI).
             con_i = self._connect(dlg, manager, config)
             if con_i is None:
                 # Connection cancelled or failed — go back to server list
@@ -38,6 +39,11 @@ class OdsPilotApp(wx.App):
             dlg.Destroy()
             self._open_main_frame(con_i, config.name)
             return True
+
+    def _on_reconnect(self) -> None:
+        """Called via wx.CallAfter after the user disconnects from a session."""
+        if not self._run_connection_loop():
+            self.ExitMainLoop()
 
     # ------------------------------------------------------------------
     # Helpers
@@ -72,6 +78,6 @@ class OdsPilotApp(wx.App):
     def _open_main_frame(self, con_i, server_name: str) -> None:
         from odsbox_pilot.query.main_frame import MainFrame
 
-        frame = MainFrame(con_i, server_name)
+        frame = MainFrame(con_i, server_name, on_disconnect=self._on_reconnect)
         frame.Show()
         self.SetTopWindow(frame)
