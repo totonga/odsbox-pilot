@@ -51,7 +51,16 @@ function createEditor(domId, initialContent) {
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       bracketMatching(),
       highlightActiveLine(),
-      keymap.of([...defaultKeymap, ...historyKeymap]),
+      keymap.of([...defaultKeymap, ...historyKeymap,
+        {
+          key: "Alt-Enter",
+          run: () => {
+            // Signal Python host to execute the query
+            window.location.hash = "execute-" + Date.now();
+            return true;
+          },
+        },
+      ]),
       json(),
       linter(jsonParseLinter()),
       lintGutter(),

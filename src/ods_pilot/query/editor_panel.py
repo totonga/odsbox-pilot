@@ -39,17 +39,23 @@ class EditorPanel(wx.Panel):
 
     def get_query(self) -> str:
         """Return current editor content (raw string)."""
-        result = self._webview.RunScript("getEditorContent()")
-        return result if isinstance(result, str) else ""
+        if not self._webview_ready:
+            return ""
+        ok, result = self._webview.RunScript("getEditorContent()")
+        return result if ok else ""
 
     def set_query(self, text: str) -> None:
         """Replace editor content with *text*."""
+        if not self._webview_ready:
+            return
         escaped = json.dumps(text)  # produces a valid JS string literal
         self._webview.RunScript(f"setEditorContent({escaped})")
 
     def has_errors(self) -> bool:
-        result = self._webview.RunScript("editorHasErrors()")
-        return str(result).lower() == "true"
+        if not self._webview_ready:
+            return False
+        ok, result = self._webview.RunScript("editorHasErrors()")
+        return bool(ok and result.lower() == "true")
 
     # ------------------------------------------------------------------
     # UI construction
@@ -80,7 +86,7 @@ class EditorPanel(wx.Panel):
         tbar_sizer.Add(btn_pretty, flag=wx.RIGHT, border=4)
 
         # Execute
-        self._btn_execute = wx.Button(toolbar, label="▶  Execute")
+        self._btn_execute = wx.Button(toolbar, label="▶  Execute  (Alt+Enter)")
         self._btn_execute.SetBackgroundColour(wx.Colour(0, 120, 215))
         self._btn_execute.SetForegroundColour(wx.WHITE)
         font = self._btn_execute.GetFont()
@@ -122,8 +128,13 @@ class EditorPanel(wx.Panel):
         """Intercept hash-only navigation used as a change notification."""
         url = event.GetURL()
         if "#" in url and not url.endswith(".html"):
-            # Just a hash-change; don't actually navigate
-            event.Veto()
+            fragment = url.split("#", 1)[1]
+            if fragment.startswith("execute"):
+                event.Veto()
+                self._on_execute_btn(event)
+            else:
+                # Just a hash-change (e.g. "changed"); don't actually navigate
+                event.Veto()
         else:
             event.Skip()
 
@@ -196,7 +207,7 @@ class EditorPanel(wx.Panel):
         self._on_execute(raw)
 
     def _on_char_hook(self, event: wx.KeyEvent) -> None:
-        if event.ControlDown() and event.GetKeyCode() == wx.WXK_RETURN:
+        if event.AltDown() and event.GetKeyCode() == wx.WXK_RETURN:
             self._on_execute_btn(event)
         else:
             event.Skip()

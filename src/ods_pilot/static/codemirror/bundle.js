@@ -21410,7 +21410,17 @@
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         bracketMatching(),
         highlightActiveLine(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
+        keymap.of([
+          ...defaultKeymap,
+          ...historyKeymap,
+          {
+            key: "Alt-Enter",
+            run: () => {
+              window.location.hash = "execute-" + Date.now();
+              return true;
+            }
+          }
+        ]),
         json(),
         linter(jsonParseLinter()),
         lintGutter(),

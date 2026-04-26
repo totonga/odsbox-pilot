@@ -42,14 +42,32 @@ class OdsPilotApp(wx.App):
     # ------------------------------------------------------------------
 
     def _connect(self, parent, manager: ServerConfigManager, config):  # type: ignore[return]
-        """Open a connect dialog pre-populated with config to authenticate."""
-        from ods_pilot.connection.connect_dialog import ConnectDialog
+        """Connect using saved credentials; open ConnectDialog only on failure."""
+        from ods_pilot.connection.connect_dialog import ConnectDialog, do_connect
 
-        connect_dlg = ConnectDialog(parent, manager, config=config)
-        result = connect_dlg.ShowModal()
-        con_i = connect_dlg.con_i if result == wx.ID_OK else None
-        connect_dlg.Destroy()
-        return con_i
+        secret = manager.load_secret(config) or ""
+        try:
+            wx.BeginBusyCursor()
+            con_i = do_connect(config, secret)
+            return con_i
+        except Exception as exc:
+            wx.MessageBox(
+                f"Connection failed:\n\n{exc}\n\nPlease check your settings.",
+                "Connection Error",
+                wx.OK | wx.ICON_ERROR,
+                parent,
+            )
+            # Fall back to edit dialog so user can fix credentials
+            connect_dlg = ConnectDialog(parent, manager, config=config)
+            result = connect_dlg.ShowModal()
+            con_i = connect_dlg.con_i if result == wx.ID_OK else None
+            connect_dlg.Destroy()
+            return con_i
+        finally:
+            try:
+                wx.EndBusyCursor()
+            except Exception:
+                pass
 
     def _open_main_frame(self, con_i, server_name: str) -> None:
         from ods_pilot.query.main_frame import MainFrame

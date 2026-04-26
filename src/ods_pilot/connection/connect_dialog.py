@@ -16,6 +16,37 @@ from ods_pilot.connection.manager import ServerConfigManager
 from ods_pilot.models import AuthType, ServerConfig
 
 
+def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
+    """Create a live ConI from *config* + *secret* without any UI."""
+    from odsbox.con_i_factory import ConIFactory  # type: ignore[import-untyped]
+
+    if config.auth_type == AuthType.BASIC:
+        return ConIFactory.basic(
+            url=config.url,
+            username=config.username,
+            password=secret,
+            verify_certificate=config.verify_certificate,
+        )
+    elif config.auth_type == AuthType.M2M:
+        return ConIFactory.m2m(
+            url=config.url,
+            token_endpoint=config.token_endpoint,
+            client_id=config.client_id,
+            client_secret=secret,
+            scope=config.scope or None,
+            verify_certificate=config.verify_certificate,
+        )
+    else:  # OIDC
+        return ConIFactory.oidc(
+            url=config.url,
+            client_id=config.client_id,
+            redirect_uri=config.redirect_uri,
+            redirect_url_allow_insecure=config.redirect_url_allow_insecure,
+            webfinger_path_prefix=config.webfinger_path_prefix,
+            verify_certificate=config.verify_certificate,
+        )
+
+
 class ConnectDialog(wx.Dialog):
     """Dialog to create or edit an ODS server connection config."""
 
@@ -333,33 +364,7 @@ class ConnectDialog(wx.Dialog):
     # ------------------------------------------------------------------
 
     def _do_connect(self, config: ServerConfig, secret: str):  # type: ignore[return]
-        from odsbox.con_i_factory import ConIFactory  # type: ignore[import-untyped]
-
-        if config.auth_type == AuthType.BASIC:
-            return ConIFactory.basic(
-                url=config.url,
-                username=config.username,
-                password=secret,
-                verify_certificate=config.verify_certificate,
-            )
-        elif config.auth_type == AuthType.M2M:
-            return ConIFactory.m2m(
-                url=config.url,
-                token_endpoint=config.token_endpoint,
-                client_id=config.client_id,
-                client_secret=secret,
-                scope=config.scope or None,
-                verify_certificate=config.verify_certificate,
-            )
-        else:  # OIDC
-            return ConIFactory.oidc(
-                url=config.url,
-                client_id=config.client_id,
-                redirect_uri=config.redirect_uri,
-                redirect_url_allow_insecure=config.redirect_url_allow_insecure,
-                webfinger_path_prefix=config.webfinger_path_prefix,
-                verify_certificate=config.verify_certificate,
-            )
+        return do_connect(config, secret)
 
     # ------------------------------------------------------------------
     # Button handlers
