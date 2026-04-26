@@ -43,7 +43,7 @@ class ResultGrid(wx.Panel):
 
         if truncated:
             self._banner.SetLabel(
-                f"  ⚠  Showing {_ROW_LIMIT:,} of {total_rows:,} rows — "
+                f"  \u26a0  Showing {_ROW_LIMIT:,} of {total_rows:,} rows \u2014 "
                 "refine your query to see all results."
             )
             self._banner.Show()
@@ -52,6 +52,12 @@ class ResultGrid(wx.Panel):
 
         self._populate_grid(self._df)
         self.Layout()
+
+    def export_csv(self, path: str) -> None:
+        """Write the currently displayed DataFrame to *path* as CSV."""
+        if self._df is None:
+            return
+        self._df.to_csv(path, index=False)
 
     def clear(self) -> None:
         self._df = None

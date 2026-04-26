@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
-from odsbox_pilot.models import AuthType, ServerConfig
+from odsbox_pilot.models import AppSettings, AuthType, ServerConfig
 
 
 def _make_basic() -> ServerConfig:
@@ -86,3 +87,59 @@ class TestKeyringAccount:
     def test_oidc_keyring_account(self) -> None:
         cfg = _make_oidc()
         assert cfg.keyring_account == "https://demo.example.com/api::oidc-client"
+
+
+class TestAppSettings:
+    def test_defaults(self) -> None:
+        s = AppSettings()
+        assert s.result_naming_mode == "query"
+
+    def test_save_and_load(self, tmp_path: Path) -> None:
+        import odsbox_pilot.models as models_module
+
+        orig_settings_file = models_module.SETTINGS_FILE
+        models_module.SETTINGS_FILE = tmp_path / "settings.json"
+        try:
+            s = AppSettings(result_naming_mode="model")
+            s.save()
+            loaded = AppSettings.load()
+            assert loaded.result_naming_mode == "model"
+        finally:
+            models_module.SETTINGS_FILE = orig_settings_file
+
+    def test_load_missing_file_returns_defaults(self, tmp_path: Path) -> None:
+        import odsbox_pilot.models as models_module
+
+        orig_settings_file = models_module.SETTINGS_FILE
+        models_module.SETTINGS_FILE = tmp_path / "nonexistent.json"
+        try:
+            s = AppSettings.load()
+            assert s.result_naming_mode == "query"
+        finally:
+            models_module.SETTINGS_FILE = orig_settings_file
+
+    def test_load_invalid_naming_mode_fallback(self, tmp_path: Path) -> None:
+        import odsbox_pilot.models as models_module
+
+        orig_settings_file = models_module.SETTINGS_FILE
+        f = tmp_path / "settings.json"
+        f.write_text(json.dumps({"result_naming_mode": "INVALID"}))
+        models_module.SETTINGS_FILE = f
+        try:
+            s = AppSettings.load()
+            assert s.result_naming_mode == "query"
+        finally:
+            models_module.SETTINGS_FILE = orig_settings_file
+
+    def test_load_ignores_unknown_keys(self, tmp_path: Path) -> None:
+        import odsbox_pilot.models as models_module
+
+        orig_settings_file = models_module.SETTINGS_FILE
+        f = tmp_path / "settings.json"
+        f.write_text(json.dumps({"result_naming_mode": "model", "future_key": 42}))
+        models_module.SETTINGS_FILE = f
+        try:
+            s = AppSettings.load()
+            assert s.result_naming_mode == "model"
+        finally:
+            models_module.SETTINGS_FILE = orig_settings_file

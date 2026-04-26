@@ -72,3 +72,29 @@ class ServerConfig:
 CONFIG_DIR: Path = Path.home() / ".ods-pilot"
 SERVERS_FILE: Path = CONFIG_DIR / "servers.json"
 HISTORY_FILE: Path = CONFIG_DIR / "history.json"
+SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
+
+_VALID_NAMING_MODES = frozenset({"query", "model"})
+
+
+@dataclass
+class AppSettings:
+    """Application-level preferences persisted across sessions."""
+
+    result_naming_mode: str = "query"  # "query" or "model"
+
+    def save(self) -> None:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        SETTINGS_FILE.write_text(json.dumps(asdict(self), indent=2))
+
+    @classmethod
+    def load(cls) -> AppSettings:
+        try:
+            data = json.loads(SETTINGS_FILE.read_text())
+            known = set(cls.__dataclass_fields__)
+            obj = cls(**{k: v for k, v in data.items() if k in known})
+            if obj.result_naming_mode not in _VALID_NAMING_MODES:
+                obj.result_naming_mode = "query"
+            return obj
+        except Exception:
+            return cls()

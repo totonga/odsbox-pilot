@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from odsbox_pilot.query.history import _MAX_ENTRIES, HistoryEntry, QueryHistory
 
 
-def _make_history(tmp_path) -> QueryHistory:
+def _make_history(tmp_path: Path) -> QueryHistory:
     return QueryHistory(path=tmp_path / "history.json")
 
 
@@ -39,19 +40,19 @@ class TestHistoryEntry:
 
 
 class TestQueryHistoryAppend:
-    def test_append_single(self, tmp_path) -> None:
+    def test_append_single(self, tmp_path: Path) -> None:
         h = _make_history(tmp_path)
         h.append(HistoryEntry.success('{"q": 1}', 5))
         assert len(h.entries) == 1
 
-    def test_entries_most_recent_first(self, tmp_path) -> None:
+    def test_entries_most_recent_first(self, tmp_path: Path) -> None:
         h = _make_history(tmp_path)
         h.append(HistoryEntry.success("first", 1))
         h.append(HistoryEntry.success("second", 2))
         assert h.entries[0].query == "second"
         assert h.entries[1].query == "first"
 
-    def test_trim_to_max(self, tmp_path) -> None:
+    def test_trim_to_max(self, tmp_path: Path) -> None:
         h = _make_history(tmp_path)
         for i in range(_MAX_ENTRIES + 20):
             h.append(HistoryEntry.success(f"q{i}", i))
@@ -59,7 +60,7 @@ class TestQueryHistoryAppend:
 
 
 class TestQueryHistoryPersistence:
-    def test_persist_and_reload(self, tmp_path) -> None:
+    def test_persist_and_reload(self, tmp_path: Path) -> None:
         h1 = _make_history(tmp_path)
         h1.append(HistoryEntry.success('{"AoUnit": {}}', 10))
 
@@ -67,19 +68,19 @@ class TestQueryHistoryPersistence:
         assert len(h2.entries) == 1
         assert h2.entries[0].row_count == 10
 
-    def test_history_file_is_valid_json(self, tmp_path) -> None:
+    def test_history_file_is_valid_json(self, tmp_path: Path) -> None:
         h = _make_history(tmp_path)
         h.append(HistoryEntry.success("q", 3))
         raw = (tmp_path / "history.json").read_text(encoding="utf-8")
         data = json.loads(raw)
         assert isinstance(data, list)
 
-    def test_corrupt_file_yields_empty(self, tmp_path) -> None:
+    def test_corrupt_file_yields_empty(self, tmp_path: Path) -> None:
         p = tmp_path / "history.json"
         p.write_text("BROKEN", encoding="utf-8")
         h = QueryHistory(path=p)
         assert h.entries == []
 
-    def test_missing_file_yields_empty(self, tmp_path) -> None:
+    def test_missing_file_yields_empty(self, tmp_path: Path) -> None:
         h = QueryHistory(path=tmp_path / "nonexistent.json")
         assert h.entries == []

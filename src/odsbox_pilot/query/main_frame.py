@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 import wx  # type: ignore[import-untyped]
 
+from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.editor_panel import EditorPanel
 from odsbox_pilot.query.history import HistoryEntry, QueryHistory
 from odsbox_pilot.query.result_grid import ResultGrid
@@ -28,6 +29,7 @@ class MainFrame(wx.Frame):
         )
         self._con_i = con_i
         self._history = QueryHistory()
+        self._settings = AppSettings.load()
 
         self._build_ui()
         self._log(f"Connected to {server_name}", ok=True)
@@ -68,11 +70,11 @@ class MainFrame(wx.Frame):
         panel = wx.Panel(parent)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        label = wx.StaticText(panel, label="Query Log")
-        font = label.GetFont()
+        self._log_label = wx.StaticText(panel, label="Query Log")
+        font = self._log_label.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
-        label.SetFont(font)
-        vbox.Add(label, flag=wx.LEFT | wx.TOP, border=4)
+        self._log_label.SetFont(font)
+        vbox.Add(self._log_label, flag=wx.LEFT | wx.TOP, border=4)
 
         self._log_list = wx.ListCtrl(
             panel,
@@ -92,11 +94,35 @@ class MainFrame(wx.Frame):
 
         file_menu = wx.Menu()
         item_disconnect = file_menu.Append(wx.ID_ANY, "Disconnect\tCtrl+W")
+        file_menu.AppendSeparator()
+        item_export_csv = file_menu.Append(wx.ID_ANY, "Export CSV…\tCtrl+S")
+        file_menu.AppendSeparator()
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
         menubar.Append(file_menu, "&File")
 
+        # Settings menu
+        settings_menu = wx.Menu()
+        self._item_naming_query = settings_menu.AppendRadioItem(
+            wx.ID_ANY, "Result Naming: Query", "Column names come from the JAQueL query (default)"
+        )
+        self._item_naming_model = settings_menu.AppendRadioItem(
+            wx.ID_ANY,
+            "Result Naming: Model",
+            "Column names come from the ODS model schema (e.g. Unit.Name)",
+        )
+        menubar.Append(settings_menu, "&Settings")
+
+        # Reflect current settings
+        if self._settings.result_naming_mode == "model":
+            self._item_naming_model.Check(True)
+        else:
+            self._item_naming_query.Check(True)
+
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
+        self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
+        self.Bind(wx.EVT_MENU, self._on_naming_query, self._item_naming_query)
+        self.Bind(wx.EVT_MENU, self._on_naming_model, self._item_naming_model)
         self.Bind(wx.EVT_CLOSE, self._on_close)
 
         self.SetMenuBar(menubar)
@@ -110,7 +136,7 @@ class MainFrame(wx.Frame):
         wx.BeginBusyCursor()
         try:
             query_dict = json.loads(query_str)
-            df = self._con_i.query(query_dict)
+            df = self._con_i.query(query_dict, result_naming_mode=self._settings.result_naming_mode)
             row_count = len(df)
             self._grid.load_dataframe(df)
             entry = HistoryEntry.success(query_str, row_count)
@@ -172,6 +198,46 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Menu handlers
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Settings handlers
+    # ------------------------------------------------------------------
+
+    def _on_naming_query(self, _event: wx.Event) -> None:
+        self._settings.result_naming_mode = "query"
+        self._settings.save()
+
+    def _on_naming_model(self, _event: wx.Event) -> None:
+        self._settings.result_naming_mode = "model"
+        self._settings.save()
+
+    # ------------------------------------------------------------------
+    # Menu handlers
+    # ------------------------------------------------------------------
+
+    def _on_export_csv(self, _event: wx.Event) -> None:
+        if self._grid._df is None:
+            wx.MessageBox(
+                "No results to export. Execute a query first.",
+                "Export CSV",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+        with wx.FileDialog(
+            self,
+            "Export CSV",
+            wildcard="CSV files (*.csv)|*.csv",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            self._grid.export_csv(path)
+            self.GetStatusBar().SetStatusText(f"Exported: {path}", 0)
+        except Exception as exc:
+            self._show_error(str(exc))
 
     def _on_disconnect(self, _event: wx.Event) -> None:
         self._close_connection()

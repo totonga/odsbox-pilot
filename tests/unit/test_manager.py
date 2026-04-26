@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+from pytest_mock import MockerFixture
 
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.models import AuthType, ServerConfig
@@ -19,7 +22,7 @@ def _cfg(suffix: str = "1") -> ServerConfig:
 
 
 @pytest.fixture
-def manager(tmp_path, mocker):
+def manager(tmp_path: Path, mocker: MockerFixture) -> ServerConfigManager:
     """A ServerConfigManager backed by a tmp directory with mocked keyring."""
     servers_file = tmp_path / "servers.json"
     mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
@@ -77,7 +80,7 @@ class TestManagerCRUD:
 
 
 class TestManagerPersistence:
-    def test_reload_from_file(self, tmp_path, mocker) -> None:
+    def test_reload_from_file(self, tmp_path: Path, mocker: MockerFixture) -> None:
         mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
         mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
         mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
@@ -90,7 +93,7 @@ class TestManagerPersistence:
         assert len(m2.configs) == 1
         assert m2.get("id-persist").name == "Server persist"
 
-    def test_corrupt_file_yields_empty(self, tmp_path, mocker) -> None:
+    def test_corrupt_file_yields_empty(self, tmp_path: Path, mocker: MockerFixture) -> None:
         mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
         mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
         path = tmp_path / "servers.json"
@@ -100,7 +103,7 @@ class TestManagerPersistence:
 
 
 class TestKeyringIntegration:
-    def test_save_and_load_secret(self, tmp_path, mocker) -> None:
+    def test_save_and_load_secret(self, tmp_path: Path, mocker: MockerFixture) -> None:
         set_mock = mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
         get_mock = mocker.patch(
             "odsbox_pilot.connection.manager.keyring.get_password", return_value="s3cr3t"
