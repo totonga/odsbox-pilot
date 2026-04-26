@@ -7,13 +7,14 @@ service "ods-pilot".
 
 from __future__ import annotations
 
+import contextlib
 import json
 import uuid
 from pathlib import Path
 
 import keyring
 
-from odsbox_pilot.models import SERVERS_FILE, AuthType, ServerConfig
+from odsbox_pilot.models import SERVERS_FILE, ServerConfig
 
 _KEYRING_SERVICE = "ods-pilot"
 
@@ -56,10 +57,8 @@ class ServerConfigManager:
         self._configs = [c for c in self._configs if c.id != config_id]
         self._save()
         # Best-effort cleanup of keyring secret
-        try:
+        with contextlib.suppress(keyring.errors.PasswordDeleteError):
             keyring.delete_password(_KEYRING_SERVICE, config.keyring_account)
-        except keyring.errors.PasswordDeleteError:
-            pass
 
     def get(self, config_id: str) -> ServerConfig:
         """Return a config by id. Raises KeyError if not found."""
@@ -105,6 +104,4 @@ class ServerConfigManager:
     def _save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         data = [c.to_dict() for c in self._configs]
-        self._path.write_text(
-            json.dumps(data, indent=2), encoding="utf-8"
-        )
+        self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")

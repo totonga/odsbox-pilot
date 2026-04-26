@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from odsbox_pilot.models import HISTORY_FILE
@@ -23,7 +23,7 @@ class HistoryEntry:
     def success(cls, query: str, row_count: int) -> HistoryEntry:
         return cls(
             query=query,
-            timestamp=datetime.now(tz=timezone.utc).isoformat(),
+            timestamp=datetime.now(tz=UTC).isoformat(),
             row_count=row_count,
             error=None,
         )
@@ -32,7 +32,7 @@ class HistoryEntry:
     def failure(cls, query: str, error: str) -> HistoryEntry:
         return cls(
             query=query,
-            timestamp=datetime.now(tz=timezone.utc).isoformat(),
+            timestamp=datetime.now(tz=UTC).isoformat(),
             row_count=None,
             error=error,
         )

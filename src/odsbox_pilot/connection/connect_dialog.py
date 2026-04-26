@@ -7,10 +7,10 @@ the returned ConI is available via the `con_i` property.
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 
 import wx  # type: ignore[import-untyped]
-import wx.lib.scrolledpanel as scrolled  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.models import AuthType, ServerConfig
@@ -191,9 +191,7 @@ class ConnectDialog(wx.Dialog):
         self._txt_oidc_redirect = wx.TextCtrl(page)
         grid.Add(self._txt_oidc_redirect, flag=wx.EXPAND)
 
-        grid.Add(
-            wx.StaticText(page, label="WebFinger prefix:"), flag=wx.ALIGN_CENTER_VERTICAL
-        )
+        grid.Add(wx.StaticText(page, label="WebFinger prefix:"), flag=wx.ALIGN_CENTER_VERTICAL)
         self._txt_oidc_webfinger = wx.TextCtrl(page)
         grid.Add(self._txt_oidc_webfinger, flag=wx.EXPAND)
 
@@ -279,9 +277,7 @@ class ConnectDialog(wx.Dialog):
             username = self._txt_basic_user.GetValue().strip()
             password = self._txt_basic_pass.GetValue()
             if not username:
-                wx.MessageBox(
-                    "Username is required.", "Validation", wx.OK | wx.ICON_WARNING, self
-                )
+                wx.MessageBox("Username is required.", "Validation", wx.OK | wx.ICON_WARNING, self)
                 return None
             cfg = ServerConfig(
                 id=config_id,
@@ -398,10 +394,8 @@ class ConnectDialog(wx.Dialog):
             )
             return
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
-            except Exception:
-                pass
 
         self._con_i = con_i
         self.EndModal(wx.ID_OK)

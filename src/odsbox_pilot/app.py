@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
@@ -64,10 +66,8 @@ class OdsPilotApp(wx.App):
             connect_dlg.Destroy()
             return con_i
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
-            except Exception:
-                pass
 
     def _open_main_frame(self, con_i, server_name: str) -> None:
         from odsbox_pilot.query.main_frame import MainFrame

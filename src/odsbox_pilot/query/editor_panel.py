@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
 
-from odsbox_pilot.query.examples import EXAMPLES, by_category, categories
+from odsbox_pilot.query.examples import by_category, categories
 from odsbox_pilot.query.history import QueryHistory
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"

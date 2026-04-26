@@ -4,7 +4,6 @@ import sys
 
 
 def main() -> None:
-    import wx  # type: ignore[import-untyped]
 
     from odsbox_pilot.app import OdsPilotApp
 

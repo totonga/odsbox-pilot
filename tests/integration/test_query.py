@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import pytest
 
-
 _DEMO_URL = "https://docker.peak-solution.de:10032/api"
 _DEMO_USER = "Demo"
 _DEMO_PASS = "mdm"
@@ -53,7 +52,7 @@ class TestDemoServerQueries:
         assert len(df) >= 0  # may or may not exist on demo server
 
     def test_query_invalid_entity_raises(self, con_i) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="."):
             con_i.query({"__NonExistentEntity__": {}})
 
     def test_query_measurements(self, con_i) -> None:

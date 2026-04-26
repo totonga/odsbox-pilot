@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-from odsbox_pilot.query.history import HistoryEntry, QueryHistory, _MAX_ENTRIES
+from odsbox_pilot.query.history import _MAX_ENTRIES, HistoryEntry, QueryHistory
 
 
 def _make_history(tmp_path) -> QueryHistory:
@@ -21,7 +19,7 @@ class TestHistoryEntry:
         assert "T" in e.timestamp  # ISO-8601
 
     def test_failure_entry(self) -> None:
-        e = HistoryEntry.failure('bad json', "SyntaxError: ...")
+        e = HistoryEntry.failure("bad json", "SyntaxError: ...")
         assert e.row_count is None
         assert e.error is not None
 

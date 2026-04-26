@@ -6,8 +6,13 @@ Column headers are clickable to sort ascending/descending.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import wx  # type: ignore[import-untyped]
 import wx.grid  # type: ignore[import-untyped]
+
+if TYPE_CHECKING:
+    import pandas
 
 _ROW_LIMIT = 500
 _BANNER_COLOUR = wx.Colour(255, 243, 176)  # soft yellow
@@ -19,7 +24,7 @@ class ResultGrid(wx.Panel):
 
     def __init__(self, parent: wx.Window) -> None:
         super().__init__(parent)
-        self._df = None          # currently displayed DataFrame (truncated)
+        self._df = None  # currently displayed DataFrame (truncated)
         self._sort_col: int | None = None
         self._sort_asc: bool = True
         self._build_ui()
@@ -28,7 +33,7 @@ class ResultGrid(wx.Panel):
     # Public API
     # ------------------------------------------------------------------
 
-    def load_dataframe(self, df: "pandas.DataFrame") -> None:  # type: ignore[name-defined]
+    def load_dataframe(self, df: pandas.DataFrame) -> None:  # type: ignore[name-defined]
         """Populate the grid from a pandas DataFrame (max _ROW_LIMIT rows)."""
         total_rows = len(df)
         truncated = total_rows > _ROW_LIMIT
@@ -103,15 +108,16 @@ class ResultGrid(wx.Panel):
             self._sort_col = col
             self._sort_asc = True
         col_name = self._df.columns[col]
-        self._df = self._df.sort_values(by=col_name, ascending=self._sort_asc,
-                                         na_position="last", ignore_index=True)
+        self._df = self._df.sort_values(
+            by=col_name, ascending=self._sort_asc, na_position="last", ignore_index=True
+        )
         self._populate_grid(self._df)
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
-    def _populate_grid(self, df: "pandas.DataFrame") -> None:  # type: ignore[name-defined]
+    def _populate_grid(self, df: pandas.DataFrame) -> None:  # type: ignore[name-defined]
         self._grid.BeginBatch()
         try:
             # Clear existing data
@@ -132,16 +138,13 @@ class ResultGrid(wx.Panel):
             # Column labels with dtype hint and optional sort arrow
             for col_idx, col_name in enumerate(cols):
                 dtype_hint = str(df.dtypes.iloc[col_idx])
-                if self._sort_col == col_idx:
-                    arrow = " ↑" if self._sort_asc else " ↓"
-                else:
-                    arrow = ""
+                arrow = (" ↑" if self._sort_asc else " ↓") if self._sort_col == col_idx else ""
                 self._grid.SetColLabelValue(col_idx, f"{col_name}{arrow}\n{dtype_hint}")
                 self._grid.SetColSize(col_idx, max(100, len(str(col_name)) * 9))
 
             # Cell values
             for row_idx in range(rows):
-                for col_idx, col_name in enumerate(cols):
+                for col_idx, _col_name in enumerate(cols):
                     val = df.iat[row_idx, col_idx]
                     self._grid.SetCellValue(row_idx, col_idx, "" if val is None else str(val))
 

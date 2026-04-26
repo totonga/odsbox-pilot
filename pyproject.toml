@@ -7,7 +7,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.14"
 authors = [
-    { name = "Andreas K", email = "totonga@users.noreply.github.com" },
+    { name = "Andreas K", email = "totonga@gmail.com" },
 ]
 keywords = ["ASAM", "ODS", "measurement data", "query", "desktop"]
 classifiers = [

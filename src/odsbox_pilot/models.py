@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 
-class AuthType(str, Enum):
+class AuthType(StrEnum):
     BASIC = "basic"
     M2M = "m2m"
     OIDC = "oidc"

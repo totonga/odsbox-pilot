@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import wx  # type: ignore[import-untyped]
 
@@ -116,9 +117,7 @@ class MainFrame(wx.Frame):
             self._history.append(entry)
             self._log_entry(entry)
             self.GetStatusBar().SetStatusText(f"OK — {row_count} rows", 0)
-            self.GetStatusBar().SetStatusText(
-                datetime.now(tz=timezone.utc).strftime("%H:%M:%S UTC"), 1
-            )
+            self.GetStatusBar().SetStatusText(datetime.now(tz=UTC).strftime("%H:%M:%S UTC"), 1)
         except Exception as exc:
             error_msg = str(exc)
             entry = HistoryEntry.failure(query_str, error_msg)
@@ -127,17 +126,15 @@ class MainFrame(wx.Frame):
             self.GetStatusBar().SetStatusText(f"Error: {error_msg[:80]}", 0)
             self._show_error(error_msg)
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
-            except Exception:
-                pass
 
     # ------------------------------------------------------------------
     # Log helpers
     # ------------------------------------------------------------------
 
     def _log(self, message: str, ok: bool = True) -> None:
-        ts = datetime.now(tz=timezone.utc).strftime("%H:%M:%S")
+        ts = datetime.now(tz=UTC).strftime("%H:%M:%S")
         icon = _LOG_ICON_OK if ok else _LOG_ICON_ERR
         idx = self._log_list.InsertItem(0, icon)  # prepend
         self._log_list.SetItem(idx, 1, ts)
@@ -185,7 +182,5 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def _close_connection(self) -> None:
-        try:
+        with contextlib.suppress(Exception):
             self._con_i.__exit__(None, None, None)
-        except Exception:
-            pass
