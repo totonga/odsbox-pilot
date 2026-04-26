@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JAQuel Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; width: 100%; overflow: hidden; background: #fff; }
+    #editor { height: 100%; width: 100%; }
+
+    /* CodeMirror theme overrides */
+    .cm-editor { height: 100%; }
+    .cm-editor.cm-focused { outline: none; }
+    .cm-lintRange-error { text-decoration: underline wavy red; }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+  <script src="codemirror/bundle.js"></script>
+  <script>
+    // Initial content
+    var _initialContent = '{\n  "AoUnit": {}\n}';
+
+    // Boot the editor after DOM is ready
+    document.addEventListener("DOMContentLoaded", function () {
+      window.cm.create("editor", _initialContent);
+    });
+
+    // Called by Python via WebView.RunScript("setEditorContent(...)") 
+    function setEditorContent(text) {
+      window.cm.setContent(text);
+    }
+
+    // Called by Python via WebView.RunScript("getEditorContent()")
+    // Returns the current document text.
+    function getEditorContent() {
+      return window.cm.getContent();
+    }
+
+    // Called by Python to check for JSON errors
+    function editorHasErrors() {
+      return window.cm.hasErrors();
+    }
+  </script>
+</body>
+</html>

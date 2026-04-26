@@ -1,0 +1,51 @@
+[project]
+name = "ods-pilot"
+version = "0.1.0"
+description = "ASAM ODS desktop query tool"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "keyring>=25.7.0",
+    "odsbox[oidc]>=1.2.0",
+    "wxpython>=4.2.5",
+    "pandas>=2.0.0",
+]
+
+[project.scripts]
+ods-pilot = "ods_pilot.__main__:main"
+
+[dependency-groups]
+dev = [
+    "hatchling>=1.29.0",
+    "mypy>=1.20.2",
+    "pytest>=9.0.3",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.15.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ods_pilot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: tests that require a live ASAM ODS server",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+ignore_missing_imports = true

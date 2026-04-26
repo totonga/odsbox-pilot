@@ -1,0 +1,17 @@
+{
+	"servers": {
+		"my-mcp-server-375e5fea": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"odsbox-jaquel-mcp@latest"
+			],
+			"env": {
+				"ODSBOX_MCP_URL": "https://docker.peak-solution.de:10032/api",
+				"ODSBOX_MCP_USER": "Demo",
+				"ODSBOX_MCP_PASSWORD": "mdm"
+			}
+		}
+	},
+	"inputs": []
+}
