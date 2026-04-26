@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.2 (2026-04-26)
+
+### Bug Fixes
+
+- Added about box
+  ([`e3f680f`](https://github.com/totonga/odsbox-pilot/commit/e3f680fa66fb7cb3c47622ca27a881f693d974a6))
+
+
 ## v1.2.1 (2026-04-26)
 
 ### Bug Fixes
