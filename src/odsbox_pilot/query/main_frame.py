@@ -8,6 +8,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 import wx  # type: ignore[import-untyped]
+import wx.adv  # type: ignore[import-untyped]
 
 from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.editor_panel import EditorPanel
@@ -152,6 +153,11 @@ class MainFrame(wx.Frame):
         )
         menubar.Append(settings_menu, "&Settings")
 
+        # Help menu
+        help_menu = wx.Menu()
+        item_about = help_menu.Append(wx.ID_ABOUT, "&About ODS Pilot…")
+        menubar.Append(help_menu, "&Help")
+
         # Reflect current settings
         if self._settings.result_naming_mode == "model":
             self._item_naming_model.Check(True)
@@ -163,6 +169,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
         self.Bind(wx.EVT_MENU, self._on_naming_query, self._item_naming_query)
         self.Bind(wx.EVT_MENU, self._on_naming_model, self._item_naming_model)
+        self.Bind(wx.EVT_MENU, self._on_about, item_about)
         self.Bind(wx.EVT_CLOSE, self._on_close)
 
         self.SetMenuBar(menubar)
@@ -286,6 +293,17 @@ class MainFrame(wx.Frame):
             self.GetStatusBar().SetStatusText(f"Exported: {path}", 0)
         except Exception as exc:
             self._show_error(str(exc))
+
+    def _on_about(self, _event: wx.Event) -> None:
+        from odsbox_pilot import __version__
+
+        info = wx.adv.AboutDialogInfo()
+        info.SetName("ODS Pilot")
+        info.SetVersion(__version__)
+        info.SetDescription("ASAM ODS desktop query tool powered by odsbox.")
+        info.SetCopyright("© Andreas K")
+        info.SetWebSite("https://github.com/totonga/odsbox-pilot")
+        wx.adv.AboutBox(info, self)
 
     def _on_disconnect(self, _event: wx.Event) -> None:
         self._is_disconnecting = True
