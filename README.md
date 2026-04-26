@@ -23,14 +23,21 @@ A desktop query tool for [ASAM ODS](https://www.asam.net/standards/detail/ods/) 
 ## Installation
 
 ```bash
-pip install odsbox-pilot
+pip install odsbox-pilot[gui]
 ```
 
 ## Usage
 
-Launch the application:
+Launch without installing (always uses the latest release):
 
 ```bash
+uvx odsbox-pilot[gui]@latest
+```
+
+Install as a persistent tool:
+
+```bash
+uv tool install odsbox-pilot[gui]
 odsbox-pilot
 ```
 
