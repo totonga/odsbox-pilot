@@ -43,6 +43,7 @@ class MainFrame(wx.Frame):
         self._is_disconnecting = False
 
         self._build_ui()
+        self._set_icon()
         log_msg = f"Connected to {server_name}"
         if server_url:
             log_msg += f"  —  {server_url}"
@@ -52,6 +53,30 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # UI construction
     # ------------------------------------------------------------------
+
+    def _set_icon(self) -> None:
+        """Create a window icon by rendering ⊞ (matrix/grid glyph) onto a bitmap."""
+        size = 32
+        bmp = wx.Bitmap(size, size)
+        dc = wx.MemoryDC(bmp)
+        dc.SetBackground(wx.Brush(wx.Colour(0, 120, 180)))
+        dc.Clear()
+        font = wx.Font(
+            22,
+            wx.FONTFAMILY_DEFAULT,
+            wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_BOLD,
+            faceName="",
+        )
+        dc.SetFont(font)
+        dc.SetTextForeground(wx.WHITE)
+        glyph = "\u229e"  # ⊞ SQUARED PLUS
+        tw, th = dc.GetTextExtent(glyph)
+        dc.DrawText(glyph, (size - tw) // 2, (size - th) // 2)
+        dc.SelectObject(wx.NullBitmap)
+        icon = wx.Icon()
+        icon.CopyFromBitmap(bmp)
+        self.SetIcon(icon)
 
     def _build_ui(self) -> None:
         # Outer vertical splitter: top=editor+grid, bottom=log
