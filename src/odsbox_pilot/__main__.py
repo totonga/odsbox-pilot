@@ -1,4 +1,4 @@
-"""Entry point: python -m ods_pilot"""
+"""Entry point: python -m odsbox_pilot"""
 
 import sys
 
@@ -6,7 +6,7 @@ import sys
 def main() -> None:
     import wx  # type: ignore[import-untyped]
 
-    from ods_pilot.app import OdsPilotApp
+    from odsbox_pilot.app import OdsPilotApp
 
     app = OdsPilotApp()
     app.MainLoop()

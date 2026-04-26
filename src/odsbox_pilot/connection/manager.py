@@ -13,7 +13,7 @@ from pathlib import Path
 
 import keyring
 
-from ods_pilot.models import SERVERS_FILE, AuthType, ServerConfig
+from odsbox_pilot.models import SERVERS_FILE, AuthType, ServerConfig
 
 _KEYRING_SERVICE = "ods-pilot"
 

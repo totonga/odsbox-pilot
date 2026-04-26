@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import wx  # type: ignore[import-untyped]
 
-from ods_pilot.connection.manager import ServerConfigManager
-from ods_pilot.connection.server_list_dialog import ServerListDialog
+from odsbox_pilot.connection.manager import ServerConfigManager
+from odsbox_pilot.connection.server_list_dialog import ServerListDialog
 
 
 class OdsPilotApp(wx.App):
@@ -43,7 +43,7 @@ class OdsPilotApp(wx.App):
 
     def _connect(self, parent, manager: ServerConfigManager, config):  # type: ignore[return]
         """Connect using saved credentials; open ConnectDialog only on failure."""
-        from ods_pilot.connection.connect_dialog import ConnectDialog, do_connect
+        from odsbox_pilot.connection.connect_dialog import ConnectDialog, do_connect
 
         secret = manager.load_secret(config) or ""
         try:
@@ -70,7 +70,7 @@ class OdsPilotApp(wx.App):
                 pass
 
     def _open_main_frame(self, con_i, server_name: str) -> None:
-        from ods_pilot.query.main_frame import MainFrame
+        from odsbox_pilot.query.main_frame import MainFrame
 
         frame = MainFrame(con_i, server_name)
         frame.Show()

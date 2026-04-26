@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ods_pilot.models import HISTORY_FILE
+from odsbox_pilot.models import HISTORY_FILE
 
 _MAX_ENTRIES = 100
 

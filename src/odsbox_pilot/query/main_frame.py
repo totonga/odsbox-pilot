@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 
 import wx  # type: ignore[import-untyped]
 
-from ods_pilot.query.editor_panel import EditorPanel
-from ods_pilot.query.history import HistoryEntry, QueryHistory
-from ods_pilot.query.result_grid import ResultGrid
+from odsbox_pilot.query.editor_panel import EditorPanel
+from odsbox_pilot.query.history import HistoryEntry, QueryHistory
+from odsbox_pilot.query.result_grid import ResultGrid
 
 _LOG_ICON_OK = "✓"
 _LOG_ICON_ERR = "✗"

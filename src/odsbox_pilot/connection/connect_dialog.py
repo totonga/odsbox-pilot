@@ -12,8 +12,8 @@ import uuid
 import wx  # type: ignore[import-untyped]
 import wx.lib.scrolledpanel as scrolled  # type: ignore[import-untyped]
 
-from ods_pilot.connection.manager import ServerConfigManager
-from ods_pilot.models import AuthType, ServerConfig
+from odsbox_pilot.connection.manager import ServerConfigManager
+from odsbox_pilot.models import AuthType, ServerConfig
 
 
 def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]

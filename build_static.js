@@ -1,4 +1,4 @@
-// build_static.js — bundles CodeMirror 6 into src/ods_pilot/static/codemirror/bundle.js
+// build_static.js — bundles CodeMirror 6 into src/odsbox_pilot/static/codemirror/bundle.js
 // Run with: npm run build   (or: node build_static.js)
 
 import * as esbuild from "esbuild";
@@ -7,7 +7,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const outDir = join(__dirname, "src", "ods_pilot", "static", "codemirror");
+const outDir = join(__dirname, "src", "odsbox_pilot", "static", "codemirror");
 
 await mkdir(outDir, { recursive: true });
 

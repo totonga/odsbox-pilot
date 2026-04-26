@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import wx  # type: ignore[import-untyped]
 
-from ods_pilot.connection.manager import ServerConfigManager
-from ods_pilot.models import ServerConfig
+from odsbox_pilot.connection.manager import ServerConfigManager
+from odsbox_pilot.models import ServerConfig
 
 
 class ServerListDialog(wx.Dialog):
@@ -127,7 +127,7 @@ class ServerListDialog(wx.Dialog):
             event.Skip()
 
     def _on_new(self, _event: wx.Event) -> None:
-        from ods_pilot.connection.connect_dialog import ConnectDialog
+        from odsbox_pilot.connection.connect_dialog import ConnectDialog
 
         dlg = ConnectDialog(self, self._manager, config=None)
         if dlg.ShowModal() == wx.ID_OK:
@@ -138,7 +138,7 @@ class ServerListDialog(wx.Dialog):
         config_id = self._selected_id()
         if config_id is None:
             return
-        from ods_pilot.connection.connect_dialog import ConnectDialog
+        from odsbox_pilot.connection.connect_dialog import ConnectDialog
 
         config = self._manager.get(config_id)
         dlg = ConnectDialog(self, self._manager, config=config)

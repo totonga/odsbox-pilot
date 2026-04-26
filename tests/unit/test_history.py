@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from ods_pilot.query.history import HistoryEntry, QueryHistory, _MAX_ENTRIES
+from odsbox_pilot.query.history import HistoryEntry, QueryHistory, _MAX_ENTRIES
 
 
 def _make_history(tmp_path) -> QueryHistory:

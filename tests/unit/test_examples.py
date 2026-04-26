@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from ods_pilot.query.examples import EXAMPLES, by_category, categories
+from odsbox_pilot.query.examples import EXAMPLES, by_category, categories
 
 
 class TestExamplesContent:

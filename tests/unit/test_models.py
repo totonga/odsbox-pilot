@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from ods_pilot.models import AuthType, ServerConfig
+from odsbox_pilot.models import AuthType, ServerConfig
 
 
 def _make_basic() -> ServerConfig:

@@ -9,8 +9,8 @@ from typing import Callable
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
 
-from ods_pilot.query.examples import EXAMPLES, by_category, categories
-from ods_pilot.query.history import QueryHistory
+from odsbox_pilot.query.examples import EXAMPLES, by_category, categories
+from odsbox_pilot.query.history import QueryHistory
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"
 _EDITOR_HTML = _STATIC_DIR / "editor.html"

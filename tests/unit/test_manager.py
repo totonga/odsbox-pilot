@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from ods_pilot.connection.manager import ServerConfigManager
-from ods_pilot.models import AuthType, ServerConfig
+from odsbox_pilot.connection.manager import ServerConfigManager
+from odsbox_pilot.models import AuthType, ServerConfig
 
 
 def _cfg(suffix: str = "1") -> ServerConfig:
@@ -22,10 +22,10 @@ def _cfg(suffix: str = "1") -> ServerConfig:
 def manager(tmp_path, mocker):
     """A ServerConfigManager backed by a tmp directory with mocked keyring."""
     servers_file = tmp_path / "servers.json"
-    mocker.patch("ods_pilot.connection.manager.keyring.set_password")
-    mocker.patch("ods_pilot.connection.manager.keyring.get_password", return_value=None)
+    mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
+    mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
     mocker.patch(
-        "ods_pilot.connection.manager.keyring.delete_password",
+        "odsbox_pilot.connection.manager.keyring.delete_password",
         side_effect=None,
     )
     return ServerConfigManager(path=servers_file)
@@ -78,9 +78,9 @@ class TestManagerCRUD:
 
 class TestManagerPersistence:
     def test_reload_from_file(self, tmp_path, mocker) -> None:
-        mocker.patch("ods_pilot.connection.manager.keyring.set_password")
-        mocker.patch("ods_pilot.connection.manager.keyring.get_password", return_value=None)
-        mocker.patch("ods_pilot.connection.manager.keyring.delete_password", side_effect=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
+        mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
 
         path = tmp_path / "servers.json"
         m1 = ServerConfigManager(path=path)
@@ -91,8 +91,8 @@ class TestManagerPersistence:
         assert m2.get("id-persist").name == "Server persist"
 
     def test_corrupt_file_yields_empty(self, tmp_path, mocker) -> None:
-        mocker.patch("ods_pilot.connection.manager.keyring.set_password")
-        mocker.patch("ods_pilot.connection.manager.keyring.get_password", return_value=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
+        mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
         path = tmp_path / "servers.json"
         path.write_text("NOT JSON", encoding="utf-8")
         m = ServerConfigManager(path=path)
@@ -101,11 +101,11 @@ class TestManagerPersistence:
 
 class TestKeyringIntegration:
     def test_save_and_load_secret(self, tmp_path, mocker) -> None:
-        set_mock = mocker.patch("ods_pilot.connection.manager.keyring.set_password")
+        set_mock = mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
         get_mock = mocker.patch(
-            "ods_pilot.connection.manager.keyring.get_password", return_value="s3cr3t"
+            "odsbox_pilot.connection.manager.keyring.get_password", return_value="s3cr3t"
         )
-        mocker.patch("ods_pilot.connection.manager.keyring.delete_password", side_effect=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
 
         path = tmp_path / "servers.json"
         m = ServerConfigManager(path=path)
