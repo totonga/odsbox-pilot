@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-04-26)
+
+### Bug Fixes
+
+- Add favicon to identify app
+  ([`0c5eeb8`](https://github.com/totonga/odsbox-pilot/commit/0c5eeb8391a48b3049b94f6271789f6bbecfcb00))
+
+
 ## v1.2.0 (2026-04-26)
 
 ### Bug Fixes
