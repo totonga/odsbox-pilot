@@ -11,9 +11,36 @@ from odsbox_pilot.connection.server_list_dialog import ServerListDialog
 
 
 class OdsPilotApp(wx.App):
+    def __init__(self, initial_server: str | None = None) -> None:
+        self._initial_server = initial_server
+        super().__init__()
+
     def OnInit(self) -> bool:  # noqa: N802
         self.SetExitOnFrameDelete(False)
+        if self._initial_server is not None:
+            return self._connect_to_named_server(self._initial_server)
         return self._run_connection_loop()
+
+    def _connect_to_named_server(self, name_or_id: str) -> bool:
+        """Try to connect directly to a server matching *name_or_id* (name or id)."""
+        manager = ServerConfigManager()
+        config = next(
+            (c for c in manager.configs if c.name == name_or_id or c.id == name_or_id),
+            None,
+        )
+        if config is None:
+            wx.MessageBox(
+                f"No saved server found matching {name_or_id!r}.\n"
+                "Falling back to server list.",
+                "Server Not Found",
+                wx.OK | wx.ICON_WARNING,
+            )
+            return self._run_connection_loop()
+        con_i = self._connect(None, manager, config)
+        if con_i is None:
+            return self._run_connection_loop()
+        self._open_main_frame(con_i, config.name)
+        return True
 
     def _run_connection_loop(self) -> bool:
         """Show the server list and connect.  Returns True if a frame was opened."""
