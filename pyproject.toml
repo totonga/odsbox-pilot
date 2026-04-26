@@ -23,9 +23,11 @@ classifiers = [
 dependencies = [
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.2.0",
-    "wxpython>=4.2.5",
     "pandas>=2.0.0",
 ]
+
+[project.optional-dependencies]
+gui = ["wxpython>=4.2.5"]
 
 [project.urls]
 Homepage = "https://github.com/totonga/odsbox-pilot"
