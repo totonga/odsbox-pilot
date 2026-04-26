@@ -69,6 +69,19 @@ python_version = "3.14"
 strict = true
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# wxPython has no type stubs; disable strict checking for all GUI modules
+module = [
+    "odsbox_pilot.app",
+    "odsbox_pilot.__main__",
+    "odsbox_pilot.query.editor_panel",
+    "odsbox_pilot.query.main_frame",
+    "odsbox_pilot.query.result_grid",
+    "odsbox_pilot.connection.connect_dialog",
+    "odsbox_pilot.connection.server_list_dialog",
+]
+ignore_errors = true
+
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["src/odsbox_pilot/__init__.py:__version__"]
