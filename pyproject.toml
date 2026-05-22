@@ -48,6 +48,17 @@ dev = [
     "ruff>=0.15.12",
 ]
 
+[tool.uv]
+# Minimum versions that resolve known CVEs in transitive dependencies.
+# CVE-2026-3219 affects pip itself (no fix released yet); ignore it so
+# pip-audit is run with --ignore-vuln CVE-2026-3219.
+constraint-dependencies = [
+    "gitpython>=3.1.50",   # CVE-2026-44244, GHSA-mv93-w799-cj2w
+    "idna>=3.15",           # CVE-2026-45409
+    "pip>=26.1",            # CVE-2026-6357
+    "urllib3>=2.7.0",       # PYSEC-2026-141, PYSEC-2026-142
+]
+
 [build-system]
 requires = ["uv_build>=0.6,<0.12"]
 build-backend = "uv_build"
