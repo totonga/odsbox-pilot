@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-05-22)
+
+### Bug Fixes
+
+- Wx free tools to own file
+  ([`f3d81fb`](https://github.com/totonga/odsbox-pilot/commit/f3d81fb0b045fce70290188291b1ec558bf70b8d))
+
+### Features
+
+- Add browse tree
+  ([`e8d0db4`](https://github.com/totonga/odsbox-pilot/commit/e8d0db4473b65eaad8e6a902630566961d74a562))
+
+- Add property window
+  ([`0b7dd0a`](https://github.com/totonga/odsbox-pilot/commit/0b7dd0acab9ac0b60ad45523296f393ae93e2273))
+
+
 ## v1.2.2 (2026-04-26)
 
 ### Bug Fixes
