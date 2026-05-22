@@ -80,22 +80,35 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
 
     def _build_ui(self) -> None:
-        # Outer vertical splitter: top=editor+grid, bottom=log
+        from odsbox_pilot.browse.browse_panel import BrowsePanel
+
+        # Outer vertical splitter: top=notebook (tabs), bottom=log
         outer_splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
 
-        # Inner horizontal splitter: left/top=editor, right/bottom=grid
-        inner_splitter = wx.SplitterWindow(outer_splitter, style=wx.SP_LIVE_UPDATE)
+        # Notebook contains Tab 0 (Query) and Tab 1 (Browse)
+        notebook = wx.Notebook(outer_splitter)
 
+        # Tab 0 — Query: inner horizontal splitter with editor + grid
+        inner_splitter = wx.SplitterWindow(notebook, style=wx.SP_LIVE_UPDATE)
         self._editor = EditorPanel(inner_splitter, self._history, self._on_execute)
         self._grid = ResultGrid(inner_splitter)
-
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=280)
         inner_splitter.SetMinimumPaneSize(80)
+        notebook.AddPage(inner_splitter, "Query")
+
+        # Tab 1 — Browse: FilterTree browser panel
+        self._browse = BrowsePanel(
+            notebook,
+            self._con_i,
+            log_fn=self._log,
+            status_fn=lambda msg: self.GetStatusBar().SetStatusText(msg, 0),
+        )
+        notebook.AddPage(self._browse, "Browse")
 
         # Log panel
         log_panel = self._build_log_panel(outer_splitter)
 
-        outer_splitter.SplitHorizontally(inner_splitter, log_panel, sashPosition=550)
+        outer_splitter.SplitHorizontally(notebook, log_panel, sashPosition=550)
         outer_splitter.SetMinimumPaneSize(60)
 
         # Status bar
@@ -318,5 +331,7 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def _close_connection(self) -> None:
+        with contextlib.suppress(Exception):
+            self._browse.clear_connection()
         with contextlib.suppress(Exception):
             self._con_i.__exit__(None, None, None)

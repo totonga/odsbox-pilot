@@ -82,6 +82,8 @@ module = [
     "odsbox_pilot.query.result_grid",
     "odsbox_pilot.connection.connect_dialog",
     "odsbox_pilot.connection.server_list_dialog",
+    "odsbox_pilot.browse.browse_panel",
+    "odsbox_pilot.browse.condition_dialog",
 ]
 ignore_errors = true
 
