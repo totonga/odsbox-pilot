@@ -10,3 +10,4 @@ wheels/
 .venv
 .*_cache/
 node_modules/
+temp/

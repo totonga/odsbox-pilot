@@ -14,6 +14,8 @@ A desktop query tool for [ASAM ODS](https://www.asam.net/standards/detail/ods/) 
 - Interactive query editor with syntax highlighting (CodeMirror)
 - Query history and built-in examples
 - Tabular result display powered by pandas
+- **Browse tab**: FilterTree-based ODS server navigation with lazy tree expansion,
+  filter condition management, and attribute value discovery
 
 ## Requirements
 
@@ -46,6 +48,20 @@ Or run as a module:
 ```bash
 python -m odsbox_pilot
 ```
+
+### Browse tab
+
+The **Browse** tab (second tab in the main window) lets you navigate the ODS
+server hierarchy interactively:
+
+1. **Filter Conditions** — add conditions per entity (e.g., `Project.name $like Elec*`).
+   Use the **…** button next to a value field to discover distinct values or the min/max
+   range directly from the server.  Conditions are persisted in
+   `~/.ods-pilot/browse_conditions.json` across sessions.
+2. **Root entity** — select which entity type to query as the tree root, then click **Query**.
+3. **Tree** — expand nodes to follow relations one level at a time.  Each instance node
+   shows related relation names; expanding a relation node fetches the connected instances.
+4. **Query Preview** — shows the Jaquel query that will be (or was) sent to the server.
 
 ## Development
 
