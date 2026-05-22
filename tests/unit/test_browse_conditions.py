@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from odsbox_pilot.browse.browse_panel import (
+from odsbox_pilot.browse._helpers import (
     _build_filter_nodes,
     _load_conditions,
     _save_conditions,
@@ -25,7 +25,7 @@ from odsbox_pilot.browse.browse_panel import (
 class TestLoadConditions:
     def test_returns_empty_list_when_file_missing(self, tmp_path: Path) -> None:
         with patch(
-            "odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE",
+            "odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE",
             tmp_path / "nonexistent.json",
         ):
             result = _load_conditions()
@@ -34,14 +34,14 @@ class TestLoadConditions:
     def test_returns_empty_list_on_corrupt_json(self, tmp_path: Path) -> None:
         bad_file = tmp_path / "bad.json"
         bad_file.write_text("not valid json", encoding="utf-8")
-        with patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", bad_file):
+        with patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", bad_file):
             result = _load_conditions()
         assert result == []
 
     def test_returns_empty_list_when_top_level_not_a_list(self, tmp_path: Path) -> None:
         obj_file = tmp_path / "obj.json"
         obj_file.write_text(json.dumps({"entity": "Project"}), encoding="utf-8")
-        with patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", obj_file):
+        with patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", obj_file):
             result = _load_conditions()
         assert result == []
 
@@ -52,7 +52,7 @@ class TestLoadConditions:
         ]
         valid_file = tmp_path / "conditions.json"
         valid_file.write_text(json.dumps(conditions), encoding="utf-8")
-        with patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", valid_file):
+        with patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", valid_file):
             result = _load_conditions()
         assert result == conditions
 
@@ -67,8 +67,8 @@ class TestSaveConditions:
         nested = tmp_path / "config" / "subdir"
         target = nested / "browse_conditions.json"
         with (
-            patch("odsbox_pilot.browse.browse_panel.CONFIG_DIR", nested),
-            patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", target),
+            patch("odsbox_pilot.browse._helpers.CONFIG_DIR", nested),
+            patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", target),
         ):
             _save_conditions([])
         assert target.exists()
@@ -79,8 +79,8 @@ class TestSaveConditions:
         ]
         target = tmp_path / "browse_conditions.json"
         with (
-            patch("odsbox_pilot.browse.browse_panel.CONFIG_DIR", tmp_path),
-            patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", target),
+            patch("odsbox_pilot.browse._helpers.CONFIG_DIR", tmp_path),
+            patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", target),
         ):
             _save_conditions(conditions)
             result = _load_conditions()
@@ -93,8 +93,8 @@ class TestSaveConditions:
             {"entity": "new", "attr": "x", "op": "$eq", "val": "y"}
         ]
         with (
-            patch("odsbox_pilot.browse.browse_panel.CONFIG_DIR", tmp_path),
-            patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", target),
+            patch("odsbox_pilot.browse._helpers.CONFIG_DIR", tmp_path),
+            patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", target),
         ):
             _save_conditions(new_conditions)
             result = _load_conditions()
@@ -108,8 +108,8 @@ class TestSaveConditions:
         target = ro_dir / "browse_conditions.json"
         try:
             with (
-                patch("odsbox_pilot.browse.browse_panel.CONFIG_DIR", ro_dir),
-                patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", target),
+                patch("odsbox_pilot.browse._helpers.CONFIG_DIR", ro_dir),
+                patch("odsbox_pilot.browse._helpers._BROWSE_CONDITIONS_FILE", target),
             ):
                 _save_conditions([{"entity": "X"}])  # must not raise
         finally:
