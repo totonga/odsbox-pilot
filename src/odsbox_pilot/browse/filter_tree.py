@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
-from odsbox.proto import ods
 from odsbox.model_cache import ModelCache
+from odsbox.proto import ods
 
 
 @dataclass
@@ -74,7 +74,7 @@ class FilterTree:
     # Public API
     # ------------------------------------------------------------------
 
-    def add_node(self, node: FilterNode) -> "FilterTree":
+    def add_node(self, node: FilterNode) -> FilterTree:
         """Add a filter condition and return *self* for fluent chaining.
 
         Invalidates the cached relation graph so that the next path-finding
@@ -162,7 +162,7 @@ class FilterTree:
         col = f"{attribute}.$distinct"
         if col not in df.columns:
             raise ValueError(f"Expected column '{col}' not found in query result.")
-        return df[col].tolist()
+        return list(df[col])
 
     def min_max(
         self,
@@ -225,9 +225,7 @@ class FilterTree:
 
         relation = self._find_direct_relation(parent_e.name, target_e.name)
         if relation is None:
-            raise ValueError(
-                f"No direct relation from '{parent_e.name}' to '{target_e.name}'."
-            )
+            raise ValueError(f"No direct relation from '{parent_e.name}' to '{target_e.name}'.")
 
         conditions: dict[str, Any] = {}
 
@@ -413,9 +411,7 @@ class FilterTree:
 
         raise ValueError(f"No path from '{source}' to '{target}' in the model.")
 
-    def _find_direct_relation(
-        self, from_entity: str, to_entity: str
-    ) -> ods.Model.Relation | None:
+    def _find_direct_relation(self, from_entity: str, to_entity: str) -> ods.Model.Relation | None:
         """Find the lowest-weight direct relation between two entities."""
         entity = self._mc.entity(from_entity)
         best: ods.Model.Relation | None = None
@@ -562,8 +558,7 @@ class FilterTree:
             else:
                 path = self._find_path(root_name, node.entity.name)
                 if id_bound and any(
-                    e in id_bound
-                    for e in self._entities_on_path(root_name, path)[:-1]
+                    e in id_bound for e in self._entities_on_path(root_name, path)[:-1]
                 ):
                     continue
                 conditions[self._path_key(root_name, path)] = node.condition

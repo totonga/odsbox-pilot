@@ -8,6 +8,7 @@ without a running wx.App.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -76,8 +77,13 @@ class BrowsePanel(wx.Panel):
 
     def clear_connection(self) -> None:
         """Disable controls and clear the tree before the connection is closed."""
-        for btn in (self._query_btn, self._add_btn, self._edit_btn,
-                    self._remove_btn, self._clear_btn):
+        for btn in (
+            self._query_btn,
+            self._add_btn,
+            self._edit_btn,
+            self._remove_btn,
+            self._clear_btn,
+        ):
             btn.Disable()
         self._tree.DeleteChildren(self._root)
         self._props_list.DeleteAllItems()
@@ -98,16 +104,18 @@ class BrowsePanel(wx.Panel):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self._build_toolbar(), flag=wx.EXPAND | wx.ALL, border=4)
-        vbox.Add(self._build_conditions_section(),
-                 flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=4)
+        vbox.Add(
+            self._build_conditions_section(),
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=4,
+        )
         self._splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
         self._build_tree(self._splitter)
         props_panel = self._build_props_panel(self._splitter)
         self._splitter.SetSashGravity(2.0 / 3.0)
         self._splitter.SplitVertically(self._tree, props_panel, sashPosition=600)
         wx.CallAfter(self._set_initial_sash)
-        vbox.Add(self._splitter, proportion=1,
-                 flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
+        vbox.Add(self._splitter, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
         vbox.Add(self._build_preview(), flag=wx.EXPAND | wx.ALL, border=4)
         self.SetSizer(vbox)
 
@@ -124,9 +132,7 @@ class BrowsePanel(wx.Panel):
             border=4,
         )
         entities = sorted(self._mc.model().entities.keys())
-        self._root_combo = wx.ComboBox(
-            self, choices=entities, style=wx.CB_READONLY, size=(180, -1)
-        )
+        self._root_combo = wx.ComboBox(self, choices=entities, style=wx.CB_READONLY, size=(180, -1))
         if "Project" in entities:
             self._root_combo.SetValue("Project")
         elif entities:
@@ -190,8 +196,12 @@ class BrowsePanel(wx.Panel):
         )
         self._props_list.AppendColumn("Property", width=200)
         self._props_list.AppendColumn("Value", width=250)
-        vbox.Add(self._props_list, proportion=1,
-                 flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=4)
+        vbox.Add(
+            self._props_list,
+            proportion=1,
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=4,
+        )
         panel.SetSizer(vbox)
         return panel
 
@@ -229,7 +239,7 @@ class BrowsePanel(wx.Panel):
 
         try:
             root_icon = _entity_icon(self._mc.entity(root).base_name)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             root_icon = _entity_icon("")
         for _, row in df.iterrows():
             instance_id = int(row["id"])
@@ -306,7 +316,7 @@ class BrowsePanel(wx.Panel):
             self._tree.SetItemHasChildren(item, False)
         try:
             target_icon = _entity_icon(self._mc.entity(data.target_entity).base_name)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             target_icon = _entity_icon("")
         for _, row in df.iterrows():
             instance_id = int(row["id"])
@@ -318,9 +328,7 @@ class BrowsePanel(wx.Panel):
             self._tree.SetItemTextColour(child, self._instance_colour)
 
         count = len(df)
-        self._status(
-            f"Browse: {data.parent_entity} \u2192 {data.target_entity}: {count} row(s)"
-        )
+        self._status(f"Browse: {data.parent_entity} \u2192 {data.target_entity}: {count} row(s)")
         self._log(
             f"Browse follow \u2014 {data.parent_entity} \u2192 {data.target_entity}: {count} row(s)"
         )
@@ -358,7 +366,7 @@ class BrowsePanel(wx.Panel):
         row = df.iloc[0]
         try:
             attr_map = self._mc.entity(entity).attributes
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             attr_map = {}
         for col in df.columns:
             attr = attr_map.get(col)
@@ -496,22 +504,22 @@ class BrowsePanel(wx.Panel):
 
 # Unicode symbol per ODS DataTypeEnum integer value.
 _ODS_TYPE_SYMBOLS: dict[int, str] = {
-    0:  "?",        # DT_UNKNOWN
-    1:  "\uff21",   # DT_STRING          — Ａ (fullwidth A)
-    2:  "\u2124",   # DT_SHORT           — ℤ
-    3:  "\u211d",   # DT_FLOAT           — ℝ
-    4:  "\u22a4",   # DT_BOOLEAN         — ⊤
-    5:  "\u229e",   # DT_BYTE            — ⊞
-    6:  "\u2124",   # DT_LONG            — ℤ
-    7:  "\u211d",   # DT_DOUBLE          — ℝ
-    8:  "\u2124",   # DT_LONGLONG        — ℤ
-    10: "\u2299",   # DT_DATE            — ⊙
-    11: "\u229e",   # DT_BYTESTR         — ⊞
-    12: "\u25a3",   # DT_BLOB            — ▣
-    13: "\u2102",   # DT_COMPLEX         — ℂ
-    14: "\u2102",   # DT_DCOMPLEX        — ℂ
-    28: "\u2934",   # DT_EXTERNALREFERENCE — ⤴
-    30: "\u2208",   # DT_ENUM            — ∈
+    0: "?",  # DT_UNKNOWN
+    1: "\uff21",  # DT_STRING          — Ａ (fullwidth A)
+    2: "\u2124",  # DT_SHORT           — ℤ
+    3: "\u211d",  # DT_FLOAT           — ℝ
+    4: "\u22a4",  # DT_BOOLEAN         — ⊤
+    5: "\u229e",  # DT_BYTE            — ⊞
+    6: "\u2124",  # DT_LONG            — ℤ
+    7: "\u211d",  # DT_DOUBLE          — ℝ
+    8: "\u2124",  # DT_LONGLONG        — ℤ
+    10: "\u2299",  # DT_DATE            — ⊙
+    11: "\u229e",  # DT_BYTESTR         — ⊞
+    12: "\u25a3",  # DT_BLOB            — ▣
+    13: "\u2102",  # DT_COMPLEX         — ℂ
+    14: "\u2102",  # DT_DCOMPLEX        — ℂ
+    28: "\u2934",  # DT_EXTERNALREFERENCE — ⤴
+    30: "\u2208",  # DT_ENUM            — ∈
 }
 
 # Readable name per ODS DataTypeEnum integer value (kept for tooling/tests).
@@ -536,31 +544,31 @@ _ODS_TYPE_NAMES: dict[int, str] = {
 
 # Unicode icon per ODS entity base_name.
 _ENTITY_ICONS: dict[str, str] = {
-    "AoEnvironment":         "\u25c9",  # ◉
-    "AoTest":                "\u2697",  # ⚗
-    "AoSubTest":             "\u2299",  # ⊙
-    "AoTestStep":            "\u25b7",  # ▷
-    "AoMeasurement":         "\u223f",  # ∿
-    "AoSubMatrix":           "\u229e",  # ⊞
-    "AoLocalColumn":         "\u21a7",  # ↧
+    "AoEnvironment": "\u25c9",  # ◉
+    "AoTest": "\u2697",  # ⚗
+    "AoSubTest": "\u2299",  # ⊙
+    "AoTestStep": "\u25b7",  # ▷
+    "AoMeasurement": "\u223f",  # ∿
+    "AoSubMatrix": "\u229e",  # ⊞
+    "AoLocalColumn": "\u21a7",  # ↧
     "AoMeasurementQuantity": "\u0394",  # Δ
-    "AoTestEquipment":       "\u2699",  # ⚙
-    "AoUnit":                "\u03a9",  # Ω
-    "AoPhysicalDimension":   "\u2295",  # ⊕
-    "AoParameterSet":        "\u2261",  # ≡
-    "AoParameter":           "\u03bb",  # λ
-    "AoFile":                "\u25a4",  # ▤
-    "AoLog":                 "\u2263",  # ≣
-    "AoNameMap":             "\u21cc",  # ⇌
-    "AoAny":                 "\u25c7",  # ◇
-    "AoUnitUnderTest":       "\u25c8",  # ◈
-    "AoUnitUnderTestPart":   "\u25e6",  # ◦
-    "AoTestSequence":        "\u21d2",  # ⇒
-    "AoTestSequencePart":    "\u21aa",  # ↪
-    "AoCatalogue":           "\u229f",  # ⊟
-    "AoCatalogueElement":    "\u29c3",  # ⧃
-    "AoUsers":               "\u229b",  # ⊛
-    "AoUserGroup":           "\u229a",  # ⊚
+    "AoTestEquipment": "\u2699",  # ⚙
+    "AoUnit": "\u03a9",  # Ω
+    "AoPhysicalDimension": "\u2295",  # ⊕
+    "AoParameterSet": "\u2261",  # ≡
+    "AoParameter": "\u03bb",  # λ
+    "AoFile": "\u25a4",  # ▤
+    "AoLog": "\u2263",  # ≣
+    "AoNameMap": "\u21cc",  # ⇌
+    "AoAny": "\u25c7",  # ◇
+    "AoUnitUnderTest": "\u25c8",  # ◈
+    "AoUnitUnderTestPart": "\u25e6",  # ◦
+    "AoTestSequence": "\u21d2",  # ⇒
+    "AoTestSequencePart": "\u21aa",  # ↪
+    "AoCatalogue": "\u229f",  # ⊟
+    "AoCatalogueElement": "\u29c3",  # ⧃
+    "AoUsers": "\u229b",  # ⊛
+    "AoUserGroup": "\u229a",  # ⊚
 }
 
 
@@ -599,20 +607,17 @@ def _build_filter_nodes(
     for cond in conditions:
         try:
             entity = mc.entity(cond["entity"])
-        except (ValueError, KeyError):
+        except ValueError, KeyError:
             failed.append(cond.get("entity", "?"))
             continue
         val: Any = cond.get("val", "")
-        try:
+        with contextlib.suppress(ValueError, TypeError):
             val = int(val)
-        except (ValueError, TypeError):
-            try:
+        if not isinstance(val, int):
+            with contextlib.suppress(ValueError, TypeError):
                 val = float(val)
-            except (ValueError, TypeError):
-                pass
         nodes.append(FilterNode(entity=entity, condition={cond["attr"]: {cond["op"]: val}}))
     return nodes, failed
-
 
 
 def _load_conditions() -> list[dict[str, Any]]:
@@ -624,7 +629,7 @@ def _load_conditions() -> list[dict[str, Any]]:
         data = json.loads(_BROWSE_CONDITIONS_FILE.read_text(encoding="utf-8"))
         if isinstance(data, list):
             return data
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
+    except FileNotFoundError, json.JSONDecodeError, OSError:
         pass
     return []
 
@@ -637,8 +642,6 @@ def _save_conditions(conditions: list[dict[str, Any]]) -> None:
     """
     try:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        _BROWSE_CONDITIONS_FILE.write_text(
-            json.dumps(conditions, indent=2), encoding="utf-8"
-        )
+        _BROWSE_CONDITIONS_FILE.write_text(json.dumps(conditions, indent=2), encoding="utf-8")
     except OSError:
         pass

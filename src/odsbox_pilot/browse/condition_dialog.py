@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import wx  # type: ignore[import-untyped]
-
 from odsbox.proto import ods
 
 from odsbox_pilot.browse.filter_tree import FilterTree

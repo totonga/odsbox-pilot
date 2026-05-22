@@ -114,9 +114,7 @@ class TestGenerateQuery:
     """Tests for generate_query using a local model (no server)."""
 
     def test_project_and_mea_result(self, mc: ModelCache) -> None:
-        node1 = FilterNode(
-            entity=mc.entity("Project"), condition={"name": {"$like": "Elec*"}}
-        )
+        node1 = FilterNode(entity=mc.entity("Project"), condition={"name": {"$like": "Elec*"}})
         node2 = FilterNode(
             entity=mc.entity("MeaResult"), condition={"name": {"$like": "Profile_*"}}
         )
@@ -135,15 +133,11 @@ class TestGenerateQuery:
         assert query["$groupby"] == {"id": 1, "name": 1}
 
     def test_with_vehicle(self, mc: ModelCache) -> None:
-        node1 = FilterNode(
-            entity=mc.entity("Project"), condition={"name": {"$like": "Elec*"}}
-        )
+        node1 = FilterNode(entity=mc.entity("Project"), condition={"name": {"$like": "Elec*"}})
         node2 = FilterNode(
             entity=mc.entity("MeaResult"), condition={"name": {"$like": "Profile_*"}}
         )
-        node3 = FilterNode(
-            entity=mc.entity("vehicle"), condition={"name": {"$like": "*"}}
-        )
+        node3 = FilterNode(entity=mc.entity("vehicle"), condition={"name": {"$like": "*"}})
         ft = FilterTree(mc, [node1, node2, node3])
 
         query = ft.generate_query("Project")
@@ -156,9 +150,7 @@ class TestGenerateQuery:
         assert project_conds[vehicle_keys[0]] == {"name": {"$like": "*"}}
 
     def test_custom_attributes(self, mc: ModelCache) -> None:
-        node = FilterNode(
-            entity=mc.entity("Project"), condition={"name": {"$like": "*"}}
-        )
+        node = FilterNode(entity=mc.entity("Project"), condition={"name": {"$like": "*"}})
         ft = FilterTree(mc, [node])
 
         attrs = {"id": 1, "name": 1, "Description": 1}

@@ -11,14 +11,11 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from odsbox_pilot.browse.browse_panel import (
     _build_filter_nodes,
     _load_conditions,
     _save_conditions,
 )
-
 
 # ---------------------------------------------------------------------------
 # _load_conditions
@@ -27,8 +24,10 @@ from odsbox_pilot.browse.browse_panel import (
 
 class TestLoadConditions:
     def test_returns_empty_list_when_file_missing(self, tmp_path: Path) -> None:
-        with patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE",
-                   tmp_path / "nonexistent.json"):
+        with patch(
+            "odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE",
+            tmp_path / "nonexistent.json",
+        ):
             result = _load_conditions()
         assert result == []
 
@@ -90,7 +89,9 @@ class TestSaveConditions:
     def test_overwrites_existing_file(self, tmp_path: Path) -> None:
         target = tmp_path / "browse_conditions.json"
         target.write_text(json.dumps([{"entity": "old"}]), encoding="utf-8")
-        new_conditions: list[dict[str, Any]] = [{"entity": "new", "attr": "x", "op": "$eq", "val": "y"}]
+        new_conditions: list[dict[str, Any]] = [
+            {"entity": "new", "attr": "x", "op": "$eq", "val": "y"}
+        ]
         with (
             patch("odsbox_pilot.browse.browse_panel.CONFIG_DIR", tmp_path),
             patch("odsbox_pilot.browse.browse_panel._BROWSE_CONDITIONS_FILE", target),
