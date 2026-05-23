@@ -115,8 +115,9 @@ class BrowsePanel(wx.Panel):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self._build_toolbar(), flag=wx.EXPAND | wx.ALL, border=4)
+        self._cond_pane = self._build_conditions_section()
         vbox.Add(
-            self._build_conditions_section(),
+            self._cond_pane,
             flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
             border=4,
         )
@@ -140,6 +141,10 @@ class BrowsePanel(wx.Panel):
             wx.CallAfter(self._preview_nb.SetSelection, _saved_page)
         wx.CallAfter(self._set_initial_vsash)
         wx.CallAfter(self._initial_canvas_draw)
+        if _load_prefs().get("cond_collapsed", False):
+            wx.CallAfter(self._cond_body.Hide)
+            wx.CallAfter(self._update_cond_toggle)
+            wx.CallAfter(self.Layout)
 
     def _set_initial_sash(self) -> None:
         w = self._splitter.GetClientSize().width
@@ -185,35 +190,75 @@ class BrowsePanel(wx.Panel):
         hbox.Add(self._query_btn)
         return hbox
 
-    def _build_conditions_section(self) -> wx.Sizer:
-        box = wx.StaticBox(self, label="Filter Conditions")
-        sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+    def _build_conditions_section(self) -> wx.Panel:
+        outer = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # ── header row with toggle button ─────────────────────────────────
+        hdr = wx.BoxSizer(wx.HORIZONTAL)
+        self._cond_toggle = wx.Button(outer, label="▼  Filter Conditions",
+                                      style=wx.BU_LEFT | wx.BORDER_NONE)
+        self._cond_toggle.Bind(wx.EVT_BUTTON, self._on_cond_toggle)
+        hdr.Add(self._cond_toggle, proportion=1, flag=wx.EXPAND)
+        vbox.Add(hdr, flag=wx.EXPAND | wx.BOTTOM, border=2)
+
+        # ── collapsible body ──────────────────────────────────────────────
+        self._cond_body = wx.Panel(outer)
+        body_hbox = wx.BoxSizer(wx.HORIZONTAL)
 
         self._cond_list = wx.ListCtrl(
-            self,
+            self._cond_body,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
-            size=(-1, 110),
+            size=(-1, 90),
         )
         self._cond_list.AppendColumn("Entity", width=140)
         self._cond_list.AppendColumn("Attribute", width=120)
         self._cond_list.AppendColumn("Operator", width=75)
         self._cond_list.AppendColumn("Value", width=140)
         self._cond_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_edit_condition)
-        sizer.Add(self._cond_list, proportion=1, flag=wx.EXPAND | wx.ALL, border=4)
+        body_hbox.Add(self._cond_list, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=4)
 
         btn_vbox = wx.BoxSizer(wx.VERTICAL)
-        self._add_btn = wx.Button(self, label="Add")
-        self._edit_btn = wx.Button(self, label="Edit")
-        self._remove_btn = wx.Button(self, label="Remove")
-        self._clear_btn = wx.Button(self, label="Clear")
+        self._add_btn = wx.Button(self._cond_body, label="Add")
+        self._edit_btn = wx.Button(self._cond_body, label="Edit")
+        self._remove_btn = wx.Button(self._cond_body, label="Remove")
+        self._clear_btn = wx.Button(self._cond_body, label="Clear")
         for btn in (self._add_btn, self._edit_btn, self._remove_btn, self._clear_btn):
             btn_vbox.Add(btn, flag=wx.EXPAND | wx.BOTTOM, border=3)
         self._add_btn.Bind(wx.EVT_BUTTON, self._on_add_condition)
         self._edit_btn.Bind(wx.EVT_BUTTON, self._on_edit_condition)
         self._remove_btn.Bind(wx.EVT_BUTTON, self._on_remove_condition)
         self._clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_conditions)
-        sizer.Add(btn_vbox, flag=wx.TOP | wx.BOTTOM | wx.RIGHT, border=4)
-        return sizer
+        body_hbox.Add(btn_vbox, flag=wx.LEFT, border=0)
+
+        self._cond_body.SetSizer(body_hbox)
+        vbox.Add(self._cond_body, flag=wx.EXPAND)
+        outer.SetSizer(vbox)
+        return outer
+
+    def _on_cond_toggle(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
+        self._cond_body.Show(not self._cond_body.IsShown())
+        self._update_cond_toggle()
+        prefs = _load_prefs()
+        prefs["cond_collapsed"] = not self._cond_body.IsShown()
+        _save_prefs(prefs)
+        self.Layout()
+
+    def _update_cond_toggle(self) -> None:
+        expanded = self._cond_body.IsShown()
+        arrow = "\u25bc" if expanded else "\u25b6"
+        if expanded or not self._saved_conditions:
+            label = f"{arrow}  Filter Conditions"
+        else:
+            parts = [
+                f"{c.get('entity', '?')}.{c.get('attr', '?')} {c.get('op', '?')} {c.get('val', '')}"
+                for c in self._saved_conditions[:2]
+            ]
+            summary = ",  ".join(parts)
+            if len(self._saved_conditions) > 2:
+                summary += f"  (+{len(self._saved_conditions) - 2} more)"
+            label = f"{arrow}  Filter Conditions  —  {summary}"
+        self._cond_toggle.SetLabel(label)
 
     def _build_tree(self, parent: wx.Window) -> None:
         self._tree = wx.TreeCtrl(
@@ -686,6 +731,7 @@ class BrowsePanel(wx.Panel):
             self._cond_list.SetItem(idx, 1, cond.get("attr", ""))
             self._cond_list.SetItem(idx, 2, cond.get("op", ""))
             self._cond_list.SetItem(idx, 3, str(cond.get("val", "")))
+        self._update_cond_toggle()
 
     # ------------------------------------------------------------------
     # Preview helpers
