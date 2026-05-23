@@ -13,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from odsbox.proto import ods
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.browse._helpers import (
@@ -355,7 +356,17 @@ class BrowsePanel(wx.Panel):
 
     def _show_instance_properties(self, entity: str, instance_id: int) -> None:
         try:
-            q = {entity: {"id": {"$eq": instance_id}}}
+            entity_e: ods.Model.Entity = self._mc.entity(entity)
+            q: dict[str, Any] = {entity: {"id": {"$eq": instance_id}}}
+            if entity_e.base_name.lower() == "aolocalcolumn":
+                attributes: dict[str, int] = {}
+                for attr in entity_e.attributes.values():
+                    if attr.name.lower() not in ["values", "flags"]:
+                        attributes[attr.name] = 1
+                for rel in entity_e.relations.values():
+                    if rel.range_max == 1:
+                        attributes[rel.name] = 1
+                q["$attributes"] = attributes
             df = self._con_i.query(q)
         except Exception as exc:
             self._log(f"Properties query error: {exc}", ok=False)
@@ -373,7 +384,7 @@ class BrowsePanel(wx.Panel):
             attr_map = {}
         for col in df.columns:
             attr = attr_map.get(col)
-            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "?"
+            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "\u2192"
             idx = self._props_list.GetItemCount()
             self._props_list.InsertItem(idx, f"{symbol} {col}")
             self._props_list.SetItem(idx, 1, str(row[col]))

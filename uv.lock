@@ -622,6 +622,7 @@ gui = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "odsbox-pilot", extra = ["gui"] },
     { name = "pip-audit" },
     { name = "pytest" },
     { name = "pytest-mock" },
@@ -641,6 +642,7 @@ provides-extras = ["gui"]
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.20.2" },
+    { name = "odsbox-pilot", extras = ["gui"] },
     { name = "pip-audit", specifier = ">=2.9.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-mock", specifier = ">=3.14.0" },
