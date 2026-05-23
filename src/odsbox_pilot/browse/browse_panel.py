@@ -8,19 +8,25 @@ without a running wx.App.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 import wx  # type: ignore[import-untyped]
+from odsbox.proto import ods
 
 from odsbox_pilot.browse._helpers import (
     _build_filter_nodes,
+    _entity_colour,
+    _entity_colour_light,
     _entity_icon,
     _load_conditions,
+    _load_prefs,
     _ods_type_symbol,
     _save_conditions,
+    _save_prefs,
 )
 from odsbox_pilot.browse.filter_tree import FilterNode, FilterTree
 
@@ -71,6 +77,8 @@ class BrowsePanel(wx.Panel):
         self._ft: FilterTree = FilterTree(self._mc)
         self._saved_conditions: list[dict[str, Any]] = []
         self._nodes: list[FilterNode] = []
+        self._closing = False
+        self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._build_ui()
         self._load_and_rebuild()
 
@@ -80,6 +88,7 @@ class BrowsePanel(wx.Panel):
 
     def clear_connection(self) -> None:
         """Disable controls and clear the tree before the connection is closed."""
+        self._closing = True
         for btn in (
             self._query_btn,
             self._add_btn,
@@ -92,6 +101,7 @@ class BrowsePanel(wx.Panel):
         self._props_list.DeleteAllItems()
         self._props_header.SetLabel("Properties")
         self._preview.SetValue("")
+        self._clear_values_display("Disconnected")
         self._status("Disconnected")
 
     # ------------------------------------------------------------------
@@ -107,8 +117,9 @@ class BrowsePanel(wx.Panel):
 
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self._build_toolbar(), flag=wx.EXPAND | wx.ALL, border=4)
+        self._cond_pane = self._build_conditions_section()
         vbox.Add(
-            self._build_conditions_section(),
+            self._cond_pane,
             flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
             border=4,
         )
@@ -118,14 +129,48 @@ class BrowsePanel(wx.Panel):
         self._splitter.SetSashGravity(2.0 / 3.0)
         self._splitter.SplitVertically(self._tree, props_panel, sashPosition=600)
         wx.CallAfter(self._set_initial_sash)
-        vbox.Add(self._splitter, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
-        vbox.Add(self._build_preview(), flag=wx.EXPAND | wx.ALL, border=4)
+        # Vertical splitter: top = tree/props, bottom = preview notebook
+        self._v_splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3DSASH)
+        self._splitter.Reparent(self._v_splitter)
+        self._preview_nb = self._build_preview_notebook(self._v_splitter)
+        self._v_splitter.SplitHorizontally(self._splitter, self._preview_nb, sashPosition=400)
+        self._v_splitter.SetMinimumPaneSize(80)
+        self._v_splitter.SetSashGravity(1.0)
+        vbox.Add(self._v_splitter, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
         self.SetSizer(vbox)
+        _saved_page = _load_prefs().get("preview_page", 0)
+        if _saved_page < self._preview_nb.GetPageCount():
+            wx.CallAfter(self._preview_nb.SetSelection, _saved_page)
+        wx.CallAfter(self._set_initial_vsash)
+        wx.CallAfter(self._initial_canvas_draw)
+        if _load_prefs().get("cond_collapsed", False):
+            wx.CallAfter(self._cond_body.Hide)
+            wx.CallAfter(self._update_cond_toggle)
+            wx.CallAfter(self.Layout)
 
     def _set_initial_sash(self) -> None:
         w = self._splitter.GetClientSize().width
         if w > 0:
             self._splitter.SetSashPosition(int(w * 2 / 3))
+
+    def _set_initial_vsash(self) -> None:
+        h = self._v_splitter.GetClientSize().height
+        if h > 0:
+            self._v_splitter.SetSashPosition(max(80, h - 220))
+
+    def _initial_canvas_draw(self) -> None:
+        """Force the matplotlib canvas to render at its actual laid-out size."""
+        if getattr(self, "_values_canvas_type", None) == "matplotlib":
+            w, h = self._values_display.GetClientSize()
+            dpi = self._values_fig.get_dpi()
+            if w > 0 and h > 0:
+                self._values_fig.set_size_inches(w / dpi, h / dpi, forward=False)
+            self._values_display.draw_idle()
+
+    def _on_destroy(self, event: wx.WindowDestroyEvent) -> None:
+        if event.GetEventObject() is self:
+            self._closing = True
+        event.Skip()
 
     def _build_toolbar(self) -> wx.Sizer:
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -147,35 +192,76 @@ class BrowsePanel(wx.Panel):
         hbox.Add(self._query_btn)
         return hbox
 
-    def _build_conditions_section(self) -> wx.Sizer:
-        box = wx.StaticBox(self, label="Filter Conditions")
-        sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+    def _build_conditions_section(self) -> wx.Panel:
+        outer = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # ── header row with toggle button ─────────────────────────────────
+        hdr = wx.BoxSizer(wx.HORIZONTAL)
+        self._cond_toggle = wx.Button(
+            outer, label="▼  Filter Conditions", style=wx.BU_LEFT | wx.BORDER_NONE
+        )
+        self._cond_toggle.Bind(wx.EVT_BUTTON, self._on_cond_toggle)
+        hdr.Add(self._cond_toggle, proportion=1, flag=wx.EXPAND)
+        vbox.Add(hdr, flag=wx.EXPAND | wx.BOTTOM, border=2)
+
+        # ── collapsible body ──────────────────────────────────────────────
+        self._cond_body = wx.Panel(outer)
+        body_hbox = wx.BoxSizer(wx.HORIZONTAL)
 
         self._cond_list = wx.ListCtrl(
-            self,
+            self._cond_body,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
-            size=(-1, 110),
+            size=(-1, 90),
         )
         self._cond_list.AppendColumn("Entity", width=140)
         self._cond_list.AppendColumn("Attribute", width=120)
         self._cond_list.AppendColumn("Operator", width=75)
         self._cond_list.AppendColumn("Value", width=140)
         self._cond_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_edit_condition)
-        sizer.Add(self._cond_list, proportion=1, flag=wx.EXPAND | wx.ALL, border=4)
+        body_hbox.Add(self._cond_list, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=4)
 
         btn_vbox = wx.BoxSizer(wx.VERTICAL)
-        self._add_btn = wx.Button(self, label="Add")
-        self._edit_btn = wx.Button(self, label="Edit")
-        self._remove_btn = wx.Button(self, label="Remove")
-        self._clear_btn = wx.Button(self, label="Clear")
+        self._add_btn = wx.Button(self._cond_body, label="Add")
+        self._edit_btn = wx.Button(self._cond_body, label="Edit")
+        self._remove_btn = wx.Button(self._cond_body, label="Remove")
+        self._clear_btn = wx.Button(self._cond_body, label="Clear")
         for btn in (self._add_btn, self._edit_btn, self._remove_btn, self._clear_btn):
             btn_vbox.Add(btn, flag=wx.EXPAND | wx.BOTTOM, border=3)
         self._add_btn.Bind(wx.EVT_BUTTON, self._on_add_condition)
         self._edit_btn.Bind(wx.EVT_BUTTON, self._on_edit_condition)
         self._remove_btn.Bind(wx.EVT_BUTTON, self._on_remove_condition)
         self._clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_conditions)
-        sizer.Add(btn_vbox, flag=wx.TOP | wx.BOTTOM | wx.RIGHT, border=4)
-        return sizer
+        body_hbox.Add(btn_vbox, flag=wx.LEFT, border=0)
+
+        self._cond_body.SetSizer(body_hbox)
+        vbox.Add(self._cond_body, flag=wx.EXPAND)
+        outer.SetSizer(vbox)
+        return outer
+
+    def _on_cond_toggle(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
+        self._cond_body.Show(not self._cond_body.IsShown())
+        self._update_cond_toggle()
+        prefs = _load_prefs()
+        prefs["cond_collapsed"] = not self._cond_body.IsShown()
+        _save_prefs(prefs)
+        self.Layout()
+
+    def _update_cond_toggle(self) -> None:
+        expanded = self._cond_body.IsShown()
+        arrow = "\u25bc" if expanded else "\u25b6"
+        if expanded or not self._saved_conditions:
+            label = f"{arrow}  Filter Conditions"
+        else:
+            parts = [
+                f"{c.get('entity', '?')}.{c.get('attr', '?')} {c.get('op', '?')} {c.get('val', '')}"
+                for c in self._saved_conditions[:2]
+            ]
+            summary = ",  ".join(parts)
+            if len(self._saved_conditions) > 2:
+                summary += f"  (+{len(self._saved_conditions) - 2} more)"
+            label = f"{arrow}  Filter Conditions  —  {summary}"
+        self._cond_toggle.SetLabel(label)
 
     def _build_tree(self, parent: wx.Window) -> None:
         self._tree = wx.TreeCtrl(
@@ -208,16 +294,88 @@ class BrowsePanel(wx.Panel):
         panel.SetSizer(vbox)
         return panel
 
-    def _build_preview(self) -> wx.Sizer:
-        box = wx.StaticBox(self, label="Query Preview (Jaquel)")
-        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+    def _build_preview_notebook(self, parent: wx.Window) -> wx.Notebook:
+        """Create the tabbed preview pane: *Jaquel* query and *Values* plot."""
+        nb = wx.Notebook(parent)
+        nb.SetMinSize((-1, 80))
+
+        # ── Page 0: Jaquel query preview ─────────────────────────────────
+        jaquel_panel = wx.Panel(nb)
+        jsizer = wx.BoxSizer(wx.VERTICAL)
         self._preview = wx.TextCtrl(
-            self,
+            jaquel_panel,
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
-            size=(-1, 90),
         )
-        sizer.Add(self._preview, proportion=1, flag=wx.EXPAND | wx.ALL, border=2)
-        return sizer
+        jsizer.Add(self._preview, proportion=1, flag=wx.EXPAND | wx.ALL, border=2)
+        jaquel_panel.SetSizer(jsizer)
+        nb.AddPage(jaquel_panel, "Jaquel")
+
+        # ── Page 1: Values preview ────────────────────────────────────────
+        values_panel = wx.Panel(nb)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._values_enable_cb = wx.CheckBox(values_panel, label="Enable values preview")
+        self._values_enable_cb.SetValue(False)
+        self._values_enable_cb.Bind(wx.EVT_CHECKBOX, self._on_values_enable_changed)
+        ctrl_row.Add(self._values_enable_cb, flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL, border=4)
+        vsizer.Add(ctrl_row)
+        self._values_display: Any = self._create_values_display(values_panel)
+        vsizer.Add(self._values_display, proportion=1, flag=wx.EXPAND | wx.ALL, border=2)
+        values_panel.SetSizer(vsizer)
+        nb.AddPage(values_panel, "Values")
+
+        nb.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_preview_page_changed)
+        return nb
+
+    def _create_values_display(self, parent: wx.Window) -> Any:
+        """Create a matplotlib canvas, or a plain TextCtrl fallback if matplotlib is absent."""
+        try:
+            import matplotlib  # noqa: PLC0415
+
+            with contextlib.suppress(Exception):
+                matplotlib.use("WxAgg")
+            from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg  # noqa: PLC0415
+            from matplotlib.figure import Figure  # noqa: PLC0415
+
+            fig = Figure(tight_layout=True)
+            ax = fig.add_subplot(111)
+            ax.axis("off")
+            ax.text(
+                0.5,
+                0.5,
+                "Select an AoLocalColumn to preview values",
+                transform=ax.transAxes,
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="gray",
+            )
+            canvas = FigureCanvasWxAgg(parent, -1, fig)
+            self._values_fig = fig
+            self._values_ax = ax
+            self._values_canvas_type = "matplotlib"
+            return canvas
+        except Exception:  # noqa: BLE001
+            self._values_canvas_type = "text"
+            ctrl = wx.TextCtrl(parent, style=wx.TE_MULTILINE | wx.TE_READONLY)
+            ctrl.SetValue("Select an AoLocalColumn to preview values")
+            self._values_text_ctrl = ctrl
+            return ctrl
+
+    def _on_preview_page_changed(self, event: wx.BookCtrlEvent) -> None:
+        page = event.GetSelection()
+        prefs = _load_prefs()
+        prefs["preview_page"] = page
+        _save_prefs(prefs)
+        if page == 1:
+            wx.CallAfter(self._load_values_preview)
+        event.Skip()
+
+    def _on_values_enable_changed(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
+        if self._values_enable_cb.GetValue():
+            self._load_values_preview()
+        else:
+            self._clear_values_display("Values preview disabled")
 
     # ------------------------------------------------------------------
     # Query event handler
@@ -227,7 +385,10 @@ class BrowsePanel(wx.Panel):
         root = self._root_combo.GetValue()
         if not root:
             return
+        _prev_closing = self._closing
+        self._closing = True
         self._tree.DeleteChildren(self._root)
+        self._closing = _prev_closing
         wx.BeginBusyCursor()
         try:
             q = self._ft.generate_query(root)
@@ -241,9 +402,12 @@ class BrowsePanel(wx.Panel):
         wx.EndBusyCursor()
 
         try:
-            root_icon = _entity_icon(self._mc.entity(root).base_name)
+            root_base = self._mc.entity(root).base_name
+            root_icon = _entity_icon(root_base)
         except ValueError, AttributeError:
+            root_base = ""
             root_icon = _entity_icon("")
+        root_colour = _entity_colour(root_base)
         for _, row in df.iterrows():
             instance_id = int(row["id"])
             name = str(row.get("name", "")) or str(instance_id)
@@ -251,7 +415,8 @@ class BrowsePanel(wx.Panel):
             child = self._tree.AppendItem(self._root, text)
             self._tree.SetItemData(child, _InstanceData(root, instance_id))
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._instance_colour)
+            colour = wx.Colour(*root_colour) if root_colour else self._instance_colour
+            self._tree.SetItemTextColour(child, colour)
 
         count = len(df)
         self._status(f"Browse: {count} {root} instance(s)")
@@ -296,7 +461,13 @@ class BrowsePanel(wx.Panel):
                 _RelMetaData(data.entity, data.instance_id, rel.name, rel.entity_name),
             )
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._relation_colour)
+            try:
+                rel_base = self._mc.entity(rel.entity_name).base_name
+            except ValueError, AttributeError:
+                rel_base = ""
+            rel_rgb = _entity_colour_light(rel_base)
+            rel_colour = wx.Colour(*rel_rgb) if rel_rgb else self._relation_colour
+            self._tree.SetItemTextColour(child, rel_colour)
             self._tree.SetItemFont(child, self._relation_font)
 
     def _expand_instance_node(self, item: wx.TreeItemId, data: _RelMetaData) -> None:
@@ -318,9 +489,12 @@ class BrowsePanel(wx.Panel):
         if df.empty:
             self._tree.SetItemHasChildren(item, False)
         try:
-            target_icon = _entity_icon(self._mc.entity(data.target_entity).base_name)
+            target_base = self._mc.entity(data.target_entity).base_name
+            target_icon = _entity_icon(target_base)
         except ValueError, AttributeError:
+            target_base = ""
             target_icon = _entity_icon("")
+        target_colour = _entity_colour(target_base)
         for _, row in df.iterrows():
             instance_id = int(row["id"])
             name = str(row.get("name", "")) or str(instance_id)
@@ -328,7 +502,8 @@ class BrowsePanel(wx.Panel):
             child = self._tree.AppendItem(item, text)
             self._tree.SetItemData(child, _InstanceData(data.target_entity, instance_id))
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._instance_colour)
+            colour = wx.Colour(*target_colour) if target_colour else self._instance_colour
+            self._tree.SetItemTextColour(child, colour)
 
         count = len(df)
         self._status(f"Browse: {data.parent_entity} \u2192 {data.target_entity}: {count} row(s)")
@@ -341,10 +516,13 @@ class BrowsePanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_tree_sel_changed(self, event: wx.TreeEvent) -> None:
+        if self._closing:
+            return
         item = event.GetItem()
         if not item.IsOk():
             self._props_list.DeleteAllItems()
             self._props_header.SetLabel("Properties")
+            self._maybe_load_values()
             return
         data = self._tree.GetItemData(item)
         if isinstance(data, _InstanceData):
@@ -352,10 +530,21 @@ class BrowsePanel(wx.Panel):
         else:
             self._props_list.DeleteAllItems()
             self._props_header.SetLabel("Properties")
+        self._maybe_load_values()
 
     def _show_instance_properties(self, entity: str, instance_id: int) -> None:
         try:
-            q = {entity: {"id": {"$eq": instance_id}}}
+            entity_e: ods.Model.Entity = self._mc.entity(entity)
+            q: dict[str, Any] = {entity: {"id": {"$eq": instance_id}}}
+            if entity_e.base_name.lower() == "aolocalcolumn":
+                attributes: dict[str, int] = {}
+                for attr in entity_e.attributes.values():
+                    if attr.name.lower() not in ["values", "flags"]:
+                        attributes[attr.name] = 1
+                for rel in entity_e.relations.values():
+                    if rel.range_max == 1:
+                        attributes[rel.name] = 1
+                q["$attributes"] = attributes
             df = self._con_i.query(q)
         except Exception as exc:
             self._log(f"Properties query error: {exc}", ok=False)
@@ -363,7 +552,7 @@ class BrowsePanel(wx.Panel):
             self._props_header.SetLabel("Properties")
             return
         self._props_list.DeleteAllItems()
-        self._props_header.SetLabel(f"{entity}  [{instance_id}]")
+        self._props_header.SetLabel(f"{entity}  ·  {entity_e.base_name}  [{instance_id}]")
         if df.empty:
             return
         row = df.iloc[0]
@@ -373,10 +562,112 @@ class BrowsePanel(wx.Panel):
             attr_map = {}
         for col in df.columns:
             attr = attr_map.get(col)
-            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "?"
+            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "\u2192"
             idx = self._props_list.GetItemCount()
             self._props_list.InsertItem(idx, f"{symbol} {col}")
             self._props_list.SetItem(idx, 1, str(row[col]))
+
+    def _maybe_load_values(self) -> None:
+        """Trigger a values load only when the Values tab is currently shown."""
+        if self._preview_nb.GetSelection() == 1:
+            self._load_values_preview()
+
+    def _load_values_preview(self) -> None:
+        """Fetch and display AoLocalColumn values in the Values tab."""
+        if not self._values_enable_cb.GetValue():
+            self._clear_values_display("Values preview disabled \u2014 enable checkbox above")
+            return
+        sel = self._tree.GetSelection()
+        if not sel.IsOk():
+            self._clear_values_display("No selection")
+            return
+        item_data = self._tree.GetItemData(sel)
+        if not isinstance(item_data, _InstanceData):
+            self._clear_values_display("Select an entity instance node")
+            return
+        entity, instance_id = item_data.entity, item_data.instance_id
+        try:
+            base = self._mc.entity(entity).base_name.lower()
+        except ValueError, AttributeError:
+            base = ""
+        if base != "aolocalcolumn":
+            self._clear_values_display(
+                f"Values only available for AoLocalColumn\n(selected: {entity})"
+            )
+            return
+        wx.BeginBusyCursor()
+        try:
+            q: dict[str, Any] = {
+                entity: {"id": {"$eq": instance_id}},
+                "$attributes": {"values": 1},
+            }
+            df = self._con_i.query(q)
+        except Exception as exc:
+            wx.EndBusyCursor()
+            self._clear_values_display(f"Query error:\n{exc}")
+            return
+        wx.EndBusyCursor()
+        if df.empty:
+            self._clear_values_display("No values returned")
+            return
+        values_col = next((c for c in df.columns if "values" in c.lower()), None)
+        if values_col is None:
+            self._clear_values_display(
+                f"No \u2018values\u2019 column in result: {list(df.columns)}"
+            )
+            return
+        self._render_values(df[values_col].iloc[0], entity, instance_id)
+
+    def _render_values(self, raw: Any, entity: str, instance_id: int) -> None:
+        """Plot numeric data as y/index line; display non-numeric values as text."""
+        import numpy as np  # noqa: PLC0415
+
+        arr = np.asarray(raw)
+        if self._values_canvas_type == "matplotlib":
+            self._values_ax.clear()
+            if arr.ndim > 0 and np.issubdtype(arr.dtype, np.number):
+                self._values_ax.plot(np.arange(len(arr)), arr, linewidth=0.8)
+                self._values_ax.tick_params(labelsize=7)
+            else:
+                self._values_ax.axis("off")
+                sample = repr(list(arr[:30]))
+                if len(arr) > 30:
+                    sample += f"\n\u2026 {len(arr)} total"
+                self._values_ax.text(
+                    0.5,
+                    0.5,
+                    sample,
+                    transform=self._values_ax.transAxes,
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                )
+            self._values_fig.tight_layout(pad=0.3)
+            self._values_display.draw()
+        else:
+            self._values_text_ctrl.SetValue(
+                f"{entity} [{instance_id}] \u2014 {len(arr)} values\n{arr!r}"
+            )
+
+    def _clear_values_display(self, message: str = "") -> None:
+        """Reset the values canvas and show an optional status message."""
+        if self._values_canvas_type == "matplotlib":
+            self._values_ax.clear()
+            self._values_ax.axis("off")
+            if message:
+                self._values_ax.text(
+                    0.5,
+                    0.5,
+                    message,
+                    transform=self._values_ax.transAxes,
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    color="gray",
+                )
+            self._values_display.draw()
+        else:
+            self._values_text_ctrl.SetValue(message)
 
     # ------------------------------------------------------------------
     # Condition event handlers
@@ -470,6 +761,7 @@ class BrowsePanel(wx.Panel):
             self._cond_list.SetItem(idx, 1, cond.get("attr", ""))
             self._cond_list.SetItem(idx, 2, cond.get("op", ""))
             self._cond_list.SetItem(idx, 3, str(cond.get("val", "")))
+        self._update_cond_toggle()
 
     # ------------------------------------------------------------------
     # Preview helpers

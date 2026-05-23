@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
 
+from odsbox_pilot.browse._helpers import _load_prefs, _save_prefs
 from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.editor_panel import EditorPanel
 from odsbox_pilot.query.history import HistoryEntry, QueryHistory
@@ -104,6 +105,9 @@ class MainFrame(wx.Frame):
             status_fn=lambda msg: self.GetStatusBar().SetStatusText(msg, 0),
         )
         notebook.AddPage(self._browse, "Browse")
+        self._notebook = notebook
+        notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_main_tab_changed)
+        wx.CallAfter(self._restore_main_tab)
 
         # Log panel
         log_panel = self._build_log_panel(outer_splitter)
@@ -321,6 +325,17 @@ class MainFrame(wx.Frame):
     def _on_disconnect(self, _event: wx.Event) -> None:
         self._is_disconnecting = True
         self.Close()
+
+    def _on_main_tab_changed(self, event: wx.BookCtrlEvent) -> None:
+        prefs = _load_prefs()
+        prefs["main_tab"] = event.GetSelection()
+        _save_prefs(prefs)
+        event.Skip()
+
+    def _restore_main_tab(self) -> None:
+        page = _load_prefs().get("main_tab", 0)
+        if 0 <= page < self._notebook.GetPageCount():
+            self._notebook.SetSelection(page)
 
     def _on_close(self, event: wx.CloseEvent) -> None:
         self._close_connection()
