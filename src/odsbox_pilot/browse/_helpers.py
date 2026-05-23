@@ -21,43 +21,42 @@ _BROWSE_CONDITIONS_FILE = CONFIG_DIR / "browse_conditions.json"
 
 # Unicode symbol per ODS DataTypeEnum integer value.
 _ODS_TYPE_SYMBOLS: dict[int, str] = {
-    0: "?",  # DT_UNKNOWN
-    1: "\uff21",  # DT_STRING           — Ａ (fullwidth A)
-    2: "\u2124",  # DT_SHORT            — ℤ
-    3: "\u211d",  # DT_FLOAT            — ℝ
-    4: "\u22a4",  # DT_BOOLEAN          — ⊤
-    5: "\u229e",  # DT_BYTE             — ⊞
-    6: "\u2124",  # DT_LONG             — ℤ
-    7: "\u211d",  # DT_DOUBLE           — ℝ
-    8: "\u2124",  # DT_LONGLONG         — ℤ
-    10: "\u2299",  # DT_DATE             — ⊙
-    11: "\u229e",  # DT_BYTESTR          — ⊞
-    12: "\u25a3",  # DT_BLOB             — ▣
-    13: "\u2102",  # DT_COMPLEX          — ℂ
-    14: "\u2102",  # DT_DCOMPLEX         — ℂ
-    28: "\u2934",  # DT_EXTERNALREFERENCE — ⤴
-    30: "\u2208",  # DT_ENUM             — ∈
+    # ── Scalar (DT_) types ────────────────────────────────────────────────
+    0:  "?",       # DT_UNKNOWN
+    1:  "\uff21",  # DT_STRING             Ａ  fullwidth A
+    2:  "\u2124",  # DT_SHORT              ℤ  integers
+    3:  "\u211d",  # DT_FLOAT              ℝ  reals
+    4:  "\u22a4",  # DT_BOOLEAN            ⊤  top / tautology
+    5:  "\u229e",  # DT_BYTE               ⊞  squared plus
+    6:  "\u2124",  # DT_LONG               ℤ
+    7:  "\u211d",  # DT_DOUBLE             ℝ
+    8:  "\u2124",  # DT_LONGLONG           ℤ
+    10: "\u2299",  # DT_DATE               ⊙  circled dot
+    11: "\u229e",  # DT_BYTESTR            ⊞
+    12: "\u25a3",  # DT_BLOB               ▣  filled square
+    13: "\u2102",  # DT_COMPLEX            ℂ
+    14: "\u2102",  # DT_DCOMPLEX           ℂ
+    28: "\u2934",  # DT_EXTERNALREFERENCE  ⤴  arrow curving up (single ref)
+    30: "\u2208",  # DT_ENUM               ∈  element of
+    # ── Array (DS_) types — n-ary / sequence visual motif ─────────────────
+    # Each DS_ symbol is the "plural" counterpart of its DT_ scalar symbol.
+    15: "\u2248",  # DS_STRING             ≈  double tilde   (many strings)
+    16: "\u2261",  # DS_SHORT              ≡  triple bar     (column of ints)
+    17: "\u2243",  # DS_FLOAT              ≃  asymptotic eq  (seq of reals)
+    18: "\u22c0",  # DS_BOOLEAN            ⋀  n-ary AND      (boolean array)
+    19: "\u229f",  # DS_BYTE               ⊟  squared minus  (array sibling of ⊞)
+    20: "\u2261",  # DS_LONG               ≡
+    21: "\u2243",  # DS_DOUBLE             ≃
+    22: "\u2261",  # DS_LONGLONG           ≡
+    23: "\u212d",  # DS_COMPLEX            ℭ  fraktur C      (complex sequence)
+    24: "\u212d",  # DS_DCOMPLEX           ℭ
+    25: "\u229b",  # DS_DATE               ⊛  circled ast.   (date series)
+    26: "\u22a0",  # DS_BYTESTR            ⊠  squared times
+    27: "\u25a4",  # DS_BLOB               ▤  lined square   (stacked blobs)
+    29: "\u21d1",  # DS_EXTERNALREFERENCE  ⇑  double arrow   (many refs)
+    31: "\u220b",  # DS_ENUM               ∋  contains-as-member (enum array)
 }
 
-# Readable name per ODS DataTypeEnum integer value (kept for tooling/tests).
-_ODS_TYPE_NAMES: dict[int, str] = {
-    0: "DT_UNKNOWN",
-    1: "DT_STRING",
-    2: "DT_SHORT",
-    3: "DT_FLOAT",
-    4: "DT_BOOLEAN",
-    5: "DT_BYTE",
-    6: "DT_LONG",
-    7: "DT_DOUBLE",
-    8: "DT_LONGLONG",
-    10: "DT_DATE",
-    11: "DT_BYTESTR",
-    12: "DT_BLOB",
-    13: "DT_COMPLEX",
-    14: "DT_DCOMPLEX",
-    28: "DT_EXTERNALREFERENCE",
-    30: "DT_ENUM",
-}
 
 # Unicode icon per ODS entity base_name.
 _ENTITY_ICONS: dict[str, str] = {
@@ -92,11 +91,6 @@ _ENTITY_ICONS: dict[str, str] = {
 def _ods_type_symbol(data_type: int) -> str:
     """Return a single unicode glyph for an ODS ``DataTypeEnum`` integer value."""
     return _ODS_TYPE_SYMBOLS.get(data_type, "?")
-
-
-def _ods_type_name(data_type: int) -> str:
-    """Return a readable name for an ODS ``DataTypeEnum`` integer value."""
-    return _ODS_TYPE_NAMES.get(data_type, f"DT_{data_type}")
 
 
 def _entity_icon(base_name: str) -> str:
