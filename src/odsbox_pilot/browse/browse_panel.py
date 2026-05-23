@@ -19,6 +19,8 @@ from odsbox.proto import ods
 
 from odsbox_pilot.browse._helpers import (
     _build_filter_nodes,
+    _entity_colour,
+    _entity_colour_light,
     _entity_icon,
     _load_conditions,
     _load_prefs,
@@ -396,9 +398,12 @@ class BrowsePanel(wx.Panel):
         wx.EndBusyCursor()
 
         try:
-            root_icon = _entity_icon(self._mc.entity(root).base_name)
-        except ValueError, AttributeError:
+            root_base = self._mc.entity(root).base_name
+            root_icon = _entity_icon(root_base)
+        except (ValueError, AttributeError):
+            root_base = ""
             root_icon = _entity_icon("")
+        root_colour = _entity_colour(root_base)
         for _, row in df.iterrows():
             instance_id = int(row["id"])
             name = str(row.get("name", "")) or str(instance_id)
@@ -406,7 +411,8 @@ class BrowsePanel(wx.Panel):
             child = self._tree.AppendItem(self._root, text)
             self._tree.SetItemData(child, _InstanceData(root, instance_id))
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._instance_colour)
+            colour = wx.Colour(*root_colour) if root_colour else self._instance_colour
+            self._tree.SetItemTextColour(child, colour)
 
         count = len(df)
         self._status(f"Browse: {count} {root} instance(s)")
@@ -451,7 +457,13 @@ class BrowsePanel(wx.Panel):
                 _RelMetaData(data.entity, data.instance_id, rel.name, rel.entity_name),
             )
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._relation_colour)
+            try:
+                rel_base = self._mc.entity(rel.entity_name).base_name
+            except (ValueError, AttributeError):
+                rel_base = ""
+            rel_rgb = _entity_colour_light(rel_base)
+            rel_colour = wx.Colour(*rel_rgb) if rel_rgb else self._relation_colour
+            self._tree.SetItemTextColour(child, rel_colour)
             self._tree.SetItemFont(child, self._relation_font)
 
     def _expand_instance_node(self, item: wx.TreeItemId, data: _RelMetaData) -> None:
@@ -473,9 +485,12 @@ class BrowsePanel(wx.Panel):
         if df.empty:
             self._tree.SetItemHasChildren(item, False)
         try:
-            target_icon = _entity_icon(self._mc.entity(data.target_entity).base_name)
-        except ValueError, AttributeError:
+            target_base = self._mc.entity(data.target_entity).base_name
+            target_icon = _entity_icon(target_base)
+        except (ValueError, AttributeError):
+            target_base = ""
             target_icon = _entity_icon("")
+        target_colour = _entity_colour(target_base)
         for _, row in df.iterrows():
             instance_id = int(row["id"])
             name = str(row.get("name", "")) or str(instance_id)
@@ -483,7 +498,8 @@ class BrowsePanel(wx.Panel):
             child = self._tree.AppendItem(item, text)
             self._tree.SetItemData(child, _InstanceData(data.target_entity, instance_id))
             self._tree.SetItemHasChildren(child, True)
-            self._tree.SetItemTextColour(child, self._instance_colour)
+            colour = wx.Colour(*target_colour) if target_colour else self._instance_colour
+            self._tree.SetItemTextColour(child, colour)
 
         count = len(df)
         self._status(f"Browse: {data.parent_entity} \u2192 {data.target_entity}: {count} row(s)")
@@ -532,13 +548,13 @@ class BrowsePanel(wx.Panel):
             self._props_header.SetLabel("Properties")
             return
         self._props_list.DeleteAllItems()
-        self._props_header.SetLabel(f"{entity}  [{instance_id}]")
+        self._props_header.SetLabel(f"{entity}  ·  {entity_e.base_name}  [{instance_id}]")
         if df.empty:
             return
         row = df.iloc[0]
         try:
             attr_map = self._mc.entity(entity).attributes
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
             attr_map = {}
         for col in df.columns:
             attr = attr_map.get(col)

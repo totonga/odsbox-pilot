@@ -63,12 +63,12 @@ _ENTITY_ICONS: dict[str, str] = {
     "AoEnvironment": "\u25c9",  # ◉
     "AoTest": "\u2697",  # ⚗
     "AoSubTest": "\u2299",  # ⊙
-    "AoTestStep": "\u25b7",  # ▷
     "AoMeasurement": "\u223f",  # ∿
     "AoSubMatrix": "\u229e",  # ⊞
     "AoLocalColumn": "\u21a7",  # ↧
     "AoMeasurementQuantity": "\u0394",  # Δ
     "AoTestEquipment": "\u2699",  # ⚙
+    "AoTestEquipmentPart": "\u29c3",  # ⧃
     "AoUnit": "\u03a9",  # Ω
     "AoPhysicalDimension": "\u2295",  # ⊕
     "AoParameterSet": "\u2261",  # ≡
@@ -81,9 +81,7 @@ _ENTITY_ICONS: dict[str, str] = {
     "AoUnitUnderTestPart": "\u25e6",  # ◦
     "AoTestSequence": "\u21d2",  # ⇒
     "AoTestSequencePart": "\u21aa",  # ↪
-    "AoCatalogue": "\u229f",  # ⊟
-    "AoCatalogueElement": "\u29c3",  # ⧃
-    "AoUsers": "\u229b",  # ⊛
+    "AoUser": "\u229b",  # ⊛
     "AoUserGroup": "\u229a",  # ⊚
 }
 
@@ -96,6 +94,63 @@ def _ods_type_symbol(data_type: int) -> str:
 def _entity_icon(base_name: str) -> str:
     """Return a unicode glyph for the given ODS entity *base_name*."""
     return _ENTITY_ICONS.get(base_name, "\u25e6")  # default ◦
+
+
+# RGB colour per ODS entity base_name group.
+# Returns (r, g, b); caller converts to wx.Colour.
+_ENTITY_COLOURS: dict[str, tuple[int, int, int]] = {
+    # ── hierarchy ── green ──────────────────────────
+    "AoTest":                (34, 139, 34),
+    "AoSubTest":             (34, 139, 34),
+    # ── Measurement data ── pink ──────────────────────────
+    "AoMeasurement":         (255, 105, 180),
+    "AoMeasurementQuantity": (255, 105, 180),
+    "AoSubMatrix":           (255, 105, 180),
+    "AoLocalColumn":         (255, 105, 180),
+    # ── Units / physics / environment ── teal ────────────────────────
+    "AoEnvironment":         (0, 140, 140),
+    "AoUnit":                (0, 140, 140),
+    "AoPhysicalDimension":   (0, 140, 140),
+    # ── Catalog / metadata / parameters ── orange ────────────────────
+    "AoAttributeMap":        (180, 100, 0),
+    "AoNameMap":             (180, 100, 0),
+    "AoParameterSet":        (180, 100, 0),
+    "AoParameter":           (180, 100, 0),
+    # ── Test equipment / sequences ── purple ─────────────────────────
+    "AoUnitUnderTest":       (130, 60, 170),
+    "AoUnitUnderTestPart":   (130, 60, 170),
+    "AoTestEquipment":       (130, 60, 170),
+    "AoTestEquipmentPart":   (130, 60, 170),
+    "AoTestSequence":        (130, 60, 170),
+    "AoTestSequencePart":    (130, 60, 170),
+    # ── Users / groups ── red ────────────────────────────────────────
+    "AoUser":               (180, 50, 50),
+    "AoUserGroup":           (180, 50, 50),
+    # ── Files / logs / any ── gray ───────────────────────────────────
+    "AoFile":                (120, 120, 120),
+    "AoLog":                 (120, 120, 120),
+    "AoAny":                 (120, 120, 120),
+}
+
+
+def _entity_colour(base_name: str) -> tuple[int, int, int] | None:
+    """Return a **dark** ``(r, g, b)`` colour for *base_name* (instance nodes)."""
+    base = _ENTITY_COLOURS.get(base_name)
+    if base is None:
+        return None
+    r, g, b = base
+    f = 0.75
+    return (int(r * f), int(g * f), int(b * f))
+
+
+def _entity_colour_light(base_name: str) -> tuple[int, int, int] | None:
+    """Return a **light** ``(r, g, b)`` colour for *base_name* (relation nodes)."""
+    base = _ENTITY_COLOURS.get(base_name)
+    if base is None:
+        return None
+    r, g, b = base
+    f = 0.25
+    return (int(r + (255 - r) * f), int(g + (255 - g) * f), int(b + (255 - b) * f))
 
 
 # ------------------------------------------------------------------
