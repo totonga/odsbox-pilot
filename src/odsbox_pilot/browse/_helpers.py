@@ -161,3 +161,26 @@ def _save_conditions(conditions: list[dict[str, Any]]) -> None:
         _BROWSE_CONDITIONS_FILE.write_text(json.dumps(conditions, indent=2), encoding="utf-8")
     except OSError:
         pass
+
+
+_BROWSE_PREFS_FILE = CONFIG_DIR / "browse_prefs.json"
+
+
+def _load_prefs() -> dict[str, Any]:
+    """Load persistent UI preferences from ``~/.ods-pilot/browse_prefs.json``."""
+    try:
+        data = json.loads(_BROWSE_PREFS_FILE.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return {}
+
+
+def _save_prefs(prefs: dict[str, Any]) -> None:
+    """Persist UI preferences to ``~/.ods-pilot/browse_prefs.json``."""
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        _BROWSE_PREFS_FILE.write_text(json.dumps(prefs, indent=2), encoding="utf-8")
+    except OSError:
+        pass
