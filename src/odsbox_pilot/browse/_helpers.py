@@ -22,15 +22,15 @@ _BROWSE_CONDITIONS_FILE = CONFIG_DIR / "browse_conditions.json"
 # Unicode symbol per ODS DataTypeEnum integer value.
 _ODS_TYPE_SYMBOLS: dict[int, str] = {
     # ── Scalar (DT_) types ────────────────────────────────────────────────
-    0:  "?",       # DT_UNKNOWN
-    1:  "\uff21",  # DT_STRING             Ａ  fullwidth A
-    2:  "\u2124",  # DT_SHORT              ℤ  integers
-    3:  "\u211d",  # DT_FLOAT              ℝ  reals
-    4:  "\u22a4",  # DT_BOOLEAN            ⊤  top / tautology
-    5:  "\u229e",  # DT_BYTE               ⊞  squared plus
-    6:  "\u2124",  # DT_LONG               ℤ
-    7:  "\u211d",  # DT_DOUBLE             ℝ
-    8:  "\u2124",  # DT_LONGLONG           ℤ
+    0: "?",  # DT_UNKNOWN
+    1: "\uff21",  # DT_STRING             Ａ  fullwidth A
+    2: "\u2124",  # DT_SHORT              ℤ  integers
+    3: "\u211d",  # DT_FLOAT              ℝ  reals
+    4: "\u22a4",  # DT_BOOLEAN            ⊤  top / tautology
+    5: "\u229e",  # DT_BYTE               ⊞  squared plus
+    6: "\u2124",  # DT_LONG               ℤ
+    7: "\u211d",  # DT_DOUBLE             ℝ
+    8: "\u2124",  # DT_LONGLONG           ℤ
     10: "\u2299",  # DT_DATE               ⊙  circled dot
     11: "\u229e",  # DT_BYTESTR            ⊞
     12: "\u25a3",  # DT_BLOB               ▣  filled square
@@ -100,36 +100,36 @@ def _entity_icon(base_name: str) -> str:
 # Returns (r, g, b); caller converts to wx.Colour.
 _ENTITY_COLOURS: dict[str, tuple[int, int, int]] = {
     # ── hierarchy ── green ──────────────────────────
-    "AoTest":                (34, 139, 34),
-    "AoSubTest":             (34, 139, 34),
+    "AoTest": (34, 139, 34),
+    "AoSubTest": (34, 139, 34),
     # ── Measurement data ── pink ──────────────────────────
-    "AoMeasurement":         (255, 105, 180),
+    "AoMeasurement": (255, 105, 180),
     "AoMeasurementQuantity": (255, 105, 180),
-    "AoSubMatrix":           (255, 105, 180),
-    "AoLocalColumn":         (255, 105, 180),
+    "AoSubMatrix": (255, 105, 180),
+    "AoLocalColumn": (255, 105, 180),
     # ── Units / physics / environment ── teal ────────────────────────
-    "AoEnvironment":         (0, 140, 140),
-    "AoUnit":                (0, 140, 140),
-    "AoPhysicalDimension":   (0, 140, 140),
+    "AoEnvironment": (0, 140, 140),
+    "AoUnit": (0, 140, 140),
+    "AoPhysicalDimension": (0, 140, 140),
     # ── Catalog / metadata / parameters ── orange ────────────────────
-    "AoAttributeMap":        (180, 100, 0),
-    "AoNameMap":             (180, 100, 0),
-    "AoParameterSet":        (180, 100, 0),
-    "AoParameter":           (180, 100, 0),
+    "AoAttributeMap": (180, 100, 0),
+    "AoNameMap": (180, 100, 0),
+    "AoParameterSet": (180, 100, 0),
+    "AoParameter": (180, 100, 0),
     # ── Test equipment / sequences ── purple ─────────────────────────
-    "AoUnitUnderTest":       (130, 60, 170),
-    "AoUnitUnderTestPart":   (130, 60, 170),
-    "AoTestEquipment":       (130, 60, 170),
-    "AoTestEquipmentPart":   (130, 60, 170),
-    "AoTestSequence":        (130, 60, 170),
-    "AoTestSequencePart":    (130, 60, 170),
+    "AoUnitUnderTest": (130, 60, 170),
+    "AoUnitUnderTestPart": (130, 60, 170),
+    "AoTestEquipment": (130, 60, 170),
+    "AoTestEquipmentPart": (130, 60, 170),
+    "AoTestSequence": (130, 60, 170),
+    "AoTestSequencePart": (130, 60, 170),
     # ── Users / groups ── red ────────────────────────────────────────
-    "AoUser":               (180, 50, 50),
-    "AoUserGroup":           (180, 50, 50),
+    "AoUser": (180, 50, 50),
+    "AoUserGroup": (180, 50, 50),
     # ── Files / logs / any ── gray ───────────────────────────────────
-    "AoFile":                (120, 120, 120),
-    "AoLog":                 (120, 120, 120),
-    "AoAny":                 (120, 120, 120),
+    "AoFile": (120, 120, 120),
+    "AoLog": (120, 120, 120),
+    "AoAny": (120, 120, 120),
 }
 
 
@@ -227,7 +227,7 @@ def _load_prefs() -> dict[str, Any]:
         data = json.loads(_BROWSE_PREFS_FILE.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             return data
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
+    except FileNotFoundError, json.JSONDecodeError, OSError:
         pass
     return {}
 

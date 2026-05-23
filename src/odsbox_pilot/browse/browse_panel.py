@@ -198,8 +198,9 @@ class BrowsePanel(wx.Panel):
 
         # ── header row with toggle button ─────────────────────────────────
         hdr = wx.BoxSizer(wx.HORIZONTAL)
-        self._cond_toggle = wx.Button(outer, label="▼  Filter Conditions",
-                                      style=wx.BU_LEFT | wx.BORDER_NONE)
+        self._cond_toggle = wx.Button(
+            outer, label="▼  Filter Conditions", style=wx.BU_LEFT | wx.BORDER_NONE
+        )
         self._cond_toggle.Bind(wx.EVT_BUTTON, self._on_cond_toggle)
         hdr.Add(self._cond_toggle, proportion=1, flag=wx.EXPAND)
         vbox.Add(hdr, flag=wx.EXPAND | wx.BOTTOM, border=2)
@@ -340,11 +341,14 @@ class BrowsePanel(wx.Panel):
             ax = fig.add_subplot(111)
             ax.axis("off")
             ax.text(
-                0.5, 0.5,
+                0.5,
+                0.5,
                 "Select an AoLocalColumn to preview values",
                 transform=ax.transAxes,
-                ha="center", va="center",
-                fontsize=9, color="gray",
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="gray",
             )
             canvas = FigureCanvasWxAgg(parent, -1, fig)
             self._values_fig = fig
@@ -400,7 +404,7 @@ class BrowsePanel(wx.Panel):
         try:
             root_base = self._mc.entity(root).base_name
             root_icon = _entity_icon(root_base)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             root_base = ""
             root_icon = _entity_icon("")
         root_colour = _entity_colour(root_base)
@@ -459,7 +463,7 @@ class BrowsePanel(wx.Panel):
             self._tree.SetItemHasChildren(child, True)
             try:
                 rel_base = self._mc.entity(rel.entity_name).base_name
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 rel_base = ""
             rel_rgb = _entity_colour_light(rel_base)
             rel_colour = wx.Colour(*rel_rgb) if rel_rgb else self._relation_colour
@@ -487,7 +491,7 @@ class BrowsePanel(wx.Panel):
         try:
             target_base = self._mc.entity(data.target_entity).base_name
             target_icon = _entity_icon(target_base)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             target_base = ""
             target_icon = _entity_icon("")
         target_colour = _entity_colour(target_base)
@@ -554,7 +558,7 @@ class BrowsePanel(wx.Panel):
         row = df.iloc[0]
         try:
             attr_map = self._mc.entity(entity).attributes
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             attr_map = {}
         for col in df.columns:
             attr = attr_map.get(col)
@@ -584,7 +588,7 @@ class BrowsePanel(wx.Panel):
         entity, instance_id = item_data.entity, item_data.instance_id
         try:
             base = self._mc.entity(entity).base_name.lower()
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             base = ""
         if base != "aolocalcolumn":
             self._clear_values_display(
@@ -608,7 +612,9 @@ class BrowsePanel(wx.Panel):
             return
         values_col = next((c for c in df.columns if "values" in c.lower()), None)
         if values_col is None:
-            self._clear_values_display(f"No \u2018values\u2019 column in result: {list(df.columns)}")
+            self._clear_values_display(
+                f"No \u2018values\u2019 column in result: {list(df.columns)}"
+            )
             return
         self._render_values(df[values_col].iloc[0], entity, instance_id)
 
@@ -628,9 +634,13 @@ class BrowsePanel(wx.Panel):
                 if len(arr) > 30:
                     sample += f"\n\u2026 {len(arr)} total"
                 self._values_ax.text(
-                    0.5, 0.5, sample,
+                    0.5,
+                    0.5,
+                    sample,
                     transform=self._values_ax.transAxes,
-                    ha="center", va="center", fontsize=8,
+                    ha="center",
+                    va="center",
+                    fontsize=8,
                 )
             self._values_fig.tight_layout(pad=0.3)
             self._values_display.draw()
@@ -646,10 +656,14 @@ class BrowsePanel(wx.Panel):
             self._values_ax.axis("off")
             if message:
                 self._values_ax.text(
-                    0.5, 0.5, message,
+                    0.5,
+                    0.5,
+                    message,
                     transform=self._values_ax.transAxes,
-                    ha="center", va="center",
-                    fontsize=9, color="gray",
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    color="gray",
                 )
             self._values_display.draw()
         else:

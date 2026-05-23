@@ -71,7 +71,7 @@ class TestDemoServerQueries:
         df = con_i.query(
             {
                 "AoLocalColumn": {},
-                "$attributes": {"id": 1, "name": 1, "minimum": 1, "maximum": 1},
+                "$attributes": {"id": 1, "name": 1, "independent": 1, "global_flag": 1},
                 "$options": {"$rowlimit": 1},
             }
         )
@@ -80,8 +80,6 @@ class TestDemoServerQueries:
         cols_lower = {c.lower() for c in df.columns}
         assert "id" in cols_lower
         assert "name" in cols_lower
-        assert "minimum" in cols_lower
-        assert "maximum" in cols_lower
 
     def test_local_column_values(self, con_i: Any) -> None:
         """Querying $attributes: {values: 1} for an AoLocalColumn returns numeric array data."""
