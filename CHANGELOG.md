@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-05-23)
+
+### Bug Fixes
+
+- Symbols for array type ([#5](https://github.com/totonga/odsbox-pilot/pull/5),
+  [`ab0eb8c`](https://github.com/totonga/odsbox-pilot/commit/ab0eb8cdf116d1e79a4f6a263f6c94f29e51d440))
+
+### Features
+
+- Add local column preview ([#5](https://github.com/totonga/odsbox-pilot/pull/5),
+  [`ab0eb8c`](https://github.com/totonga/odsbox-pilot/commit/ab0eb8cdf116d1e79a4f6a263f6c94f29e51d440))
+
+- Color tree elements ([#5](https://github.com/totonga/odsbox-pilot/pull/5),
+  [`ab0eb8c`](https://github.com/totonga/odsbox-pilot/commit/ab0eb8cdf116d1e79a4f6a263f6c94f29e51d440))
+
+- Fix local column handling and enhance UI features
+  ([#5](https://github.com/totonga/odsbox-pilot/pull/5),
+  [`ab0eb8c`](https://github.com/totonga/odsbox-pilot/commit/ab0eb8cdf116d1e79a4f6a263f6c94f29e51d440))
+
+- Minimize condition pane ([#5](https://github.com/totonga/odsbox-pilot/pull/5),
+  [`ab0eb8c`](https://github.com/totonga/odsbox-pilot/commit/ab0eb8cdf116d1e79a4f6a263f6c94f29e51d440))
+
+
 ## v1.3.0 (2026-05-22)
 
 ### Bug Fixes
