@@ -2,6 +2,32 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-05-24)
+
+### Bug Fixes
+
+- Ctrl-c behavior ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+- Moved settings ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+- Termintae cleanly by calling ctrl+c ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+### Features
+
+- Add model inspection tab and improve termination handling
+  ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+- Add model tab ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+- Initial query ([#6](https://github.com/totonga/odsbox-pilot/pull/6),
+  [`45a0a50`](https://github.com/totonga/odsbox-pilot/commit/45a0a5087b3d5112f79bdc98b448c019ef237d29))
+
+
 ## v1.4.0 (2026-05-23)
 
 ### Bug Fixes
