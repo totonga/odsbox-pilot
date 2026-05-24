@@ -1,10 +1,10 @@
-"""Unit tests for odsbox_pilot.model.model_panel pure helpers (no wx required)."""
+"""Unit tests for odsbox_pilot.model.helpers pure functions (no wx required)."""
 
 from __future__ import annotations
 
 from odsbox.proto import ods
 
-from odsbox_pilot.model.model_panel import _range_str, _rel_range, _rel_type_label
+from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
 
 
 class TestRangeStr:

@@ -19,27 +19,7 @@ from odsbox_pilot.browse._helpers import (
     _entity_icon,
     _ods_type_symbol,
 )
-
-# ------------------------------------------------------------------
-# Relation range formatting helpers
-# ------------------------------------------------------------------
-
-_UNBOUNDED = -1
-
-
-def _range_str(max_val: int) -> str:
-    return "n" if max_val == _UNBOUNDED else str(max_val)
-
-
-def _rel_range(rel: ods.Model.Relation) -> str:
-    """Return a human-readable cardinality string like '1:1', '1:n', 'n:m'."""
-    return f"{_range_str(rel.inverse_range_max)}:{_range_str(rel.range_max)}"
-
-
-def _rel_type_label(rel: ods.Model.Relation) -> str:
-    """Return the RelationshipEnum name for *rel.relationship*."""
-    return ods.Model.RelationshipEnum.Name(rel.relationship)
-
+from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
 
 # ------------------------------------------------------------------
 # Node data classes — stored via SetItemData / retrieved via GetItemData
@@ -396,7 +376,7 @@ class ModelPanel(wx.Panel):
                     ("Inverse range min", str(rel.inverse_range_min)),
                     ("Inverse range max", _range_str(rel.inverse_range_max)),
                     ("Relation type", ods.Model.RelationTypeEnum.Name(rel.relation_type)),
-                    ("Relationship", ods.Model.RelationshipEnum.Name(rel.relationship)),
+                    ("Relationship", _rel_type_label(rel)),
                     ("Virtual reference", str(rel.virtual_reference)),
                     ("Acl reference", str(rel.acl_reference)),
                     ("Entity aid", str(rel.entity_aid) if rel.entity_aid else "\u2014"),
