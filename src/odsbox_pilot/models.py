@@ -73,6 +73,7 @@ CONFIG_DIR: Path = Path.home() / ".ods-pilot"
 SERVERS_FILE: Path = CONFIG_DIR / "servers.json"
 HISTORY_FILE: Path = CONFIG_DIR / "history.json"
 SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
+AI_SETTINGS_FILE: Path = CONFIG_DIR / "ai_settings.json"
 
 _VALID_NAMING_MODES = frozenset({"query", "model"})
 
@@ -96,5 +97,34 @@ class AppSettings:
             if obj.result_naming_mode not in _VALID_NAMING_MODES:
                 obj.result_naming_mode = "query"
             return obj
+        except Exception:
+            return cls()
+
+
+@dataclass
+class AiSettings:
+    """AI query generation settings."""
+
+    enabled: bool = False  # AI features enabled (model downloaded)
+    model_id: str = "OpenVINO/qwen2.5-1.5b-instruct-int4-ov"
+    device: str = "NPU"  # "NPU", "GPU", or "CPU"
+    model_cache_dir: Path = field(default_factory=lambda: CONFIG_DIR / "models")
+
+    def save(self) -> None:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        data = asdict(self)
+        # Convert Path to string for JSON serialization
+        data["model_cache_dir"] = str(data["model_cache_dir"])
+        AI_SETTINGS_FILE.write_text(json.dumps(data, indent=2))
+
+    @classmethod
+    def load(cls) -> AiSettings:
+        try:
+            data = json.loads(AI_SETTINGS_FILE.read_text())
+            # Convert string back to Path
+            if "model_cache_dir" in data:
+                data["model_cache_dir"] = Path(data["model_cache_dir"])
+            known = set(cls.__dataclass_fields__)
+            return cls(**{k: v for k, v in data.items() if k in known})
         except Exception:
             return cls()

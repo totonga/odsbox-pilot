@@ -24,6 +24,7 @@ data hierarchy, and inspect the entity-relation model — all without writing an
 | 📊 | **Tabular results** — sortable result grid powered by pandas; export to CSV |
 | 🌳 | **Browse tab** — point-and-click navigation of the data hierarchy with filter conditions |
 | 🗂️ | **Model tab** — read-only browser for the complete entity-relation schema and enumerations |
+| 🤖 | **AI-powered queries** (optional) — natural language query parsing with local LLM inference |
 
 ---
 
@@ -87,6 +88,18 @@ against the server. Results appear in a sortable table.
 
 Use **Examples ▾** for ready-made patterns (filters, joins, aggregations) and
 **History ▾** to re-run previous queries. Export any result with **Ctrl+S**.
+
+**🤖 AI-powered query parsing** (optional) — If you install the AI dependencies and
+download a model, an AI input bar appears above the editor. Type a natural language
+query like `"Show measurements Profile_* from last year"` and the AI will parse it into
+structured conditions and generate the corresponding JAQueL query for preview before
+applying.
+
+To enable AI features:
+```bash
+uv sync --extra ai  # installs openvino-genai and huggingface-hub
+# Then download a model in Settings → AI Model Manager (coming in Phase 6)
+```
 
 ### Browse tab
 
