@@ -418,9 +418,7 @@ class ModelSearchIndex:
         if self._embeddings is not None:
             results = self.search(f"{entity_name} {attr_hint}", top_k=15)
             entity_attrs = [
-                m
-                for m in results
-                if m.entity_name == entity_name and m.kind == "attribute"
+                m for m in results if m.entity_name == entity_name and m.kind == "attribute"
             ]
             if entity_attrs and entity_attrs[0].score > 0.45:
                 return str(entity_attrs[0].item_name)
@@ -481,4 +479,3 @@ class ModelSearchIndex:
                 return str(entity_hits[0].entity_name)
 
         return None
-

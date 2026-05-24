@@ -32,7 +32,9 @@ class NlParseResult:
     conditions: list[ConditionDict]
     root_entity: str
     raw_response: str  # Raw LLM response for debugging
-    invalid_conditions: list[dict[str, Any]]  # Conditions the LLM produced that could not be resolved
+    invalid_conditions: list[
+        dict[str, Any]
+    ]  # Conditions the LLM produced that could not be resolved
 
 
 class NlToConditions:
@@ -92,7 +94,9 @@ class NlToConditions:
 
         # Step 5: Parse and validate conditions
         _progress("Extracting conditions\u2026")
-        conditions, invalid_conditions, root_entity = self._parse_response(raw_response, date_conditions)
+        conditions, invalid_conditions, root_entity = self._parse_response(
+            raw_response, date_conditions
+        )
 
         return NlParseResult(
             conditions=conditions,
@@ -286,7 +290,9 @@ Only return the JSON object, no additional text."""
         for cond in data["conditions"]:
             if not all(k in cond for k in ("entity", "attr", "op", "val")):
                 log.warning(f"Invalid condition (missing keys): {cond}")
-                invalid_conditions.append({**cond, "reason": "Missing required keys (entity/attr/op/val)"})
+                invalid_conditions.append(
+                    {**cond, "reason": "Missing required keys (entity/attr/op/val)"}
+                )
                 continue
 
             entity_raw = cond["entity"]
@@ -313,7 +319,9 @@ Only return the JSON object, no additional text."""
                     attr,
                     entity,
                 )
-                invalid_conditions.append({**cond, "entity": entity, "reason": f"Unknown attribute {attr!r} on {entity}"})
+                invalid_conditions.append(
+                    {**cond, "entity": entity, "reason": f"Unknown attribute {attr!r} on {entity}"}
+                )
                 continue
             if resolved != attr:
                 log.info("Corrected attribute %s.%r → %r", entity, attr, resolved)

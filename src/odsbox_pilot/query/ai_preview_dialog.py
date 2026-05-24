@@ -11,8 +11,16 @@ import wx  # type: ignore[import-untyped]
 _COL_INVALID = wx.Colour(255, 220, 220)  # light red background for invalid rows
 
 _JAQUEL_OPERATORS = [
-    "$eq", "$ne", "$lt", "$lte", "$gt", "$gte",
-    "$like", "$notlike", "$between", "$in",
+    "$eq",
+    "$ne",
+    "$lt",
+    "$lte",
+    "$gt",
+    "$gte",
+    "$like",
+    "$notlike",
+    "$between",
+    "$in",
 ]
 
 # Column widths: entity, attribute, operator, value
@@ -135,7 +143,9 @@ class AiPreviewDialog(wx.Dialog):
             self._rows_sizer.Add(note, flag=wx.LEFT | wx.TOP | wx.BOTTOM, border=6)
 
         self._scroll.SetSizer(self._rows_sizer)
-        vbox.Add(self._scroll, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+        vbox.Add(
+            self._scroll, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10
+        )
 
         # JAQueL section
         jaquel_label = wx.StaticText(self, label="Generated JAQueL Query:")
@@ -151,7 +161,12 @@ class AiPreviewDialog(wx.Dialog):
         )
         mono_font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self._jaquel_text.SetFont(mono_font)
-        vbox.Add(self._jaquel_text, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+        vbox.Add(
+            self._jaquel_text,
+            proportion=1,
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=10,
+        )
 
         # Dialog buttons
         btn_sizer = wx.StdDialogButtonSizer()
@@ -172,7 +187,7 @@ class AiPreviewDialog(wx.Dialog):
     def _make_header_row(self, parent: wx.Window) -> wx.Panel:
         row = wx.Panel(parent)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        for label, width in zip(("Entity", "Attribute", "Operator", "Value"), _COL_W):
+        for label, width in zip(("Entity", "Attribute", "Operator", "Value"), _COL_W, strict=False):
             txt = wx.StaticText(row, label=label, size=(width, -1))
             f = txt.GetFont()
             f.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -191,12 +206,16 @@ class AiPreviewDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Unique entity names across all conditions for the dropdown
-        entity_choices = sorted({c.get("entity", "") for c in self._all_conditions if c.get("entity", "")})
+        entity_choices = sorted(
+            {c.get("entity", "") for c in self._all_conditions if c.get("entity", "")}
+        )
 
         # ── Entity (ComboBox: dropdown + freetext) ───────────────────────
         entity_cb = wx.ComboBox(
-            row, value=cond.get("entity", ""),
-            choices=entity_choices, size=(_COL_W[0], -1),
+            row,
+            value=cond.get("entity", ""),
+            choices=entity_choices,
+            size=(_COL_W[0], -1),
             style=wx.CB_DROPDOWN,
         )
         if invalid:
@@ -251,7 +270,7 @@ class AiPreviewDialog(wx.Dialog):
             raw_val = val_tc.GetValue()
             try:
                 cond["val"] = json.loads(raw_val)
-            except (json.JSONDecodeError, ValueError):
+            except json.JSONDecodeError, ValueError:
                 cond["val"] = raw_val
             self._refresh_jaquel()
 
@@ -273,7 +292,9 @@ class AiPreviewDialog(wx.Dialog):
         if self._rebuild_query is None:
             return
         try:
-            clean = [{k: v for k, v in c.items() if not k.startswith("_")} for c in self._all_conditions]
+            clean = [
+                {k: v for k, v in c.items() if not k.startswith("_")} for c in self._all_conditions
+            ]
             self._jaquel = self._rebuild_query(clean)
             self._jaquel_text.SetValue(json.dumps(self._jaquel, indent=2))
         except Exception as exc:
@@ -289,4 +310,3 @@ class AiPreviewDialog(wx.Dialog):
         self._scroll.Layout()
         self._scroll.FitInside()
         self._refresh_jaquel()
-

@@ -27,6 +27,7 @@ class AiContext:
     nl_parser: Any  # NlToConditions instance
     model_cache: Any  # ModelCache instance
 
+
 _STATIC_DIR = Path(__file__).parent.parent / "static"
 _EDITOR_HTML = _STATIC_DIR / "editor.html"
 
@@ -94,9 +95,7 @@ class EditorPanel(wx.Panel):
             self._ai_input.Enable()
             self._btn_ai_parse.SetLabel("Parse")
         else:
-            self._ai_input.SetHint(
-                "AI not configured — click 'Setup AI…' to download a model"
-            )
+            self._ai_input.SetHint("AI not configured — click 'Setup AI…' to download a model")
             self._ai_input.Disable()
             self._btn_ai_parse.SetLabel("Setup AI…")
 
@@ -388,21 +387,39 @@ class EditorPanel(wx.Panel):
                     tree = FilterTree(ai_context.model_cache, nodes)
                     return tree.generate_query(root_entity, attributes={"id": 1, "name": 1})
 
-                wx.CallAfter(self._on_ai_result, parse_result.conditions, parse_result.invalid_conditions, jaquel, _rebuild)
+                wx.CallAfter(
+                    self._on_ai_result,
+                    parse_result.conditions,
+                    parse_result.invalid_conditions,
+                    jaquel,
+                    _rebuild,
+                )
             except Exception as exc:
                 log.exception("AI query parsing failed")
                 wx.CallAfter(self._on_ai_error, exc)
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _on_ai_result(self, conditions: list[Any], invalid_conditions: list[Any], jaquel: dict[str, Any], rebuild_query: Any) -> None:
+    def _on_ai_result(
+        self,
+        conditions: list[Any],
+        invalid_conditions: list[Any],
+        jaquel: dict[str, Any],
+        rebuild_query: Any,
+    ) -> None:
         """Called on the main thread when AI parsing succeeded."""
         wx.EndBusyCursor()
         self._btn_ai_parse.Enable()
 
         from odsbox_pilot.query.ai_preview_dialog import AiPreviewDialog
 
-        dlg = AiPreviewDialog(self, conditions, jaquel, invalid_conditions=invalid_conditions, rebuild_query=rebuild_query)
+        dlg = AiPreviewDialog(
+            self,
+            conditions,
+            jaquel,
+            invalid_conditions=invalid_conditions,
+            rebuild_query=rebuild_query,
+        )
         result = dlg.ShowModal()
         dlg.Destroy()
 

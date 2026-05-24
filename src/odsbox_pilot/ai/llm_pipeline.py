@@ -59,9 +59,7 @@ class OvLlmPipeline:
                 # NPU stateful pipelines default to 1024 prompt tokens; raise
                 # the limit so larger schema contexts fit without truncation.
                 npu_kwargs: dict[str, int] = (
-                    {"MAX_PROMPT_LEN": 2048, "MAX_SEQUENCE_LEN": 3072}
-                    if device == "NPU"
-                    else {}
+                    {"MAX_PROMPT_LEN": 2048, "MAX_SEQUENCE_LEN": 3072} if device == "NPU" else {}
                 )
                 self._pipeline = ov_genai.LLMPipeline(
                     str(self._model_dir),

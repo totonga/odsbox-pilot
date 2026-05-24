@@ -405,9 +405,7 @@ class TestModelIntrospection:
     def test_resolve_unknown_entity_returns_none(self, index: ModelSearchIndex) -> None:
         assert index.resolve_attribute("NoSuchEntity", "Name") is None
 
-    def test_resolve_unknown_attr_no_embeddings_returns_none(
-        self, index: ModelSearchIndex
-    ) -> None:
+    def test_resolve_unknown_attr_no_embeddings_returns_none(self, index: ModelSearchIndex) -> None:
         # With no embeddings loaded, a completely unknown attr should return None
         assert index._embeddings is None  # embeddings not yet loaded
         result = index.resolve_attribute("MeaResult", "xyzzy_nonexistent_attr_abc")
@@ -420,9 +418,7 @@ class TestModelIntrospection:
         result = index.find_date_attribute("MeaResult")
         assert result == "MeasurementBegin"
 
-    def test_find_date_attribute_unknown_entity_returns_none(
-        self, index: ModelSearchIndex
-    ) -> None:
+    def test_find_date_attribute_unknown_entity_returns_none(self, index: ModelSearchIndex) -> None:
         assert index.find_date_attribute("NoSuchEntity") is None
 
     def test_find_date_attribute_entity_without_dates(self, index: ModelSearchIndex) -> None:
@@ -449,4 +445,3 @@ class TestModelIntrospection:
     def test_resolve_entity_attribute_name_returns_none(self, index: ModelSearchIndex) -> None:
         # "DateCreated" is an attribute, not an entity — should return None
         assert index.resolve_entity("DateCreated") is None
-

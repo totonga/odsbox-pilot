@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC
 from unittest.mock import MagicMock
 
 import pytest
@@ -238,9 +239,7 @@ Hope this helps!
         assert len(result.conditions) == 1
         assert result.conditions[0]["attr"] == "Name"
 
-    def test_unknown_attr_skipped(
-        self, mock_index: MagicMock, mock_pipeline: MagicMock
-    ) -> None:
+    def test_unknown_attr_skipped(self, mock_index: MagicMock, mock_pipeline: MagicMock) -> None:
         """Conditions whose attr cannot be resolved at all are dropped."""
         mock_pipeline.generate.return_value = json.dumps(
             {
@@ -259,8 +258,8 @@ Hope this helps!
             }
         )
         # resolve returns attr unchanged for "name", None for unknown
-        mock_index.resolve_attribute.side_effect = (
-            lambda entity, attr: None if attr == "nonexistentField" else attr
+        mock_index.resolve_attribute.side_effect = lambda entity, attr: (
+            None if attr == "nonexistentField" else attr
         )
 
         parser = NlToConditions(mock_index, mock_pipeline)
@@ -360,11 +359,7 @@ Hope this helps!
 
         # Date range from "letzten Jahr" — attached to root entity's date attribute
         date_cond = next(
-            (
-                c
-                for c in result.conditions
-                if c["entity"] == "MeaResult" and c["op"] == "$between"
-            ),
+            (c for c in result.conditions if c["entity"] == "MeaResult" and c["op"] == "$between"),
             None,
         )
         assert date_cond is not None, "Expected date condition for 'letzten Jahr'"
@@ -375,9 +370,9 @@ Hope this helps!
         assert all(len(v) == 20 for v in date_cond["val"])
         # Range covers the whole previous calendar year:
         # start = "YYYY0101…" for last year, end = "YYYY0101…" for current year
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         last_year = str(now.year - 1)
         this_year = str(now.year)
         assert date_cond["val"][0].startswith(last_year), "Range start should be in last year"
@@ -424,9 +419,7 @@ Hope this helps!
         """If the LLM returns an unknown root_entity that cannot be resolved, raise ValueError."""
         mock_index.resolve_entity.side_effect = lambda entity: None  # everything unknown
 
-        mock_pipeline.generate.return_value = json.dumps(
-            {"root_entity": "MDL", "conditions": []}
-        )
+        mock_pipeline.generate.return_value = json.dumps({"root_entity": "MDL", "conditions": []})
 
         parser = NlToConditions(mock_index, mock_pipeline)
         with pytest.raises(ValueError, match="unknown root_entity"):

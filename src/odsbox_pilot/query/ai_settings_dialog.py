@@ -47,9 +47,7 @@ class AiSettingsDialog(wx.Dialog):
         status_box = wx.StaticBox(self, label="Model Status")
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
 
-        self._lbl_model_id = wx.StaticText(
-            self, label=f"Model: {self._settings.model_id}"
-        )
+        self._lbl_model_id = wx.StaticText(self, label=f"Model: {self._settings.model_id}")
         status_sizer.Add(self._lbl_model_id, flag=wx.ALL, border=4)
 
         self._lbl_status = wx.StaticText(self, label="Checking…")
@@ -127,9 +125,7 @@ class AiSettingsDialog(wx.Dialog):
             from odsbox_pilot.ai.model_manager import ModelManager
         except ImportError:
             self._lbl_status.SetForegroundColour(wx.Colour(180, 0, 0))
-            self._lbl_status.SetLabel(
-                "✗ AI dependencies not installed — run: uv sync --extra ai"
-            )
+            self._lbl_status.SetLabel("✗ AI dependencies not installed — run: uv sync --extra ai")
             self._btn_download.Disable()
             self._chk_enabled.Disable()
             return
