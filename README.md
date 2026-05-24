@@ -120,7 +120,6 @@ index values are listed at the bottom.
 
 ## Documentation
 
-- 📖 [Full user guide](USER.md) — detailed instructions for every feature
 - 🛠️ [Developer guide](DEVELOPER.md) — setup, project structure, tests, and CI
 - 📝 [Changelog](CHANGELOG.md)
 
