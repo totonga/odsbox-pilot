@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.7.0 (2026-05-24)
+
+### Features
+
+- Add natural language query generation and support for Dutch
+  ([#8](https://github.com/totonga/odsbox-pilot/pull/8),
+  [`87bcf81`](https://github.com/totonga/odsbox-pilot/commit/87bcf81dc3b2ef29f64b357da0fea2c32f834c8f))
+
+- Add natural language query generator ([#8](https://github.com/totonga/odsbox-pilot/pull/8),
+  [`87bcf81`](https://github.com/totonga/odsbox-pilot/commit/87bcf81dc3b2ef29f64b357da0fea2c32f834c8f))
+
+- Add nl language search ([#8](https://github.com/totonga/odsbox-pilot/pull/8),
+  [`87bcf81`](https://github.com/totonga/odsbox-pilot/commit/87bcf81dc3b2ef29f64b357da0fea2c32f834c8f))
+
+
 ## v1.6.0 (2026-05-24)
 
 ### Features
