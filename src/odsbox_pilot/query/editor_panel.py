@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
+import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
@@ -12,6 +16,17 @@ import wx.html2  # type: ignore[import-untyped]
 from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.examples import by_category, categories
 from odsbox_pilot.query.history import QueryHistory
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class AiContext:
+    """Context for AI query parsing (injected when AI is enabled)."""
+
+    nl_parser: Any  # NlToConditions instance
+    model_cache: Any  # ModelCache instance
+
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"
 _EDITOR_HTML = _STATIC_DIR / "editor.html"
@@ -26,11 +41,13 @@ class EditorPanel(wx.Panel):
         history: QueryHistory,
         on_execute: Callable[[str], None],
         settings: AppSettings | None = None,
+        ai_context: AiContext | None = None,
     ) -> None:
         super().__init__(parent)
         self._history = history
         self._on_execute = on_execute
         self._settings = settings
+        self._ai_context = ai_context
         self._webview_ready = False
 
         self._build_ui()
@@ -60,12 +77,61 @@ class EditorPanel(wx.Panel):
         ok, result = self._webview.RunScript("editorHasErrors()")
         return bool(ok and result.lower() == "true")
 
+    def set_ai_context(self, ai_context: AiContext | None) -> None:
+        """Update the AI context (e.g. after settings change)."""
+        self._ai_context = ai_context
+        self._refresh_ai_bar()
+
     # ------------------------------------------------------------------
     # UI construction
     # ------------------------------------------------------------------
 
+    def _refresh_ai_bar(self) -> None:
+        """Sync the AI bar hint / enabled state with the current context."""
+        if self._ai_context is not None:
+            self._ai_input.SetHint(
+                "e.g., Show me measurements named Pro* in the project Electric*, measured in the last year"
+            )
+            self._ai_input.Enable()
+            self._btn_ai_parse.SetLabel("Parse")
+        else:
+            self._ai_input.SetHint("AI not configured — click 'Setup AI…' to download a model")
+            self._ai_input.Disable()
+            self._btn_ai_parse.SetLabel("Setup AI…")
+
     def _build_ui(self) -> None:
         vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # --- AI Query Bar (always visible; disabled when not configured) ---
+        ai_panel = wx.Panel(self)
+        ai_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        ai_label = wx.StaticText(ai_panel, label="✨ AI Query:")
+        ai_label_font = ai_label.GetFont()
+        ai_label_font.SetWeight(wx.FONTWEIGHT_BOLD)
+        ai_label.SetFont(ai_label_font)
+        ai_sizer.Add(ai_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=8)
+
+        self._ai_input = wx.TextCtrl(
+            ai_panel,
+            style=wx.TE_PROCESS_ENTER,
+            size=(500, -1),
+        )
+        self._ai_input.Bind(wx.EVT_TEXT_ENTER, self._on_ai_parse)
+        ai_sizer.Add(
+            self._ai_input,
+            proportion=1,
+            flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
+            border=8,
+        )
+
+        self._btn_ai_parse = wx.Button(ai_panel, label="Parse")
+        self._btn_ai_parse.Bind(wx.EVT_BUTTON, self._on_ai_parse)
+        ai_sizer.Add(self._btn_ai_parse, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        ai_panel.SetSizer(ai_sizer)
+        vbox.Add(ai_panel, flag=wx.EXPAND | wx.ALL, border=6)
+        self._refresh_ai_bar()
 
         # --- Toolbar ---
         toolbar = wx.Panel(self)
@@ -246,3 +312,133 @@ class EditorPanel(wx.Panel):
             self._on_execute_btn(event)
         else:
             event.Skip()
+
+    # ------------------------------------------------------------------
+    # Status bar helper
+    # ------------------------------------------------------------------
+
+    def _set_status(self, msg: str) -> None:
+        """Write *msg* to field 0 of the top-level frame's status bar (if any)."""
+        frame = wx.GetTopLevelParent(self)
+        sb = frame.GetStatusBar()
+        if sb is not None:
+            sb.SetStatusText(msg, 0)
+
+    # ------------------------------------------------------------------
+    # AI parse (background thread + status bar progress)
+    # ------------------------------------------------------------------
+
+    def _on_ai_parse(self, _event: wx.Event) -> None:
+        """Handle AI Parse / Setup AI… button click."""
+        if self._ai_context is None:
+            wx.MessageBox(
+                "The AI Query Assistant is not configured.\n\n"
+                "To get started:\n"
+                "1. Install AI dependencies:  uv sync --extra ai\n"
+                "2. Open Settings → AI Query Assistant… to download a model\n"
+                "3. Enable the assistant in the same dialog",
+                "AI Not Configured",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+
+        nl_text = self._ai_input.GetValue().strip()
+        if not nl_text:
+            wx.MessageBox(
+                "Please enter a natural language query.",
+                "AI Query",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+
+        wx.BeginBusyCursor()
+        self._btn_ai_parse.Disable()
+        self._set_status("AI: Starting…")
+        log.info(f"Parsing NL query: {nl_text}")
+
+        ai_context = self._ai_context
+
+        def _run() -> None:
+            try:
+                from odsbox_pilot.browse._helpers import _build_filter_nodes
+                from odsbox_pilot.browse.filter_tree import FilterTree
+
+                def _progress(msg: str) -> None:
+                    wx.CallAfter(self._set_status, f"AI: {msg}")
+
+                parse_result = ai_context.nl_parser.parse(nl_text, on_progress=_progress)
+
+                wx.CallAfter(self._set_status, "AI: Building query…")
+                filter_nodes, _failed = _build_filter_nodes(
+                    ai_context.model_cache, parse_result.conditions
+                )
+                filter_tree = FilterTree(ai_context.model_cache, filter_nodes)
+                jaquel = filter_tree.generate_query(
+                    parse_result.root_entity,
+                    attributes={"id": 1, "name": 1},
+                )
+
+                root_entity = parse_result.root_entity
+
+                def _rebuild(conditions: list[Any]) -> dict[str, Any]:
+                    nodes, _ = _build_filter_nodes(ai_context.model_cache, conditions)
+                    tree = FilterTree(ai_context.model_cache, nodes)
+                    return tree.generate_query(root_entity, attributes={"id": 1, "name": 1})
+
+                wx.CallAfter(
+                    self._on_ai_result,
+                    parse_result.conditions,
+                    parse_result.invalid_conditions,
+                    jaquel,
+                    _rebuild,
+                )
+            except Exception as exc:
+                log.exception("AI query parsing failed")
+                wx.CallAfter(self._on_ai_error, exc)
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _on_ai_result(
+        self,
+        conditions: list[Any],
+        invalid_conditions: list[Any],
+        jaquel: dict[str, Any],
+        rebuild_query: Any,
+    ) -> None:
+        """Called on the main thread when AI parsing succeeded."""
+        wx.EndBusyCursor()
+        self._btn_ai_parse.Enable()
+
+        from odsbox_pilot.query.ai_preview_dialog import AiPreviewDialog
+
+        dlg = AiPreviewDialog(
+            self,
+            conditions,
+            jaquel,
+            invalid_conditions=invalid_conditions,
+            rebuild_query=rebuild_query,
+        )
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+        if result == wx.ID_OK:
+            pretty_json = json.dumps(dlg.get_jaquel(), indent=2)
+            self.set_query(pretty_json)
+            self._set_status("AI query applied")
+            log.info("AI query applied to editor")
+        else:
+            self._set_status("Ready")
+
+    def _on_ai_error(self, exc: Exception) -> None:
+        """Called on the main thread when AI parsing failed."""
+        wx.EndBusyCursor()
+        self._btn_ai_parse.Enable()
+        self._set_status("AI: Failed")
+        wx.MessageBox(
+            f"Failed to parse query:\n\n{exc}",
+            "AI Query Error",
+            wx.OK | wx.ICON_ERROR,
+            self,
+        )

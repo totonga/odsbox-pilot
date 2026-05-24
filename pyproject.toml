@@ -28,6 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gui = ["wxpython>=4.2.5", "matplotlib>=3.7", "sentence-transformers>=3.0"]
+ai = ["huggingface-hub>=0.20.0", "openvino-genai>=2024.5.0"]
 # npu = ["torch-directml>=0.2"]  # Windows Copilot+ NPU/GPU — no Python 3.14 wheels yet;
 #   install manually: pip install torch-directml --pre
 
@@ -94,6 +95,8 @@ module = [
     "odsbox_pilot.query.editor_panel",
     "odsbox_pilot.query.main_frame",
     "odsbox_pilot.query.result_grid",
+    "odsbox_pilot.query.ai_preview_dialog",
+    "odsbox_pilot.query.ai_settings_dialog",
     "odsbox_pilot.connection.connect_dialog",
     "odsbox_pilot.connection.server_list_dialog",
     "odsbox_pilot.browse.browse_panel",

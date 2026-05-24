@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -11,10 +12,12 @@ import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
 
 from odsbox_pilot.browse._helpers import _load_prefs, _save_prefs
-from odsbox_pilot.models import AppSettings
-from odsbox_pilot.query.editor_panel import EditorPanel
+from odsbox_pilot.models import AiSettings, AppSettings
+from odsbox_pilot.query.editor_panel import AiContext, EditorPanel
 from odsbox_pilot.query.history import HistoryEntry, QueryHistory
 from odsbox_pilot.query.result_grid import ResultGrid
+
+log = logging.getLogger(__name__)
 
 _LOG_ICON_OK = "✓"
 _LOG_ICON_ERR = "✗"
@@ -41,6 +44,7 @@ class MainFrame(wx.Frame):
         self._con_i = con_i
         self._history = QueryHistory()
         self._settings = AppSettings.load()
+        self._ai_settings = AiSettings.load()
         self._on_disconnect_cb = on_disconnect
         self._is_disconnecting = False
 
@@ -91,8 +95,16 @@ class MainFrame(wx.Frame):
 
         # Tab 0 — Query: inner horizontal splitter with editor + grid
         inner_splitter = wx.SplitterWindow(notebook, style=wx.SP_LIVE_UPDATE)
+
+        # Initialize AI context if enabled
+        ai_context = self._init_ai_context()
+
         self._editor = EditorPanel(
-            inner_splitter, self._history, self._on_execute, settings=self._settings
+            inner_splitter,
+            self._history,
+            self._on_execute,
+            settings=self._settings,
+            ai_context=ai_context,
         )
         self._grid = ResultGrid(inner_splitter)
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=280)
@@ -167,6 +179,13 @@ class MainFrame(wx.Frame):
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
         menubar.Append(file_menu, "&File")
 
+        # Settings menu
+        settings_menu = wx.Menu()
+        item_ai_settings = settings_menu.Append(
+            wx.ID_ANY, "AI Query Assistant…", "Configure AI model and download settings"
+        )
+        menubar.Append(settings_menu, "&Settings")
+
         # Help menu
         help_menu = wx.Menu()
         item_about = help_menu.Append(wx.ID_ABOUT, "&About ODS Pilot…")
@@ -175,10 +194,67 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
         self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
+        self.Bind(wx.EVT_MENU, self._on_ai_settings, item_ai_settings)
         self.Bind(wx.EVT_MENU, self._on_about, item_about)
         self.Bind(wx.EVT_CLOSE, self._on_close)
 
         self.SetMenuBar(menubar)
+
+    def _init_ai_context(self) -> AiContext | None:
+        """Initialize AI context if enabled and model is downloaded.
+
+        Returns:
+            AiContext if AI is enabled, None otherwise.
+        """
+        if not self._ai_settings.enabled:
+            return None
+
+        try:
+            from odsbox_pilot.ai import ModelManager, NlToConditions, OvLlmPipeline
+            from odsbox_pilot.model.search_index import ModelSearchIndex
+
+            # Check if model is downloaded
+            manager = ModelManager(self._ai_settings.model_cache_dir)
+            model_path = manager.get_model_path(self._ai_settings.model_id)
+            if model_path is None:
+                log.warning(f"AI model not downloaded: {self._ai_settings.model_id}")
+                return None
+
+            # Initialize LLM pipeline
+            pipeline = OvLlmPipeline(model_path, device=self._ai_settings.device)
+
+            # Initialize model search index
+            model = self._con_i.mc.model()
+            search_index = ModelSearchIndex(model)
+
+            # Create NL parser
+            nl_parser = NlToConditions(search_index, pipeline)
+
+            log.info(f"AI context initialized with model {self._ai_settings.model_id}")
+            return AiContext(nl_parser=nl_parser, model_cache=self._con_i.mc)
+
+        except ImportError as e:
+            log.warning(f"AI dependencies not installed: {e}")
+            return None
+        except Exception:
+            log.exception("Failed to initialize AI context")
+            return None
+
+    # ------------------------------------------------------------------
+    # AI settings
+    # ------------------------------------------------------------------
+
+    def _on_ai_settings(self, _event: wx.Event) -> None:
+        from odsbox_pilot.query.ai_settings_dialog import AiSettingsDialog
+
+        dlg = AiSettingsDialog(self, self._ai_settings)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._ai_settings = dlg.get_settings()
+            self._ai_settings.save()
+            # Re-initialize and push the new context to the editor
+            ai_context = self._init_ai_context()
+            self._editor.set_ai_context(ai_context)
+        dlg.Destroy()
 
     # ------------------------------------------------------------------
     # Execute query
