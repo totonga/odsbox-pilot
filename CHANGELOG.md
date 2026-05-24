@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.5.1 (2026-05-24)
+
+### Bug Fixes
+
+- Adjust documentation
+  ([`e601a1d`](https://github.com/totonga/odsbox-pilot/commit/e601a1d3b0e30f9c42750ae9f8d00b5647c9069f))
+
+
 ## v1.5.0 (2026-05-24)
 
 ### Bug Fixes
