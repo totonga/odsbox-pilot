@@ -362,3 +362,123 @@ class ModelSearchIndex:
                 )
             )
         return results
+
+    # ------------------------------------------------------------------
+    # Model introspection helpers (used by AI query generation)
+    # ------------------------------------------------------------------
+
+    # ODS DT_DATE data-type integer value (ods.DT_DATE == 10)
+    _DT_DATE: int = 10
+
+    def entity_schema(self, entity_name: str) -> str:
+        """Return a compact schema summary for one entity.
+
+        Lists all attribute names (with base names) and relation targets so
+        the LLM knows exactly which names are valid.
+
+        Returns an empty string if the entity is not in the model.
+        """
+        if entity_name not in self._model.entities:
+            return ""
+        entity = self._model.entities[entity_name]
+        lines: list[str] = [f"Entity {entity_name} (base: {entity.base_name}):"]
+        for attr_name, attr in entity.attributes.items():
+            lines.append(f"  attr {attr_name} (base: {attr.base_name})")
+        for rel_name, rel in entity.relations.items():
+            lines.append(f"  relation {rel_name} -> {rel.entity_name}")
+        return "\n".join(lines)
+
+    def resolve_attribute(self, entity_name: str, attr_hint: str) -> str | None:
+        """Find the real attribute name that best matches *attr_hint*.
+
+        Resolution order:
+        1. Exact match (case-sensitive)
+        2. Case-insensitive match
+        3. Semantic search (only when embeddings are already loaded)
+
+        Returns the correct attribute name, or ``None`` if no reasonable match
+        is found.
+        """
+        if entity_name not in self._model.entities:
+            return None
+        entity = self._model.entities[entity_name]
+
+        # 1. Exact match
+        if attr_hint in entity.attributes:
+            return attr_hint
+
+        # 2. Case-insensitive match
+        hint_lower = attr_hint.lower()
+        for raw_name in entity.attributes:
+            real_name = str(raw_name)
+            if real_name.lower() == hint_lower:
+                return real_name
+
+        # 3. Semantic search — only when the index is already loaded
+        if self._embeddings is not None:
+            results = self.search(f"{entity_name} {attr_hint}", top_k=15)
+            entity_attrs = [
+                m
+                for m in results
+                if m.entity_name == entity_name and m.kind == "attribute"
+            ]
+            if entity_attrs and entity_attrs[0].score > 0.45:
+                return str(entity_attrs[0].item_name)
+
+        return None
+
+    def find_date_attribute(self, entity_name: str) -> str | None:
+        """Return the primary date attribute of *entity_name*, or ``None``.
+
+        When multiple DT_DATE attributes exist the one whose name contains
+        *begin* or *start* is preferred, then *end*, then the first found.
+        """
+        if entity_name not in self._model.entities:
+            return None
+        entity = self._model.entities[entity_name]
+        date_attrs: list[str] = [
+            str(name)
+            for name, attr in entity.attributes.items()
+            if int(attr.data_type) == self._DT_DATE
+        ]
+        if not date_attrs:
+            return None
+        if len(date_attrs) == 1:
+            return date_attrs[0]
+        for preference in ("begin", "start", "end", "date", "created"):
+            for name in date_attrs:
+                if preference in name.lower():
+                    return name
+        return date_attrs[0]
+
+    def resolve_entity(self, entity_hint: str) -> str | None:
+        """Find the real entity name that best matches *entity_hint*.
+
+        Resolution order:
+        1. Exact match (case-sensitive)
+        2. Case-insensitive match
+        3. Semantic search (only when embeddings are already loaded)
+
+        Returns the correct entity name, or ``None`` if no reasonable match
+        is found.
+        """
+        # 1. Exact match
+        if entity_hint in self._model.entities:
+            return entity_hint
+
+        # 2. Case-insensitive match
+        hint_lower = entity_hint.lower()
+        for raw_name in self._model.entities:
+            real_name = str(raw_name)
+            if real_name.lower() == hint_lower:
+                return real_name
+
+        # 3. Semantic search — only when the index is already loaded
+        if self._embeddings is not None:
+            results = self.search(entity_hint, top_k=10)
+            entity_hits = [m for m in results if m.kind == "attribute"]
+            if entity_hits and entity_hits[0].score > 0.45:
+                return str(entity_hits[0].entity_name)
+
+        return None
+

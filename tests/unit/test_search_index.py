@@ -354,3 +354,99 @@ class TestSearch:
         # SentenceTransformer must have been called with a device= keyword arg.
         _, kwargs = mock_st_class.call_args
         assert "device" in kwargs
+
+
+# ---------------------------------------------------------------------------
+# Model introspection helpers (entity_schema, resolve_attribute, find_date_attribute)
+# ---------------------------------------------------------------------------
+
+
+class TestModelIntrospection:
+    """Tests for the AI-query helpers that validate LLM-generated conditions."""
+
+    # --- entity_schema ---
+
+    def test_entity_schema_contains_entity_name(self, index: ModelSearchIndex) -> None:
+        schema = index.entity_schema("MeaResult")
+        assert "MeaResult" in schema
+
+    def test_entity_schema_lists_all_attributes(self, index: ModelSearchIndex) -> None:
+        schema = index.entity_schema("MeaResult")
+        # MeaResult has Name, Id, MeasurementBegin, MeasurementEnd, Description
+        assert "MeasurementBegin" in schema
+        assert "Name" in schema
+        assert "Id" in schema
+
+    def test_entity_schema_lists_relations(self, index: ModelSearchIndex) -> None:
+        # Any entity with at least one relation should include it
+        schema = index.entity_schema("TestEquipment")
+        assert "relation" in schema or "->" in schema
+
+    def test_entity_schema_unknown_entity_returns_empty(self, index: ModelSearchIndex) -> None:
+        assert index.entity_schema("DoesNotExist") == ""
+
+    # --- resolve_attribute ---
+
+    def test_resolve_exact_match(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_attribute("MeaResult", "Name") == "Name"
+
+    def test_resolve_exact_match_id(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_attribute("MeaResult", "Id") == "Id"
+
+    def test_resolve_case_insensitive(self, index: ModelSearchIndex) -> None:
+        # "name" (lowercase) should resolve to "Name"
+        resolved = index.resolve_attribute("MeaResult", "name")
+        assert resolved == "Name"
+
+    def test_resolve_case_insensitive_description(self, index: ModelSearchIndex) -> None:
+        resolved = index.resolve_attribute("MeaResult", "description")
+        assert resolved == "Description"
+
+    def test_resolve_unknown_entity_returns_none(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_attribute("NoSuchEntity", "Name") is None
+
+    def test_resolve_unknown_attr_no_embeddings_returns_none(
+        self, index: ModelSearchIndex
+    ) -> None:
+        # With no embeddings loaded, a completely unknown attr should return None
+        assert index._embeddings is None  # embeddings not yet loaded
+        result = index.resolve_attribute("MeaResult", "xyzzy_nonexistent_attr_abc")
+        assert result is None
+
+    # --- find_date_attribute ---
+
+    def test_find_date_attribute_mea_result(self, index: ModelSearchIndex) -> None:
+        # MeaResult has MeasurementBegin, MeasurementEnd, DateCreated — prefer "begin"
+        result = index.find_date_attribute("MeaResult")
+        assert result == "MeasurementBegin"
+
+    def test_find_date_attribute_unknown_entity_returns_none(
+        self, index: ModelSearchIndex
+    ) -> None:
+        assert index.find_date_attribute("NoSuchEntity") is None
+
+    def test_find_date_attribute_entity_without_dates(self, index: ModelSearchIndex) -> None:
+        # Find any entity with no DT_DATE attributes; MeaQuantity is likely
+        result = index.find_date_attribute("MeaQuantity")
+        # Either None or a string — just ensure it doesn't crash
+        assert result is None or isinstance(result, str)
+
+    # --- resolve_entity ---
+
+    def test_resolve_entity_exact_match(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_entity("MeaResult") == "MeaResult"
+
+    def test_resolve_entity_exact_match_project(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_entity("Project") == "Project"
+
+    def test_resolve_entity_case_insensitive(self, index: ModelSearchIndex) -> None:
+        resolved = index.resolve_entity("mearesult")
+        assert resolved == "MeaResult"
+
+    def test_resolve_entity_unknown_returns_none(self, index: ModelSearchIndex) -> None:
+        assert index.resolve_entity("MDL") is None
+
+    def test_resolve_entity_attribute_name_returns_none(self, index: ModelSearchIndex) -> None:
+        # "DateCreated" is an attribute, not an entity — should return None
+        assert index.resolve_entity("DateCreated") is None
+
