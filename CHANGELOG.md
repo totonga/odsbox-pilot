@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.6.0 (2026-05-24)
+
+### Features
+
+- Add semantic model search feature ([#7](https://github.com/totonga/odsbox-pilot/pull/7),
+  [`b9d3605`](https://github.com/totonga/odsbox-pilot/commit/b9d360589c7ced681150ab3f683af5444bdf0082))
+
+- Added semantic model search ([#7](https://github.com/totonga/odsbox-pilot/pull/7),
+  [`b9d3605`](https://github.com/totonga/odsbox-pilot/commit/b9d360589c7ced681150ab3f683af5444bdf0082))
+
+
 ## v1.5.1 (2026-05-24)
 
 ### Bug Fixes
