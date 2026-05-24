@@ -86,6 +86,11 @@ class BrowsePanel(wx.Panel):
     # Public API
     # ------------------------------------------------------------------
 
+    def trigger_initial_query(self) -> None:
+        """Run the initial query if the result tree is still empty."""
+        if not self._closing and self._tree.GetChildrenCount(self._root) == 0:
+            self._on_query(None)
+
     def clear_connection(self) -> None:
         """Disable controls and clear the tree before the connection is closed."""
         self._closing = True

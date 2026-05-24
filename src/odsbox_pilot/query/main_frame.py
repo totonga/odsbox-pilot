@@ -333,10 +333,14 @@ class MainFrame(wx.Frame):
         self._is_disconnecting = True
         self.Close()
 
+    _BROWSE_TAB = 1
+
     def _on_main_tab_changed(self, event: wx.BookCtrlEvent) -> None:
         prefs = _load_prefs()
         prefs["main_tab"] = event.GetSelection()
         _save_prefs(prefs)
+        if event.GetSelection() == self._BROWSE_TAB:
+            wx.CallAfter(self._browse.trigger_initial_query)
         event.Skip()
 
     def _restore_main_tab(self) -> None:
