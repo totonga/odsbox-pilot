@@ -83,10 +83,9 @@ class ModelManager:
 
         try:
             # Download the model
-            snapshot_download(  # type: ignore[call-overload]
+            snapshot_download(
                 repo_id=model_id,
                 local_dir=str(model_dir),
-                local_dir_use_symlinks=False,
             )
             log.info(f"Model {model_id} downloaded successfully")
             if progress_callback:
