@@ -7,10 +7,9 @@ Run with:
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
-from odsbox import ConI
 
 import pytest
+from odsbox import ConI
 
 _DEMO_URL = "https://docker.peak-solution.de:10032/api"
 _DEMO_USER = "Demo"
@@ -114,21 +113,20 @@ class TestDemoServerQueries:
         assert len(arr) > 0, "Values array is empty"
         assert np.issubdtype(arr.dtype, np.number), f"Expected numeric dtype, got {arr.dtype}"
 
+
 def test_model_inspection(con_i: ConI) -> None:
     from odsbox.proto import ods
 
     model: ods.Model = con_i.model()
     for enum_name, enum in model.enumerations.items():
         assert enum_name == enum.name, f"Enumeration name mismatch: {enum_name} vs {enum.name}"
-        for item in enum.items:
+        for _item in enum.items:
             ...
-    for entity_name, entity in model.entities.items():
+    for _entity_name, entity in model.entities.items():
         assert entity.base_name
         for attr_name, attr in entity.attributes.items():
             assert attr_name == attr.name, f"Attribute name mismatch: {attr_name} vs {attr.name}"
             ods.DataTypeEnum.Name(attr.data_type)
         for rel_name, rel in entity.relations.items():
             assert rel_name == rel.name, f"Relationship name mismatch: {rel_name} vs {rel.name}"
-            rel_entity = model.entities.get(rel.entity_name)
-
-        
+            model.entities.get(rel.entity_name)

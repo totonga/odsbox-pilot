@@ -88,6 +88,7 @@ ignore_missing_imports = true
 module = [
     "odsbox_pilot.app",
     "odsbox_pilot.__main__",
+    "odsbox_pilot.model.model_panel",
     "odsbox_pilot.query.editor_panel",
     "odsbox_pilot.query.main_frame",
     "odsbox_pilot.query.result_grid",

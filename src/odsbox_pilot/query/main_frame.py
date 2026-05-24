@@ -91,7 +91,9 @@ class MainFrame(wx.Frame):
 
         # Tab 0 — Query: inner horizontal splitter with editor + grid
         inner_splitter = wx.SplitterWindow(notebook, style=wx.SP_LIVE_UPDATE)
-        self._editor = EditorPanel(inner_splitter, self._history, self._on_execute, settings=self._settings)
+        self._editor = EditorPanel(
+            inner_splitter, self._history, self._on_execute, settings=self._settings
+        )
         self._grid = ResultGrid(inner_splitter)
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=280)
         inner_splitter.SetMinimumPaneSize(80)

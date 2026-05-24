@@ -38,7 +38,7 @@ def _rel_range(rel: ods.Model.Relation) -> str:
 
 def _rel_type_label(rel: ods.Model.Relation) -> str:
     """Return the RelationshipEnum name for *rel.relationship*."""
-    return ods.RelationshipEnum.Name(rel.relationship)
+    return ods.Model.RelationshipEnum.Name(rel.relationship)
 
 
 # ------------------------------------------------------------------
