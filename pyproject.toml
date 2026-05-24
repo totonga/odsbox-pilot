@@ -27,7 +27,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gui = ["wxpython>=4.2.5", "matplotlib>=3.7"]
+gui = ["wxpython>=4.2.5", "matplotlib>=3.7", "sentence-transformers>=3.0"]
+# npu = ["torch-directml>=0.2"]  # Windows Copilot+ NPU/GPU — no Python 3.14 wheels yet;
+#   install manually: pip install torch-directml --pre
 
 [project.urls]
 Homepage = "https://github.com/totonga/odsbox-pilot"
