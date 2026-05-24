@@ -1,6 +1,7 @@
 """Entry point: python -m odsbox_pilot"""
 
 import argparse
+import signal
 import sys
 
 
@@ -45,6 +46,12 @@ def main() -> None:
         raise SystemExit(1) from exc
 
     app = OdsPilotApp(initial_server=args.server)
+
+    def _sigint_handler(signum: int, frame: object) -> None:
+        app.ExitMainLoop()
+
+    signal.signal(signal.SIGINT, _sigint_handler)
+
     app.MainLoop()
     sys.exit(0)
 
