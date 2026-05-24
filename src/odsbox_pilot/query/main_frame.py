@@ -91,7 +91,9 @@ class MainFrame(wx.Frame):
 
         # Tab 0 — Query: inner horizontal splitter with editor + grid
         inner_splitter = wx.SplitterWindow(notebook, style=wx.SP_LIVE_UPDATE)
-        self._editor = EditorPanel(inner_splitter, self._history, self._on_execute)
+        self._editor = EditorPanel(
+            inner_splitter, self._history, self._on_execute, settings=self._settings
+        )
         self._grid = ResultGrid(inner_splitter)
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=280)
         inner_splitter.SetMinimumPaneSize(80)
@@ -105,6 +107,13 @@ class MainFrame(wx.Frame):
             status_fn=lambda msg: self.GetStatusBar().SetStatusText(msg, 0),
         )
         notebook.AddPage(self._browse, "Browse")
+
+        # Tab 2 — Model: entity-relation schema browser
+        from odsbox_pilot.model.model_panel import ModelPanel
+
+        self._model_panel = ModelPanel(notebook, self._con_i)
+        notebook.AddPage(self._model_panel, "Model")
+
         self._notebook = notebook
         notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_main_tab_changed)
         wx.CallAfter(self._restore_main_tab)
@@ -158,34 +167,14 @@ class MainFrame(wx.Frame):
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
         menubar.Append(file_menu, "&File")
 
-        # Settings menu
-        settings_menu = wx.Menu()
-        self._item_naming_query = settings_menu.AppendRadioItem(
-            wx.ID_ANY, "Result Naming: Query", "Column names come from the JAQueL query (default)"
-        )
-        self._item_naming_model = settings_menu.AppendRadioItem(
-            wx.ID_ANY,
-            "Result Naming: Model",
-            "Column names come from the ODS model schema (e.g. Unit.Name)",
-        )
-        menubar.Append(settings_menu, "&Settings")
-
         # Help menu
         help_menu = wx.Menu()
         item_about = help_menu.Append(wx.ID_ABOUT, "&About ODS Pilot…")
         menubar.Append(help_menu, "&Help")
 
-        # Reflect current settings
-        if self._settings.result_naming_mode == "model":
-            self._item_naming_model.Check(True)
-        else:
-            self._item_naming_query.Check(True)
-
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
         self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
-        self.Bind(wx.EVT_MENU, self._on_naming_query, self._item_naming_query)
-        self.Bind(wx.EVT_MENU, self._on_naming_model, self._item_naming_model)
         self.Bind(wx.EVT_MENU, self._on_about, item_about)
         self.Bind(wx.EVT_CLOSE, self._on_close)
 
@@ -275,14 +264,6 @@ class MainFrame(wx.Frame):
     # Settings handlers
     # ------------------------------------------------------------------
 
-    def _on_naming_query(self, _event: wx.Event) -> None:
-        self._settings.result_naming_mode = "query"
-        self._settings.save()
-
-    def _on_naming_model(self, _event: wx.Event) -> None:
-        self._settings.result_naming_mode = "model"
-        self._settings.save()
-
     # ------------------------------------------------------------------
     # Menu handlers
     # ------------------------------------------------------------------
@@ -326,10 +307,14 @@ class MainFrame(wx.Frame):
         self._is_disconnecting = True
         self.Close()
 
+    _BROWSE_TAB = 1
+
     def _on_main_tab_changed(self, event: wx.BookCtrlEvent) -> None:
         prefs = _load_prefs()
         prefs["main_tab"] = event.GetSelection()
         _save_prefs(prefs)
+        if event.GetSelection() == self._BROWSE_TAB:
+            wx.CallAfter(self._browse.trigger_initial_query)
         event.Skip()
 
     def _restore_main_tab(self) -> None:

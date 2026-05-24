@@ -9,6 +9,7 @@ from pathlib import Path
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
 
+from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.examples import by_category, categories
 from odsbox_pilot.query.history import QueryHistory
 
@@ -24,10 +25,12 @@ class EditorPanel(wx.Panel):
         parent: wx.Window,
         history: QueryHistory,
         on_execute: Callable[[str], None],
+        settings: AppSettings | None = None,
     ) -> None:
         super().__init__(parent)
         self._history = history
         self._on_execute = on_execute
+        self._settings = settings
         self._webview_ready = False
 
         self._build_ui()
@@ -77,6 +80,12 @@ class EditorPanel(wx.Panel):
         self._btn_history = wx.Button(toolbar, label="History ▾")
         self._btn_history.Bind(wx.EVT_BUTTON, self._on_history_menu)
         tbar_sizer.Add(self._btn_history, flag=wx.RIGHT, border=4)
+
+        # Settings dropdown button
+        if self._settings is not None:
+            self._btn_settings = wx.Button(toolbar, label="Settings ▾")
+            self._btn_settings.Bind(wx.EVT_BUTTON, self._on_settings_menu)
+            tbar_sizer.Add(self._btn_settings, flag=wx.RIGHT, border=4)
 
         tbar_sizer.AddStretchSpacer()
 
@@ -171,6 +180,32 @@ class EditorPanel(wx.Panel):
                 item,
             )
         self._btn_history.PopupMenu(menu)
+        menu.Destroy()
+
+    def _on_settings_menu(self, _event: wx.Event) -> None:
+        menu = wx.Menu()
+        item_query = menu.AppendRadioItem(
+            wx.ID_ANY, "Result Naming: Query", "Column names from JAQueL query (default)"
+        )
+        item_model = menu.AppendRadioItem(
+            wx.ID_ANY, "Result Naming: Model", "Column names from ODS model schema"
+        )
+        if self._settings.result_naming_mode == "model":  # type: ignore[union-attr]
+            item_model.Check(True)
+        else:
+            item_query.Check(True)
+
+        def _set_query(_e: wx.Event) -> None:
+            self._settings.result_naming_mode = "query"  # type: ignore[union-attr]
+            self._settings.save()  # type: ignore[union-attr]
+
+        def _set_model(_e: wx.Event) -> None:
+            self._settings.result_naming_mode = "model"  # type: ignore[union-attr]
+            self._settings.save()  # type: ignore[union-attr]
+
+        menu.Bind(wx.EVT_MENU, _set_query, item_query)
+        menu.Bind(wx.EVT_MENU, _set_model, item_model)
+        self._btn_settings.PopupMenu(menu)
         menu.Destroy()
 
     def _on_pretty_print(self, _event: wx.Event) -> None:

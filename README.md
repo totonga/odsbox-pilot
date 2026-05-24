@@ -16,6 +16,8 @@ A desktop query tool for [ASAM ODS](https://www.asam.net/standards/detail/ods/) 
 - Tabular result display powered by pandas
 - **Browse tab**: FilterTree-based ODS server navigation with lazy tree expansion,
   filter condition management, and attribute value discovery
+- **Model tab**: read-only browser for the entity-relation schema — entities with
+  attributes and relations, plus all enumerations
 
 ## Requirements
 
@@ -63,15 +65,33 @@ server hierarchy interactively:
    shows related relation names; expanding a relation node fetches the connected instances.
 4. **Query Preview** — shows the Jaquel query that will be (or was) sent to the server.
 
+### Model tab
+
+The **Model** tab (third tab) displays the server's entity-relation schema read from the
+ODS model — no additional server calls are made after connecting.
+
+- **Entities** — sorted by base name then application name, colour-coded by entity group
+  (same colour scheme as the Browse tree).  Expand an entity to see its **Attributes**
+  (with ODS data-type symbols) and **Relations** (with cardinality, e.g. `1:n`).
+- **Enumerations** — all model enumerations with their items and index values.
+- **Property panel** — selecting any tree node populates the right-hand panel with
+  context-sensitive details: data type, target entity, inverse relation name, range, etc.
+
 ## Development
 
 This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
 ```bash
-# Clone and set up
+# Clone and set up — include the gui extra so wxpython is installed
 git clone https://github.com/totonga/odsbox-pilot.git
 cd odsbox-pilot
-uv sync
+uv sync --extra gui
+
+# Launch the app from source
+uv run odsbox-pilot
+
+# Alternative: run as a Python module
+uv run python -m odsbox_pilot
 
 # Run tests
 uv run pytest tests/unit/

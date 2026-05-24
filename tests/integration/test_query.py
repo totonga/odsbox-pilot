@@ -7,9 +7,9 @@ Run with:
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
 
 import pytest
+from odsbox import ConI
 
 _DEMO_URL = "https://docker.peak-solution.de:10032/api"
 _DEMO_USER = "Demo"
@@ -17,7 +17,7 @@ _DEMO_PASS = "mdm"
 
 
 @pytest.fixture(scope="module")
-def con_i() -> Iterator[Any]:
+def con_i() -> Iterator[ConI]:
     """Live ConI connection to the demo server (module-scoped)."""
     from odsbox import ConI
 
@@ -27,7 +27,7 @@ def con_i() -> Iterator[Any]:
 
 @pytest.mark.integration
 class TestDemoServerQueries:
-    def test_query_units_returns_dataframe(self, con_i: Any) -> None:
+    def test_query_units_returns_dataframe(self, con_i: ConI) -> None:
         import pandas as pd
 
         df = con_i.query({"AoUnit": {}})
@@ -36,7 +36,7 @@ class TestDemoServerQueries:
         # odsbox capitalises column names (e.g. "Name", "Id")
         assert any(col.lower() == "name" for col in df.columns)
 
-    def test_query_units_with_attributes(self, con_i: Any) -> None:
+    def test_query_units_with_attributes(self, con_i: ConI) -> None:
         df = con_i.query(
             {
                 "AoUnit": {},
@@ -46,25 +46,25 @@ class TestDemoServerQueries:
         cols_lower = {c.lower() for c in df.columns}
         assert {"name", "factor", "offset"}.issubset(cols_lower)
 
-    def test_query_with_row_limit(self, con_i: Any) -> None:
+    def test_query_with_row_limit(self, con_i: ConI) -> None:
         df = con_i.query({"AoUnit": {}, "$options": {"$rowlimit": 3}})
         assert len(df) <= 3
 
-    def test_query_unit_by_name(self, con_i: Any) -> None:
+    def test_query_unit_by_name(self, con_i: ConI) -> None:
         df = con_i.query({"AoUnit": {"name": "s"}})
         assert len(df) >= 0  # may or may not exist on demo server
 
-    def test_query_invalid_entity_raises(self, con_i: Any) -> None:
+    def test_query_invalid_entity_raises(self, con_i: ConI) -> None:
         with pytest.raises(Exception, match="."):
             con_i.query({"__NonExistentEntity__": {}})
 
-    def test_query_measurements(self, con_i: Any) -> None:
+    def test_query_measurements(self, con_i: ConI) -> None:
         import pandas as pd
 
         df = con_i.query({"AoMeasurement": {}, "$options": {"$rowlimit": 5}})
         assert isinstance(df, pd.DataFrame)
 
-    def test_local_column_properties(self, con_i: Any) -> None:
+    def test_local_column_properties(self, con_i: ConI) -> None:
         """Querying AoLocalColumn with explicit $attributes returns those columns."""
         import pandas as pd
 
@@ -81,7 +81,7 @@ class TestDemoServerQueries:
         assert "id" in cols_lower
         assert "name" in cols_lower
 
-    def test_local_column_values(self, con_i: Any) -> None:
+    def test_local_column_values(self, con_i: ConI) -> None:
         """Querying $attributes: {values: 1} for an AoLocalColumn returns numeric array data."""
         import numpy as np
         import pandas as pd
@@ -112,3 +112,21 @@ class TestDemoServerQueries:
         arr = np.asarray(raw)
         assert len(arr) > 0, "Values array is empty"
         assert np.issubdtype(arr.dtype, np.number), f"Expected numeric dtype, got {arr.dtype}"
+
+
+def test_model_inspection(con_i: ConI) -> None:
+    from odsbox.proto import ods
+
+    model: ods.Model = con_i.model()
+    for enum_name, enum in model.enumerations.items():
+        assert enum_name == enum.name, f"Enumeration name mismatch: {enum_name} vs {enum.name}"
+        for _item in enum.items:
+            ...
+    for _entity_name, entity in model.entities.items():
+        assert entity.base_name
+        for attr_name, attr in entity.attributes.items():
+            assert attr_name == attr.name, f"Attribute name mismatch: {attr_name} vs {attr.name}"
+            ods.DataTypeEnum.Name(attr.data_type)
+        for rel_name, rel in entity.relations.items():
+            assert rel_name == rel.name, f"Relationship name mismatch: {rel_name} vs {rel.name}"
+            model.entities.get(rel.entity_name)
