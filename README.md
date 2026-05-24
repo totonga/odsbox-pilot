@@ -5,101 +5,126 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![CI](https://github.com/totonga/odsbox-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/totonga/odsbox-pilot/actions/workflows/ci.yml)
 
-A desktop query tool for [ASAM ODS](https://www.asam.net/standards/detail/ods/) servers, built on top of [odsbox](https://pypi.org/project/odsbox/).
+**ODS Pilot** is a desktop application for querying and exploring
+[ASAM ODS](https://www.asam.net/standards/detail/ods/) measurement-data servers.
+It provides an interactive GUI that lets you write and run queries, browse the
+data hierarchy, and inspect the entity-relation model — all without writing any code.
 
-## Features
+---
 
-- Connect to ASAM ODS servers with multiple auth modes (Basic, OIDC, M2M)
-- Manage multiple server configurations with secure credential storage via `keyring`
-- Interactive query editor with syntax highlighting (CodeMirror)
-- Query history and built-in examples
-- Tabular result display powered by pandas
-- **Browse tab**: FilterTree-based ODS server navigation with lazy tree expansion,
-  filter condition management, and attribute value discovery
-- **Model tab**: read-only browser for the entity-relation schema — entities with
-  attributes and relations, plus all enumerations
+## Features at a glance
+
+| | Feature |
+|---|---|
+| 🔌 | **Multi-server management** — save and switch between multiple ODS server configurations |
+| 🔐 | **Secure credentials** — passwords stored in the OS keyring (never in plain text) |
+| 🔑 | **Flexible authentication** — Basic, OIDC, and M2M auth modes |
+| ✏️ | **Interactive query editor** — JSON/JAQueL editor with syntax highlighting (CodeMirror) |
+| 📋 | **Examples & history** — built-in query examples and per-session history |
+| 📊 | **Tabular results** — sortable result grid powered by pandas; export to CSV |
+| 🌳 | **Browse tab** — point-and-click navigation of the data hierarchy with filter conditions |
+| 🗂️ | **Model tab** — read-only browser for the complete entity-relation schema and enumerations |
+
+---
 
 ## Requirements
 
-- Python 3.14+
-- A running ASAM ODS server
+- Python 3.14 or later
+- A running ASAM ODS server (REST API)
+
+---
 
 ## Installation
 
-```bash
-pip install odsbox-pilot[gui]
-```
-
-## Usage
-
-Launch without installing (always uses the latest release):
+**Quickest start — no install needed** (always runs the latest release):
 
 ```bash
 uvx odsbox-pilot[gui]@latest
 ```
 
-Install as a persistent tool:
+**Install as a persistent tool** with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv tool install odsbox-pilot[gui]
 odsbox-pilot
 ```
 
-Or run as a module:
+**Install with pip:**
 
 ```bash
+pip install odsbox-pilot[gui]
 python -m odsbox_pilot
 ```
 
+---
+
+## Quick start
+
+1. Launch ODS Pilot — the **Server List** dialog opens automatically.
+2. Click **Add…** and enter your server URL, username, and password.
+3. Double-click your server (or select it and click **Connect**).
+4. Use the tabs to query, browse, and inspect your data.
+
+**Command-line shortcut** — skip the server list and connect directly:
+
+```bash
+odsbox-pilot --server "My Server"   # connect by saved name
+odsbox-pilot --list-servers         # print all saved names
+```
+
+---
+
+## The three tabs
+
+### Query tab
+
+Write [JAQueL](https://github.com/totonga/jaquel) queries in a JSON editor and run them
+against the server. Results appear in a sortable table.
+
+```json
+{ "Unit": {} }
+```
+
+Use **Examples ▾** for ready-made patterns (filters, joins, aggregations) and
+**History ▾** to re-run previous queries. Export any result with **Ctrl+S**.
+
 ### Browse tab
 
-The **Browse** tab (second tab in the main window) lets you navigate the ODS
-server hierarchy interactively:
+Navigate the ODS data hierarchy without writing queries. Pick a root entity, add optional
+filter conditions, and click **Query**. Expand tree nodes to follow relations level by
+level. Click any instance to see its attributes on the right. The JAQueL query for the
+current view is shown in the preview panel.
 
-1. **Filter Conditions** — add conditions per entity (e.g., `Project.name $like Elec*`).
-   Use the **…** button next to a value field to discover distinct values or the min/max
-   range directly from the server.  Conditions are persisted in
-   `~/.ods-pilot/browse_conditions.json` across sessions.
-2. **Root entity** — select which entity type to query as the tree root, then click **Query**.
-3. **Tree** — expand nodes to follow relations one level at a time.  Each instance node
-   shows related relation names; expanding a relation node fetches the connected instances.
-4. **Query Preview** — shows the Jaquel query that will be (or was) sent to the server.
+Filter conditions are saved in `~/.ods-pilot/browse_conditions.json` and persist across
+sessions.
 
 ### Model tab
 
-The **Model** tab (third tab) displays the server's entity-relation schema read from the
-ODS model — no additional server calls are made after connecting.
+A read-only schema browser loaded from the ODS model on connect (no extra server calls).
+Entities are colour-coded by base type. Expand any entity to see its attributes
+(with data-type symbols) and relations (with cardinality). All enumerations and their
+index values are listed at the bottom.
 
-- **Entities** — sorted by base name then application name, colour-coded by entity group
-  (same colour scheme as the Browse tree).  Expand an entity to see its **Attributes**
-  (with ODS data-type symbols) and **Relations** (with cardinality, e.g. `1:n`).
-- **Enumerations** — all model enumerations with their items and index values.
-- **Property panel** — selecting any tree node populates the right-hand panel with
-  context-sensitive details: data type, target entity, inverse relation name, range, etc.
+---
 
-## Development
+## Keyboard shortcuts
 
-This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
+| Shortcut | Action |
+|---|---|
+| **Alt+Enter** / **Ctrl+Enter** | Execute query |
+| **Ctrl+S** | Export results to CSV |
+| **Ctrl+W** | Disconnect from current server |
+| **Alt+F4** | Exit |
 
-```bash
-# Clone and set up — include the gui extra so wxpython is installed
-git clone https://github.com/totonga/odsbox-pilot.git
-cd odsbox-pilot
-uv sync --extra gui
+---
 
-# Launch the app from source
-uv run odsbox-pilot
+## Documentation
 
-# Alternative: run as a Python module
-uv run python -m odsbox_pilot
+- 📖 [Full user guide](USER.md) — detailed instructions for every feature
+- 🛠️ [Developer guide](DEVELOPER.md) — setup, project structure, tests, and CI
+- 📝 [Changelog](CHANGELOG.md)
 
-# Run tests
-uv run pytest tests/unit/
-
-# Lint and type-check
-uv run ruff check src/ tests/
-uv run mypy src/
-```
+---
 
 ## License
 
