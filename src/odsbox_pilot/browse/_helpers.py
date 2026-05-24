@@ -64,7 +64,7 @@ _ENTITY_ICONS: dict[str, str] = {
     "AoTest": "\u2697",  # ⚗
     "AoSubTest": "\u2299",  # ⊙
     "AoMeasurement": "\u223f",  # ∿
-    "AoSubMatrix": "\u229e",  # ⊞
+    "AoSubmatrix": "\u229e",  # ⊞
     "AoLocalColumn": "\u21a7",  # ↧
     "AoMeasurementQuantity": "\u0394",  # Δ
     "AoTestEquipment": "\u2699",  # ⚙
@@ -100,17 +100,19 @@ def _entity_icon(base_name: str) -> str:
 # Returns (r, g, b); caller converts to wx.Colour.
 _ENTITY_COLOURS: dict[str, tuple[int, int, int]] = {
     # ── hierarchy ── green ──────────────────────────
+    "AoEnvironment": (34, 139, 34),
     "AoTest": (34, 139, 34),
     "AoSubTest": (34, 139, 34),
-    # ── Measurement data ── pink ──────────────────────────
-    "AoMeasurement": (255, 105, 180),
-    "AoMeasurementQuantity": (255, 105, 180),
-    "AoSubMatrix": (255, 105, 180),
-    "AoLocalColumn": (255, 105, 180),
+    # ── Measurement data ── green ──────────────────────────
+    "AoMeasurement": (34, 160, 34),
+    "AoMeasurementQuantity": (34, 160, 34),
+    "AoSubmatrix": (34, 160, 34),
+    "AoLocalColumn": (34, 160, 34),
+    "AoExternalComponent": (34, 160, 34),
     # ── Units / physics / environment ── teal ────────────────────────
-    "AoEnvironment": (0, 140, 140),
     "AoUnit": (0, 140, 140),
     "AoPhysicalDimension": (0, 140, 140),
+    "AoQuantity": (0, 140, 140),
     # ── Catalog / metadata / parameters ── orange ────────────────────
     "AoAttributeMap": (180, 100, 0),
     "AoNameMap": (180, 100, 0),

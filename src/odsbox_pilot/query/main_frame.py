@@ -105,6 +105,13 @@ class MainFrame(wx.Frame):
             status_fn=lambda msg: self.GetStatusBar().SetStatusText(msg, 0),
         )
         notebook.AddPage(self._browse, "Browse")
+
+        # Tab 2 — Model: entity-relation schema browser
+        from odsbox_pilot.model.model_panel import ModelPanel
+
+        self._model_panel = ModelPanel(notebook, self._con_i)
+        notebook.AddPage(self._model_panel, "Model")
+
         self._notebook = notebook
         notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_main_tab_changed)
         wx.CallAfter(self._restore_main_tab)
