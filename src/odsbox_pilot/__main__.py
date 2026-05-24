@@ -47,10 +47,26 @@ def main() -> None:
 
     app = OdsPilotApp(initial_server=args.server)
 
+    import wx  # type: ignore[import-untyped]  # already loaded by OdsPilotApp  # noqa: PLC0415
+
+    _exit_flag = [False]
+
     def _sigint_handler(signum: int, frame: object) -> None:
-        app.ExitMainLoop()
+        _exit_flag[0] = True
+
+    def _check_sigint(_event: object) -> None:
+        if _exit_flag[0]:
+            _exit_flag[0] = False
+            windows = wx.GetTopLevelWindows()
+            if windows:
+                windows[0].Close()
+            else:
+                app.ExitMainLoop()
 
     signal.signal(signal.SIGINT, _sigint_handler)
+    _sigint_timer = wx.Timer(app)
+    app.Bind(wx.EVT_TIMER, _check_sigint, _sigint_timer)
+    _sigint_timer.Start(200)  # wake the event loop every 200 ms to check the flag
 
     app.MainLoop()
     sys.exit(0)
