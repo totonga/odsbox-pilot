@@ -47,7 +47,7 @@ class TestNlQueryPipelineIntegration:
         assert len(result.conditions) > 0
 
         # Build FilterTree
-        filter_nodes = _build_filter_nodes(con_i.mc, result.conditions)
+        filter_nodes, _ = _build_filter_nodes(con_i.mc, result.conditions)  # type: ignore[arg-type]
         filter_tree = FilterTree(con_i.mc, filter_nodes)
 
         # Generate JAQueL

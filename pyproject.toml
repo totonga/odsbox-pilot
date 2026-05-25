@@ -85,6 +85,7 @@ ignore = ["E501"]
 python_version = "3.14"
 strict = true
 ignore_missing_imports = true
+exclude = ["temp/"]
 
 [[tool.mypy.overrides]]
 # wxPython has no type stubs; disable strict checking for all GUI modules

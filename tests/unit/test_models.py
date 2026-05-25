@@ -74,6 +74,24 @@ class TestServerConfigSerialization:
         data = json.loads(_make_m2m().to_json())
         assert data["auth_type"] == "m2m"
 
+    def test_context_variables_round_trip_dict(self) -> None:
+        cfg = _make_basic()
+        cfg.context_variables = {"WRITE_MODE": "FILE", "LANGUAGE": "en"}
+        restored = ServerConfig.from_dict(cfg.to_dict())
+        assert restored.context_variables == {"WRITE_MODE": "FILE", "LANGUAGE": "en"}
+
+    def test_context_variables_round_trip_json(self) -> None:
+        cfg = _make_m2m()
+        cfg.context_variables = {"ENV": "test"}
+        restored = ServerConfig.from_json(cfg.to_json())
+        assert restored.context_variables == {"ENV": "test"}
+
+    def test_context_variables_empty_by_default(self) -> None:
+        cfg = _make_oidc()
+        assert cfg.context_variables == {}
+        d = cfg.to_dict()
+        assert d["context_variables"] == {}
+
 
 class TestKeyringAccount:
     def test_basic_keyring_account(self) -> None:

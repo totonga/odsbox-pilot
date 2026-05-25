@@ -93,6 +93,23 @@ class TestManagerPersistence:
         assert len(m2.configs) == 1
         assert m2.get("id-persist").name == "Server persist"
 
+    def test_context_variables_survive_save_load(
+        self, tmp_path: Path, mocker: MockerFixture
+    ) -> None:
+        mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
+        mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
+
+        path = tmp_path / "servers.json"
+        m1 = ServerConfigManager(path=path)
+        cfg = _cfg("cv")
+        cfg.context_variables = {"WRITE_MODE": "FILE", "X": "1"}
+        m1.add(cfg)
+
+        m2 = ServerConfigManager(path=path)
+        loaded = m2.get("id-cv")
+        assert loaded.context_variables == {"WRITE_MODE": "FILE", "X": "1"}
+
     def test_corrupt_file_yields_empty(self, tmp_path: Path, mocker: MockerFixture) -> None:
         mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
         mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)

@@ -43,6 +43,9 @@ class ServerConfig:
     # --- Shared TLS option ---
     verify_certificate: bool = True
 
+    # --- Context variables passed to ConI on connect ---
+    context_variables: dict[str, str] = field(default_factory=dict)
+
     # Keyring account key is derived as:  f"{url}::{username or client_id}"
 
     @property

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -23,7 +23,7 @@ _FIXTURE = Path(__file__).parent.parent / "data" / "mdm_nvh_model.json"
 
 def _load_model() -> ods.Model:
     with _FIXTURE.open(encoding="utf-8") as fh:
-        return ParseDict(json.load(fh), ods.Model())
+        return cast(ods.Model, ParseDict(json.load(fh), ods.Model()))
 
 
 @pytest.fixture()
@@ -41,7 +41,7 @@ def _make_fake_embeddings(n: int, dim: int = 64) -> np.ndarray:
     rng = np.random.default_rng(42)
     emb = rng.standard_normal((n, dim)).astype(np.float32)
     norms = np.linalg.norm(emb, axis=1, keepdims=True)
-    return emb / norms
+    return emb / norms  # type: ignore[no-any-return]
 
 
 def _mock_st_module(mocker: Any, index: ModelSearchIndex) -> MagicMock:

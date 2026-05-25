@@ -350,7 +350,7 @@ class TestFollow:
 class TestDistinctAndMinMax:
     """Offline unit tests for the distinct() and min_max() convenience methods."""
 
-    def _mock_distinct(self, values: list) -> MagicMock:
+    def _mock_distinct(self, values: list[Any]) -> MagicMock:
         mock = MagicMock()
         mock.query.return_value = pd.DataFrame({"name.$distinct": values})
         return mock

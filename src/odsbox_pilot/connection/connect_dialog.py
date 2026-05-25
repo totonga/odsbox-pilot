@@ -8,6 +8,7 @@ the returned ConI is available via the `con_i` property.
 from __future__ import annotations
 
 import contextlib
+import logging
 import uuid
 
 import wx  # type: ignore[import-untyped]
@@ -15,17 +16,21 @@ import wx  # type: ignore[import-untyped]
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.models import AuthType, ServerConfig
 
+_log = logging.getLogger(__name__)
+
 
 def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
     """Create a live ConI from *config* + *secret* without any UI."""
     from odsbox.con_i_factory import ConIFactory  # type: ignore[import-untyped]
 
+    ctx = config.context_variables if config.context_variables else None
     if config.auth_type == AuthType.BASIC:
         return ConIFactory.basic(
             url=config.url,
             username=config.username,
             password=secret,
             verify_certificate=config.verify_certificate,
+            context_variables=ctx,
         )
     elif config.auth_type == AuthType.M2M:
         return ConIFactory.m2m(
@@ -35,6 +40,7 @@ def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
             client_secret=secret,
             scope=config.scope or None,
             verify_certificate=config.verify_certificate,
+            context_variables=ctx,
         )
     else:  # OIDC
         return ConIFactory.oidc(
@@ -44,6 +50,7 @@ def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
             redirect_url_allow_insecure=config.redirect_url_allow_insecure,
             webfinger_path_prefix=config.webfinger_path_prefix,
             verify_certificate=config.verify_certificate,
+            context_variables=ctx,
         )
 
 
@@ -86,6 +93,7 @@ class ConnectDialog(wx.Dialog):
 
     def _build_ui(self, config: ServerConfig | None) -> None:
         panel = wx.Panel(self)
+        self._main_panel = panel
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         # --- Common fields (name + URL) ---
@@ -116,6 +124,12 @@ class ConnectDialog(wx.Dialog):
         self._notebook.AddPage(self._page_m2m, "M2M")
         self._notebook.AddPage(self._page_oidc, "OIDC")
         vbox.Add(self._notebook, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
+
+        # --- Context variables (applies to all auth methods) ---
+        self._cpane = wx.CollapsiblePane(panel, label="Context Variables")
+        self._build_context_vars_content(self._cpane.GetPane())
+        vbox.Add(self._cpane, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        self._cpane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self._on_cpane_changed)
 
         # --- Buttons ---
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -212,6 +226,100 @@ class ConnectDialog(wx.Dialog):
         page.SetSizer(self._wrap_page(page, grid))
         return page
 
+    def _build_context_vars_content(self, parent: wx.Window) -> None:
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self._lc_ctx_vars = wx.ListCtrl(
+            parent,
+            style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
+            size=(-1, 120),
+        )
+        self._lc_ctx_vars.AppendColumn("Name", width=180)
+        self._lc_ctx_vars.AppendColumn("Value", width=220)
+        vbox.Add(self._lc_ctx_vars, flag=wx.EXPAND | wx.ALL, border=6)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        btn_add = wx.Button(parent, label="Add")
+        self._btn_cv_edit = wx.Button(parent, label="Edit")
+        self._btn_cv_remove = wx.Button(parent, label="Remove")
+        btn_row.Add(btn_add, flag=wx.RIGHT, border=4)
+        btn_row.Add(self._btn_cv_edit, flag=wx.RIGHT, border=4)
+        btn_row.Add(self._btn_cv_remove)
+        vbox.Add(btn_row, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=6)
+
+        parent.SetSizer(vbox)
+
+        btn_add.Bind(wx.EVT_BUTTON, self._on_cv_add)
+        self._btn_cv_edit.Bind(wx.EVT_BUTTON, self._on_cv_edit)
+        self._btn_cv_remove.Bind(wx.EVT_BUTTON, self._on_cv_remove)
+
+    def _on_cpane_changed(self, _event: wx.CollapsiblePaneEvent) -> None:
+        self._main_panel.Layout()
+        self.Fit()
+
+    def _update_cpane_label(self) -> None:
+        count = self._lc_ctx_vars.GetItemCount()
+        label = "Context Variables" if count == 0 else f"Context Variables ({count})"
+        self._cpane.SetLabel(label)
+
+    def _on_cv_add(self, _event: wx.Event) -> None:
+        dlg_name = wx.TextEntryDialog(self, "Variable name:", "Add Context Variable")
+        if dlg_name.ShowModal() != wx.ID_OK:
+            dlg_name.Destroy()
+            return
+        name = dlg_name.GetValue().strip()
+        dlg_name.Destroy()
+        if not name:
+            return
+        dlg_val = wx.TextEntryDialog(self, "Value:", f"Value for '{name}'")
+        if dlg_val.ShowModal() != wx.ID_OK:
+            dlg_val.Destroy()
+            return
+        value = dlg_val.GetValue()
+        dlg_val.Destroy()
+        idx = self._lc_ctx_vars.InsertItem(self._lc_ctx_vars.GetItemCount(), name)
+        self._lc_ctx_vars.SetItem(idx, 1, value)
+        self._update_cpane_label()
+
+    def _on_cv_edit(self, _event: wx.Event) -> None:
+        idx = self._lc_ctx_vars.GetFirstSelected()
+        if idx == -1:
+            return
+        old_name = self._lc_ctx_vars.GetItemText(idx, 0)
+        old_val = self._lc_ctx_vars.GetItemText(idx, 1)
+        dlg_name = wx.TextEntryDialog(self, "Variable name:", "Edit Context Variable", old_name)
+        if dlg_name.ShowModal() != wx.ID_OK:
+            dlg_name.Destroy()
+            return
+        name = dlg_name.GetValue().strip()
+        dlg_name.Destroy()
+        if not name:
+            return
+        dlg_val = wx.TextEntryDialog(self, "Value:", f"Value for '{name}'", old_val)
+        if dlg_val.ShowModal() != wx.ID_OK:
+            dlg_val.Destroy()
+            return
+        value = dlg_val.GetValue()
+        dlg_val.Destroy()
+        self._lc_ctx_vars.SetItem(idx, 0, name)
+        self._lc_ctx_vars.SetItem(idx, 1, value)
+        self._update_cpane_label()
+
+    def _on_cv_remove(self, _event: wx.Event) -> None:
+        idx = self._lc_ctx_vars.GetFirstSelected()
+        if idx != -1:
+            self._lc_ctx_vars.DeleteItem(idx)
+            self._update_cpane_label()
+
+    def _read_context_vars(self) -> dict[str, str]:
+        result: dict[str, str] = {}
+        for i in range(self._lc_ctx_vars.GetItemCount()):
+            key = self._lc_ctx_vars.GetItemText(i, 0).strip()
+            val = self._lc_ctx_vars.GetItemText(i, 1)
+            if key:
+                result[key] = val
+        return result
+
     @staticmethod
     def _wrap_page(page: wx.Panel, inner: wx.Sizer) -> wx.BoxSizer:
         outer = wx.BoxSizer(wx.VERTICAL)
@@ -230,6 +338,12 @@ class ConnectDialog(wx.Dialog):
         self._txt_name.SetValue(config.name)
         self._txt_url.SetValue(config.url)
         self._chk_verify.SetValue(config.verify_certificate)
+
+        self._lc_ctx_vars.DeleteAllItems()
+        for key, val in config.context_variables.items():
+            idx = self._lc_ctx_vars.InsertItem(self._lc_ctx_vars.GetItemCount(), key)
+            self._lc_ctx_vars.SetItem(idx, 1, val)
+        self._update_cpane_label()
 
         if config.auth_type == AuthType.BASIC:
             self._notebook.SetSelection(0)
@@ -273,6 +387,8 @@ class ConnectDialog(wx.Dialog):
         config_id = self._original_config.id if self._original_config else str(uuid.uuid4())
         verify = self._chk_verify.GetValue()
 
+        ctx_vars = self._read_context_vars()
+
         if tab == 0:  # Basic
             username = self._txt_basic_user.GetValue().strip()
             password = self._txt_basic_pass.GetValue()
@@ -286,6 +402,7 @@ class ConnectDialog(wx.Dialog):
                 auth_type=AuthType.BASIC,
                 username=username,
                 verify_certificate=verify,
+                context_variables=ctx_vars,
             )
             return cfg, password
 
@@ -312,6 +429,7 @@ class ConnectDialog(wx.Dialog):
                 client_id=client_id,
                 scope=scope,
                 verify_certificate=verify,
+                context_variables=ctx_vars,
             )
             return cfg, secret
 
@@ -338,6 +456,7 @@ class ConnectDialog(wx.Dialog):
                 webfinger_path_prefix=webfinger,
                 redirect_url_allow_insecure=insecure,
                 verify_certificate=verify,
+                context_variables=ctx_vars,
             )
             return cfg, ""  # no secret stored for OIDC
 
@@ -386,8 +505,13 @@ class ConnectDialog(wx.Dialog):
             con_i = self._do_connect(config, secret)
         except Exception as exc:
             wx.EndBusyCursor()
+            _log.exception("Connection failed")
+            detail = str(exc)
+            response = getattr(exc, "response", None)
+            if response is not None and getattr(response, "text", ""):
+                detail += f"\n\nServer response:\n{response.text}"
             wx.MessageBox(
-                f"Connection failed:\n\n{exc}",
+                f"Connection failed:\n\n{detail}",
                 "Connection Error",
                 wx.OK | wx.ICON_ERROR,
                 self,

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from google.protobuf.json_format import ParseDict
@@ -29,7 +30,7 @@ _FIXTURE = Path(__file__).parent.parent / "data" / "mdm_nvh_model.json"
 
 def _load_model() -> ods.Model:
     with _FIXTURE.open(encoding="utf-8") as fh:
-        return ParseDict(json.load(fh), ods.Model())
+        return cast(ods.Model, ParseDict(json.load(fh), ods.Model()))
 
 
 @pytest.fixture(scope="module")
@@ -41,7 +42,7 @@ def search_index(tmp_path_factory: pytest.TempPathFactory):  # type: ignore[no-u
     cache_dir = tmp_path_factory.mktemp("search_cache")
     import odsbox_pilot.model.search_index as si_mod
 
-    si_mod._CACHE_DIR = cache_dir  # type: ignore[attr-defined]
+    si_mod._CACHE_DIR = cache_dir
 
     model = _load_model()
     idx = ModelSearchIndex(model)
@@ -51,7 +52,7 @@ def search_index(tmp_path_factory: pytest.TempPathFactory):  # type: ignore[no-u
 
 
 class TestSemanticSearch:
-    def test_german_vehicle_manufacturer_top_result(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_german_vehicle_manufacturer_top_result(self, search_index: Any) -> None:
         """'Fahrzeug Hersteller' (German for 'vehicle manufacturer') should rank
         the vehicle.manufacturer attribute at the top."""
         results = search_index.search("Fahrzeug Hersteller", top_k=5)
@@ -60,12 +61,12 @@ class TestSemanticSearch:
         assert top.entity_name == "vehicle"
         assert top.item_name == "manufacturer"
 
-    def test_english_vehicle_manufacturer_in_top3(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_english_vehicle_manufacturer_in_top3(self, search_index: Any) -> None:
         results = search_index.search("vehicle manufacturer", top_k=3)
         names = [(r.entity_name, r.item_name) for r in results]
         assert ("vehicle", "manufacturer") in names
 
-    def test_measurement_begin_german(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_measurement_begin_german(self, search_index: Any) -> None:
         """'Anfang der Messung' should surface measurement-related entities."""
         results = search_index.search("Anfang der Messung", top_k=10)
         assert results, "Expected results for 'Anfang der Messung'"
@@ -73,26 +74,24 @@ class TestSemanticSearch:
         entity_names = [r.entity_name.lower() for r in results]
         assert any("mea" in n or "measurement" in n or "messun" in n for n in entity_names)
 
-    def test_enumeration_datatype(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_enumeration_datatype(self, search_index: Any) -> None:
         results = search_index.search("data type enumeration", top_k=5)
         enum_results = [r for r in results if r.kind == "enumeration"]
         assert enum_results, "Expected at least one enumeration in results"
 
-    def test_relation_search(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_relation_search(self, search_index: Any) -> None:
         """Searching for 'child relation' should surface RS_CHILD relations."""
 
         results = search_index.search("child relation", top_k=10)
         rel_results = [r for r in results if r.kind == "relation"]
         assert rel_results, "Expected at least one relation in results"
 
-    def test_tyre_pressure(self, search_index: Any) -> None:  # type: ignore[name-defined]
+    def test_tyre_pressure(self, search_index: Any) -> None:
         results = search_index.search("tyre pressure measurement", top_k=5)
         names = [(r.entity_name, r.item_name) for r in results]
         assert ("tyre", "tyre_pressure") in names
 
-    def test_cache_hit_on_second_index(  # type: ignore[no-untyped-def]
-        self, search_index: Any, tmp_path: Path
-    ) -> None:
+    def test_cache_hit_on_second_index(self, search_index: Any, tmp_path: Path) -> None:
         """A second ModelSearchIndex over the same model must load from cache."""
         import odsbox_pilot.model.search_index as si_mod
         from odsbox_pilot.model.search_index import ModelSearchIndex

@@ -44,7 +44,7 @@ class TestRelRange:
 class TestRelTypeLabel:
     def _make_rel(self, relationship: int) -> ods.Model.Relation:
         rel = ods.Model.Relation()
-        rel.relationship = relationship
+        rel.relationship = relationship  # type: ignore[assignment]
         return rel
 
     def test_rs_father(self) -> None:
