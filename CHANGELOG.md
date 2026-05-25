@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.9.0 (2026-05-25)
+
+### Features
+
+- Add atfx support ([#9](https://github.com/totonga/odsbox-pilot/pull/9),
+  [`f5041c9`](https://github.com/totonga/odsbox-pilot/commit/f5041c9b5f6b70a9c209f1242caaf02d67964edb))
+
+
 ## v1.8.0 (2026-05-25)
 
 ### Features
