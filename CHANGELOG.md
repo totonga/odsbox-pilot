@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.8.0 (2026-05-25)
+
+### Features
+
+- Added context variables to connection dialog
+  ([`7eed210`](https://github.com/totonga/odsbox-pilot/commit/7eed21093503fd39eced6c608736a9250c8340e3))
+
+
 ## v1.7.0 (2026-05-24)
 
 ### Features
