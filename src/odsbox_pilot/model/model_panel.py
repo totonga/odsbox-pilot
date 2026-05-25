@@ -541,6 +541,8 @@ class ModelPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_sel_changed(self, event: wx.TreeEvent) -> None:
+        if not self._tree:
+            return
         item = event.GetItem()
         if not item.IsOk():
             self._clear_props("Model")

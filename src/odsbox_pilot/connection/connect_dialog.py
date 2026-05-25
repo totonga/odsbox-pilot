@@ -21,6 +21,11 @@ _log = logging.getLogger(__name__)
 
 def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
     """Create a live ConI from *config* + *secret* without any UI."""
+    if config.auth_type == AuthType.ATFX:
+        from odsbox_pilot.connection.atfx_factory import open_atfx
+
+        return open_atfx(config.url)
+
     from odsbox.con_i_factory import ConIFactory  # type: ignore[import-untyped]
 
     ctx = config.context_variables if config.context_variables else None
@@ -120,9 +125,11 @@ class ConnectDialog(wx.Dialog):
         self._page_basic = self._build_basic_page()
         self._page_m2m = self._build_m2m_page()
         self._page_oidc = self._build_oidc_page()
+        self._page_atfx = self._build_atfx_page()
         self._notebook.AddPage(self._page_basic, "Basic")
         self._notebook.AddPage(self._page_m2m, "M2M")
         self._notebook.AddPage(self._page_oidc, "OIDC")
+        self._notebook.AddPage(self._page_atfx, "ATFX File")
         vbox.Add(self._notebook, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
 
         # --- Context variables (applies to all auth methods) ---
@@ -225,6 +232,35 @@ class ConnectDialog(wx.Dialog):
 
         page.SetSizer(self._wrap_page(page, grid))
         return page
+
+    def _build_atfx_page(self) -> wx.Panel:
+        page = wx.Panel(self._notebook)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        btn_browse = wx.Button(page, label="Browse\u2026")
+        vbox.Add(btn_browse, flag=wx.ALL, border=10)
+
+        note = wx.StaticText(
+            page,
+            label="Select a local ATFX file. The path appears in the URL field above.",
+            style=wx.ST_ELLIPSIZE_END,
+        )
+        note.SetForegroundColour(wx.Colour(100, 100, 100))
+        vbox.Add(note, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
+
+        page.SetSizer(vbox)
+        btn_browse.Bind(wx.EVT_BUTTON, self._on_atfx_browse)
+        return page
+
+    def _on_atfx_browse(self, _event: wx.Event) -> None:
+        with wx.FileDialog(
+            self,
+            "Select ATFX file",
+            wildcard="ATFX files (*.atfx)|*.atfx|All files (*.*)|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                self._txt_url.SetValue(dlg.GetPath())
 
     def _build_context_vars_content(self, parent: wx.Window) -> None:
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -368,6 +404,9 @@ class ConnectDialog(wx.Dialog):
             self._txt_oidc_webfinger.SetValue(config.webfinger_path_prefix)
             self._chk_oidc_insecure.SetValue(config.redirect_url_allow_insecure)
 
+        elif config.auth_type == AuthType.ATFX:
+            self._notebook.SetSelection(3)
+
     # ------------------------------------------------------------------
     # Build ServerConfig from current form values
     # ------------------------------------------------------------------
@@ -376,14 +415,13 @@ class ConnectDialog(wx.Dialog):
         """Return (config, secret) or None if validation fails."""
         name = self._txt_name.GetValue().strip()
         url = self._txt_url.GetValue().strip()
+        tab = self._notebook.GetSelection()
         if not name:
             wx.MessageBox("Name is required.", "Validation", wx.OK | wx.ICON_WARNING, self)
             return None
-        if not url:
+        if not url and tab != 3:  # URL not required for ATFX
             wx.MessageBox("URL is required.", "Validation", wx.OK | wx.ICON_WARNING, self)
             return None
-
-        tab = self._notebook.GetSelection()
         config_id = self._original_config.id if self._original_config else str(uuid.uuid4())
         verify = self._chk_verify.GetValue()
 
@@ -433,7 +471,7 @@ class ConnectDialog(wx.Dialog):
             )
             return cfg, secret
 
-        else:  # OIDC
+        elif tab == 2:  # OIDC
             client_id = self._txt_oidc_client_id.GetValue().strip()
             redirect = self._txt_oidc_redirect.GetValue().strip()
             webfinger = self._txt_oidc_webfinger.GetValue().strip()
@@ -459,6 +497,26 @@ class ConnectDialog(wx.Dialog):
                 context_variables=ctx_vars,
             )
             return cfg, ""  # no secret stored for OIDC
+
+        else:  # ATFX (tab == 3)
+            file_path = url
+            if not file_path:
+                wx.MessageBox(
+                    "Please select an ATFX file.",
+                    "Validation",
+                    wx.OK | wx.ICON_WARNING,
+                    self,
+                )
+                return None
+            cfg = ServerConfig(
+                id=config_id,
+                name=name,
+                url=file_path,  # file path stored in url for display
+                auth_type=AuthType.ATFX,
+                verify_certificate=False,
+                context_variables=ctx_vars,
+            )
+            return cfg, ""  # no secret for ATFX
 
         return None  # unreachable
 

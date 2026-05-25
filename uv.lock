@@ -1096,12 +1096,13 @@ oidc = [
 
 [[package]]
 name = "odsbox-pilot"
-version = "1.7.0"
+version = "1.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "keyring" },
     { name = "odsbox", extra = ["oidc"] },
     { name = "pandas" },
+    { name = "wodson" },
 ]
 
 [package.optional-dependencies]
@@ -1134,6 +1135,7 @@ requires-dist = [
     { name = "openvino-genai", marker = "extra == 'ai'", specifier = ">=2024.5.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "sentence-transformers", marker = "extra == 'gui'", specifier = ">=3.0" },
+    { name = "wodson", specifier = ">=1.1.0" },
     { name = "wxpython", marker = "extra == 'gui'", specifier = ">=4.2.5" },
 ]
 provides-extras = ["gui", "ai"]
@@ -2100,6 +2102,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+]
+
+[[package]]
+name = "wodson"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "odsbox", extra = ["oidc"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/09/f8e4c401878cd3da0110528953269ce8469116beb8a710d938c12a38eb02/wodson-1.1.0.tar.gz", hash = "sha256:7de70a4addb35f7e9ad7bb07ee00ec19cb84bf0ad37dafb55f5acf0a19f604eb", size = 40438, upload-time = "2026-05-25T17:36:34.433Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3d/74/7159c9fb2c3136a9fc38c43506ac17bd451bf263dd2013bb102c9f0d2695/wodson-1.1.0-py3-none-any.whl", hash = "sha256:9b0c78d2d7f8eaa249418e6c65940fc35ecb68bf04f43eb545c7a822085820ac", size = 48187, upload-time = "2026-05-25T17:36:33.234Z" },
 ]
 
 [[package]]

@@ -13,6 +13,7 @@ class AuthType(StrEnum):
     BASIC = "basic"
     M2M = "m2m"
     OIDC = "oidc"
+    ATFX = "atfx"
 
 
 @dataclass
