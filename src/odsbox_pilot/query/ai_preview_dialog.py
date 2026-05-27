@@ -40,6 +40,7 @@ class AiPreviewDialog(wx.Dialog):
         parent: wx.Window,
         conditions: list[dict[str, Any]],
         jaquel: dict[str, Any],
+        model_cache: Any,
         invalid_conditions: list[dict[str, Any]] | None = None,
         rebuild_query: Callable[[list[dict[str, Any]]], dict[str, Any]] | None = None,
     ) -> None:
@@ -49,6 +50,7 @@ class AiPreviewDialog(wx.Dialog):
             parent: Parent window.
             conditions: Valid condition dicts (entity, attr, op, val).
             jaquel: Initially generated JAQueL query dict.
+            model_cache: ModelCache instance for populating dropdowns.
             invalid_conditions: Conditions the LLM produced that could not be
                 resolved.  Each dict may carry a ``"reason"`` key.
             rebuild_query: Optional callable that, given a flat list of
@@ -68,6 +70,7 @@ class AiPreviewDialog(wx.Dialog):
         ]
         self._jaquel = dict(jaquel)
         self._rebuild_query = rebuild_query
+        self._model_cache = model_cache
         self._build_ui()
         self.Centre()
 
@@ -205,10 +208,14 @@ class AiPreviewDialog(wx.Dialog):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # Unique entity names across all conditions for the dropdown
-        entity_choices = sorted(
-            {c.get("entity", "") for c in self._all_conditions if c.get("entity", "")}
-        )
+        # Get all entity names from the model
+        try:
+            entity_choices = sorted([e.name for e in self._model_cache.model().entities.values()])
+        except Exception:
+            # Fallback to entities in conditions if model unavailable
+            entity_choices = sorted(
+                {c.get("entity", "") for c in self._all_conditions if c.get("entity", "")}
+            )
 
         # ── Entity (ComboBox: dropdown + freetext) ───────────────────────
         entity_cb = wx.ComboBox(
@@ -222,11 +229,20 @@ class AiPreviewDialog(wx.Dialog):
             entity_cb.SetBackgroundColour(_COL_INVALID)
             entity_cb.SetForegroundColour(wx.Colour(140, 0, 0))
 
-        # ── Attribute (TextCtrl) ─────────────────────────────────────────
-        attr_tc = wx.TextCtrl(row, value=cond.get("attr", ""), size=(_COL_W[1], -1))
+        # ── Attribute (ComboBox: dropdown + freetext) ────────────────────
+        # Get attributes for the current entity
+        current_entity = cond.get("entity", "")
+        attr_choices = self._get_attributes_for_entity(current_entity)
+        attr_cb = wx.ComboBox(
+            row,
+            value=cond.get("attr", ""),
+            choices=attr_choices,
+            size=(_COL_W[1], -1),
+            style=wx.CB_DROPDOWN,
+        )
         if invalid:
-            attr_tc.SetBackgroundColour(_COL_INVALID)
-            attr_tc.SetForegroundColour(wx.Colour(140, 0, 0))
+            attr_cb.SetBackgroundColour(_COL_INVALID)
+            attr_cb.SetForegroundColour(wx.Colour(140, 0, 0))
 
         # ── Operator (Choice) ────────────────────────────────────────────
         current_op = cond.get("op", "$eq")
@@ -246,7 +262,7 @@ class AiPreviewDialog(wx.Dialog):
             val_tc.SetBackgroundColour(_COL_INVALID)
             val_tc.SetForegroundColour(wx.Colour(140, 0, 0))
 
-        for widget in (entity_cb, attr_tc, op_choice, val_tc):
+        for widget in (entity_cb, attr_cb, op_choice, val_tc):
             sizer.Add(widget, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=4)
 
         # ── Remove button ────────────────────────────────────────────────
@@ -261,9 +277,21 @@ class AiPreviewDialog(wx.Dialog):
         row.SetSizer(sizer)
 
         # ── Bindings ─────────────────────────────────────────────────────
+        def _on_entity_change(_evt: wx.Event) -> None:
+            """Update attribute dropdown when entity changes."""
+            new_entity = entity_cb.GetValue()
+            cond["entity"] = new_entity
+            # Repopulate attribute dropdown
+            new_attrs = self._get_attributes_for_entity(new_entity)
+            current_attr = attr_cb.GetValue()
+            attr_cb.Clear()
+            attr_cb.AppendItems(new_attrs)
+            attr_cb.SetValue(current_attr)  # Restore value if still valid
+            self._refresh_jaquel()
+
         def _on_change(_evt: wx.Event) -> None:
             cond["entity"] = entity_cb.GetValue()
-            cond["attr"] = attr_tc.GetValue()
+            cond["attr"] = attr_cb.GetValue()
             sel = op_choice.GetSelection()
             if sel != wx.NOT_FOUND:
                 cond["op"] = op_choices[sel]
@@ -274,9 +302,10 @@ class AiPreviewDialog(wx.Dialog):
                 cond["val"] = raw_val
             self._refresh_jaquel()
 
+        entity_cb.Bind(wx.EVT_COMBOBOX, _on_entity_change)
         entity_cb.Bind(wx.EVT_TEXT, _on_change)
-        entity_cb.Bind(wx.EVT_COMBOBOX, _on_change)
-        attr_tc.Bind(wx.EVT_TEXT, _on_change)
+        attr_cb.Bind(wx.EVT_TEXT, _on_change)
+        attr_cb.Bind(wx.EVT_COMBOBOX, _on_change)
         op_choice.Bind(wx.EVT_CHOICE, _on_change)
         val_tc.Bind(wx.EVT_TEXT, _on_change)
         btn_remove.Bind(wx.EVT_BUTTON, lambda _evt, r=row, c=cond: self._on_remove(r, c))
@@ -286,6 +315,23 @@ class AiPreviewDialog(wx.Dialog):
     # ------------------------------------------------------------------
     # Live refresh / remove
     # ------------------------------------------------------------------
+
+    def _get_attributes_for_entity(self, entity_name: str) -> list[str]:
+        """Get sorted list of attribute names for the given entity.
+        
+        Args:
+            entity_name: Entity name
+            
+        Returns:
+            List of attribute names (sorted)
+        """
+        if not entity_name:
+            return []
+        try:
+            entity = self._model_cache.entity(entity_name)
+            return sorted([attr.name for attr in entity.attributes.values()])
+        except (ValueError, AttributeError, KeyError):
+            return []
 
     def _refresh_jaquel(self) -> None:
         """Rebuild JAQueL from the current condition list and update the text box."""

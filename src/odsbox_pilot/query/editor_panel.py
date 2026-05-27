@@ -417,6 +417,7 @@ class EditorPanel(wx.Panel):
             self,
             conditions,
             jaquel,
+            self._ai_context.model_cache,
             invalid_conditions=invalid_conditions,
             rebuild_query=rebuild_query,
         )
