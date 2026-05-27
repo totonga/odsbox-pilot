@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
-
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
@@ -78,10 +76,12 @@ class OdsPilotApp(wx.App):
     def _connect(self, parent, manager: ServerConfigManager, config):  # type: ignore[return]
         """Connect using saved credentials; open ConnectDialog only on failure."""
         from odsbox_pilot.connection.connect_dialog import ConnectDialog, do_connect
+        from odsbox_pilot.splash import hide_splash, show_splash
 
         secret = manager.load_secret(config) or ""
+        splash = None
         try:
-            wx.BeginBusyCursor()
+            splash = show_splash(parent)
             con_i = do_connect(config, secret)
             return con_i
         except Exception as exc:
@@ -98,8 +98,7 @@ class OdsPilotApp(wx.App):
             connect_dlg.Destroy()
             return con_i
         finally:
-            with contextlib.suppress(Exception):
-                wx.EndBusyCursor()
+            hide_splash(splash)
 
     def _open_main_frame(self, con_i, server_name: str) -> None:
         from odsbox_pilot.query.main_frame import MainFrame
