@@ -276,7 +276,11 @@ class ModelPanel(wx.Panel):
             self._tree.SetItemData(attrs_node, _AttrGroupNode(entity))
             for attr in attrs_sorted:
                 sym = _ods_type_symbol(attr.data_type)
-                attr_label = f"{sym} {attr.name} - {attr.base_name}" if attr.base_name else f"{sym} {attr.name}"
+                attr_label = (
+                    f"{sym} {attr.name} - {attr.base_name}"
+                    if attr.base_name
+                    else f"{sym} {attr.name}"
+                )
                 attr_item = self._tree.AppendItem(attrs_node, attr_label)
                 self._tree.SetItemData(attr_item, _AttrNode(entity, attr))
 

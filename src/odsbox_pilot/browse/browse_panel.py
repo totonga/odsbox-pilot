@@ -188,14 +188,14 @@ class BrowsePanel(wx.Panel):
         entity_objs = list(self._mc.model().entities.values())
         entity_objs.sort(key=lambda e: e.name.lower())
         choices = [f"{e.name} - {e.base_name}" for e in entity_objs]
-        
+
         self._root_combo = wx.ComboBox(self, choices=choices, style=wx.CB_READONLY, size=(220, -1))
-        
+
         # Preselect AoTest-derived entity, fallback to Project, then first entity
         selected = None
         aotest_entities = [e for e in entity_objs if e.base_name == "AoTest"]
         aosubtest_entities = [e for e in entity_objs if e.base_name == "AoSubTest"]
-        
+
         if aotest_entities:
             selected = f"{aotest_entities[0].name} - {aotest_entities[0].base_name}"
         elif aosubtest_entities:
@@ -205,10 +205,10 @@ class BrowsePanel(wx.Panel):
             selected = f"{project_entity.name} - {project_entity.base_name}"
         elif entity_objs:
             selected = choices[0]
-        
+
         if selected:
             self._root_combo.SetValue(selected)
-        
+
         self._root_combo.Bind(wx.EVT_COMBOBOX, self._on_root_changed)
         hbox.Add(self._root_combo, flag=wx.RIGHT, border=8)
         self._query_btn = wx.Button(self, label="Query")
@@ -586,7 +586,7 @@ class BrowsePanel(wx.Panel):
         except ValueError, AttributeError:
             attr_map = {}
             rel_map = {}
-        
+
         # Build sortable property list with metadata
         properties: list[tuple[str, Any, str]] = []
         for col in df.columns:
@@ -602,10 +602,10 @@ class BrowsePanel(wx.Panel):
                 symbol = "?"
                 base_name = None
             properties.append((col, base_name, symbol))
-        
+
         # Sort properties case-insensitively by column name
         properties.sort(key=lambda x: x[0].lower())
-        
+
         # Display sorted properties
         for col, base_name, symbol in properties:
             idx = self._props_list.GetItemCount()
@@ -767,10 +767,10 @@ class BrowsePanel(wx.Panel):
 
     def _on_root_changed(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
         self._update_preview()
-    
+
     def _get_selected_entity_name(self) -> str:
         """Extract entity name from formatted combo selection.
-        
+
         Returns:
             Entity name (without base name suffix)
         """

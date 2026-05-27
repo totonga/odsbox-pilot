@@ -318,10 +318,10 @@ class AiPreviewDialog(wx.Dialog):
 
     def _get_attributes_for_entity(self, entity_name: str) -> list[str]:
         """Get sorted list of attribute names for the given entity.
-        
+
         Args:
             entity_name: Entity name
-            
+
         Returns:
             List of attribute names (sorted)
         """
@@ -330,7 +330,7 @@ class AiPreviewDialog(wx.Dialog):
         try:
             entity = self._model_cache.entity(entity_name)
             return sorted([attr.name for attr in entity.attributes.values()])
-        except (ValueError, AttributeError, KeyError):
+        except ValueError, AttributeError, KeyError:
             return []
 
     def _refresh_jaquel(self) -> None:
