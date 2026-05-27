@@ -307,7 +307,7 @@ class BrowsePanel(wx.Panel):
             panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._props_list.AppendColumn("Property", width=200)
+        self._props_list.AppendColumn("Property", width=280)
         self._props_list.AppendColumn("Value", width=250)
         vbox.Add(
             self._props_list,
@@ -582,13 +582,35 @@ class BrowsePanel(wx.Panel):
         row = df.iloc[0]
         try:
             attr_map = self._mc.entity(entity).attributes
+            rel_map = self._mc.entity(entity).relations
         except ValueError, AttributeError:
             attr_map = {}
+            rel_map = {}
+        
+        # Build sortable property list with metadata
+        properties: list[tuple[str, Any, str]] = []
         for col in df.columns:
             attr = attr_map.get(col)
-            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "\u2192"
+            rel = rel_map.get(col)
+            if attr is not None:
+                symbol = _ods_type_symbol(attr.data_type)
+                base_name = attr.base_name
+            elif rel is not None:
+                symbol = "\u2192"
+                base_name = rel.base_name
+            else:
+                symbol = "?"
+                base_name = None
+            properties.append((col, base_name, symbol))
+        
+        # Sort properties case-insensitively by column name
+        properties.sort(key=lambda x: x[0].lower())
+        
+        # Display sorted properties
+        for col, base_name, symbol in properties:
             idx = self._props_list.GetItemCount()
-            self._props_list.InsertItem(idx, f"{symbol} {col}")
+            label = f"{symbol} {col} - {base_name}" if base_name else f"{symbol} {col}"
+            self._props_list.InsertItem(idx, label)
             self._props_list.SetItem(idx, 1, str(row[col]))
 
     def _maybe_load_values(self) -> None:

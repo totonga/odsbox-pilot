@@ -142,16 +142,16 @@ class EditorPanel(wx.Panel):
         self._btn_examples.Bind(wx.EVT_BUTTON, self._on_examples_menu)
         tbar_sizer.Add(self._btn_examples, flag=wx.RIGHT, border=4)
 
-        # History menu button
-        self._btn_history = wx.Button(toolbar, label="History ▾")
-        self._btn_history.Bind(wx.EVT_BUTTON, self._on_history_menu)
-        tbar_sizer.Add(self._btn_history, flag=wx.RIGHT, border=4)
-
         # Settings dropdown button
         if self._settings is not None:
             self._btn_settings = wx.Button(toolbar, label="Settings ▾")
             self._btn_settings.Bind(wx.EVT_BUTTON, self._on_settings_menu)
             tbar_sizer.Add(self._btn_settings, flag=wx.RIGHT, border=4)
+
+        # History menu button
+        self._btn_history = wx.Button(toolbar, label="History ▾")
+        self._btn_history.Bind(wx.EVT_BUTTON, self._on_history_menu)
+        tbar_sizer.Add(self._btn_history, flag=wx.RIGHT, border=4)
 
         tbar_sizer.AddStretchSpacer()
 
