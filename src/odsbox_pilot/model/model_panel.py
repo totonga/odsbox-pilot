@@ -260,7 +260,7 @@ class ModelPanel(wx.Panel):
         model: ods.Model,
     ) -> None:
         icon = _entity_icon(entity.base_name)
-        label = f"{icon} {entity.name}"
+        label = f"{icon} {entity.name} - {entity.aid}"
         item = self._tree.AppendItem(parent, label)
         self._tree.SetItemData(item, _EntityNode(entity))
 
@@ -576,6 +576,7 @@ class ModelPanel(wx.Panel):
                 [
                     ("Name", entity.name),
                     ("Base name", entity.base_name),
+                    ("Aid", str(entity.aid)),
                     ("Attributes", str(n_attrs)),
                     ("Relations", str(n_rels)),
                 ],
