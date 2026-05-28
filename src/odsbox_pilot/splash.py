@@ -110,8 +110,11 @@ def show_splash(parent: Any = None) -> Any:
     Returns:
         Splash screen object that must be destroyed when done, or None if no wx.App
     """
-    import wx
-    import wx.adv
+    try:
+        import wx
+        import wx.adv
+    except ModuleNotFoundError:
+        return None
 
     # Only show splash if wx.App exists (GUI context)
     if wx.App.Get() is None:
