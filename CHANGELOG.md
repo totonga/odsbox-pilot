@@ -2,6 +2,50 @@
 
 <!-- version list -->
 
+## v1.10.0 (2026-05-28)
+
+### Bug Fixes
+
+- Test must work without wx ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Update wodson ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Wx import ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+### Features
+
+- Add copy functionality and improve UI elements
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Add copy functionality to server list dialog and update model panel labels
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Add types-requests dependency for improved type hinting support
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Enhance attribute and relation labels in ModelPanel for better clarity
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Implement splash screen utilities and integrate into connection flow
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Integrate model cache into AiPreviewDialog and EditorPanel for improved attribute handling
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+- Update property list display and add relation handling in BrowsePanel
+  ([#10](https://github.com/totonga/odsbox-pilot/pull/10),
+  [`84e0920`](https://github.com/totonga/odsbox-pilot/commit/84e0920830f68ab343e72245ff08450d751fad12))
+
+
 ## v1.9.0 (2026-05-25)
 
 ### Features
