@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-import wx
-import wx.adv
 
-
-def create_splash_bitmap(width: int = 600, height: int = 250) -> wx.Bitmap:
+def create_splash_bitmap(width: int = 600, height: int = 250) -> Any:
     """Create a branded splash screen bitmap programmatically.
 
     Renders the ODSBox-Pilot logo and name matching the brand colors:
@@ -22,6 +19,8 @@ def create_splash_bitmap(width: int = 600, height: int = 250) -> wx.Bitmap:
     Returns:
         wx.Bitmap with rendered splash screen
     """
+    import wx
+
     bmp = wx.Bitmap(width, height)
     dc = wx.MemoryDC(bmp)
 
@@ -102,7 +101,7 @@ def create_splash_bitmap(width: int = 600, height: int = 250) -> wx.Bitmap:
     return bmp
 
 
-def show_splash(parent: wx.Window | None = None) -> Any:
+def show_splash(parent: Any = None) -> Any:
     """Show the splash screen.
 
     Args:
@@ -111,6 +110,9 @@ def show_splash(parent: wx.Window | None = None) -> Any:
     Returns:
         Splash screen object that must be destroyed when done, or None if no wx.App
     """
+    import wx
+    import wx.adv
+
     # Only show splash if wx.App exists (GUI context)
     if wx.App.Get() is None:
         return None
