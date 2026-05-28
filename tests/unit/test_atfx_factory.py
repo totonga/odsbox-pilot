@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import requests  # type: ignore[import-untyped]
+import requests
 
 from odsbox_pilot.connection.atfx_factory import AtfxConI, open_atfx
 

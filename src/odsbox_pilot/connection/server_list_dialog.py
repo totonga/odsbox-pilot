@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+from dataclasses import replace
+
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
@@ -59,17 +62,20 @@ class ServerListDialog(wx.Dialog):
 
         self._btn_new = wx.Button(panel, label="New…")
         self._btn_edit = wx.Button(panel, label="Edit…")
+        self._btn_copy = wx.Button(panel, label="Copy")
         self._btn_delete = wx.Button(panel, label="Delete")
         self._btn_connect = wx.Button(panel, wx.ID_OK, label="Connect")
         btn_close = wx.Button(panel, wx.ID_CANCEL, label="Close")
 
         self._btn_edit.Disable()
+        self._btn_copy.Disable()
         self._btn_delete.Disable()
         self._btn_connect.Disable()
         self._btn_connect.SetDefault()
 
         btn_sizer.Add(self._btn_new, flag=wx.RIGHT, border=4)
         btn_sizer.Add(self._btn_edit, flag=wx.RIGHT, border=4)
+        btn_sizer.Add(self._btn_copy, flag=wx.RIGHT, border=4)
         btn_sizer.Add(self._btn_delete)
         btn_sizer.AddStretchSpacer()
         btn_sizer.Add(btn_close, flag=wx.RIGHT, border=4)
@@ -82,6 +88,7 @@ class ServerListDialog(wx.Dialog):
         # Bind events
         self._btn_new.Bind(wx.EVT_BUTTON, self._on_new)
         self._btn_edit.Bind(wx.EVT_BUTTON, self._on_edit)
+        self._btn_copy.Bind(wx.EVT_BUTTON, self._on_copy)
         self._btn_delete.Bind(wx.EVT_BUTTON, self._on_delete)
         self._btn_connect.Bind(wx.EVT_BUTTON, self._on_connect)
 
@@ -94,7 +101,8 @@ class ServerListDialog(wx.Dialog):
 
     def _refresh_list(self) -> None:
         self._list.DeleteAllItems()
-        for cfg in self._manager.configs:
+        sorted_configs = sorted(self._manager.configs, key=lambda c: c.name.lower())
+        for cfg in sorted_configs:
             idx = self._list.InsertItem(self._list.GetItemCount(), cfg.name)
             self._list.SetItem(idx, 1, cfg.url)
             self._list.SetItem(idx, 2, cfg.auth_type.value.upper())
@@ -105,11 +113,13 @@ class ServerListDialog(wx.Dialog):
         idx = self._list.GetFirstSelected()
         if idx == -1:
             return None
-        return self._manager.configs[idx].id
+        sorted_configs = sorted(self._manager.configs, key=lambda c: c.name.lower())
+        return sorted_configs[idx].id
 
     def _update_buttons(self) -> None:
         has_selection = self._list.GetFirstSelected() != -1
         self._btn_edit.Enable(has_selection)
+        self._btn_copy.Enable(has_selection)
         self._btn_delete.Enable(has_selection)
         self._btn_connect.Enable(has_selection)
 
@@ -142,6 +152,24 @@ class ServerListDialog(wx.Dialog):
 
         config = self._manager.get(config_id)
         dlg = ConnectDialog(self, self._manager, config=config)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._refresh_list()
+        dlg.Destroy()
+
+    def _on_copy(self, _event: wx.Event) -> None:
+        config_id = self._selected_id()
+        if config_id is None:
+            return
+        from odsbox_pilot.connection.connect_dialog import ConnectDialog
+
+        original_config = self._manager.get(config_id)
+        # Create a copy with new ID and modified name
+        copied_config = replace(
+            original_config,
+            id=str(uuid.uuid4()),
+            name=f"{original_config.name} - copy",
+        )
+        dlg = ConnectDialog(self, self._manager, config=copied_config)
         if dlg.ShowModal() == wx.ID_OK:
             self._refresh_list()
         dlg.Destroy()

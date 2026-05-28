@@ -184,12 +184,31 @@ class BrowsePanel(wx.Panel):
             flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
             border=4,
         )
-        entities = sorted(self._mc.model().entities.keys())
-        self._root_combo = wx.ComboBox(self, choices=entities, style=wx.CB_READONLY, size=(180, -1))
-        if "Project" in entities:
-            self._root_combo.SetValue("Project")
-        elif entities:
-            self._root_combo.SetSelection(0)
+        # Build entity choices with base name suffix, sorted case-insensitively
+        entity_objs = list(self._mc.model().entities.values())
+        entity_objs.sort(key=lambda e: e.name.lower())
+        choices = [f"{e.name} - {e.base_name}" for e in entity_objs]
+
+        self._root_combo = wx.ComboBox(self, choices=choices, style=wx.CB_READONLY, size=(220, -1))
+
+        # Preselect AoTest-derived entity, fallback to Project, then first entity
+        selected = None
+        aotest_entities = [e for e in entity_objs if e.base_name == "AoTest"]
+        aosubtest_entities = [e for e in entity_objs if e.base_name == "AoSubTest"]
+
+        if aotest_entities:
+            selected = f"{aotest_entities[0].name} - {aotest_entities[0].base_name}"
+        elif aosubtest_entities:
+            selected = f"{aosubtest_entities[0].name} - {aosubtest_entities[0].base_name}"
+        elif any(e.name == "Project" for e in entity_objs):
+            project_entity = next(e for e in entity_objs if e.name == "Project")
+            selected = f"{project_entity.name} - {project_entity.base_name}"
+        elif entity_objs:
+            selected = choices[0]
+
+        if selected:
+            self._root_combo.SetValue(selected)
+
         self._root_combo.Bind(wx.EVT_COMBOBOX, self._on_root_changed)
         hbox.Add(self._root_combo, flag=wx.RIGHT, border=8)
         self._query_btn = wx.Button(self, label="Query")
@@ -288,7 +307,7 @@ class BrowsePanel(wx.Panel):
             panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._props_list.AppendColumn("Property", width=200)
+        self._props_list.AppendColumn("Property", width=280)
         self._props_list.AppendColumn("Value", width=250)
         vbox.Add(
             self._props_list,
@@ -387,7 +406,7 @@ class BrowsePanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_query(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
-        root = self._root_combo.GetValue()
+        root = self._get_selected_entity_name()
         if not root:
             return
         _prev_closing = self._closing
@@ -563,13 +582,35 @@ class BrowsePanel(wx.Panel):
         row = df.iloc[0]
         try:
             attr_map = self._mc.entity(entity).attributes
+            rel_map = self._mc.entity(entity).relations
         except ValueError, AttributeError:
             attr_map = {}
+            rel_map = {}
+
+        # Build sortable property list with metadata
+        properties: list[tuple[str, Any, str]] = []
         for col in df.columns:
             attr = attr_map.get(col)
-            symbol = _ods_type_symbol(attr.data_type) if attr is not None else "\u2192"
+            rel = rel_map.get(col)
+            if attr is not None:
+                symbol = _ods_type_symbol(attr.data_type)
+                base_name = attr.base_name
+            elif rel is not None:
+                symbol = "\u2192"
+                base_name = rel.base_name
+            else:
+                symbol = "?"
+                base_name = None
+            properties.append((col, base_name, symbol))
+
+        # Sort properties case-insensitively by column name
+        properties.sort(key=lambda x: x[0].lower())
+
+        # Display sorted properties
+        for col, base_name, symbol in properties:
             idx = self._props_list.GetItemCount()
-            self._props_list.InsertItem(idx, f"{symbol} {col}")
+            label = f"{symbol} {col} - {base_name}" if base_name else f"{symbol} {col}"
+            self._props_list.InsertItem(idx, label)
             self._props_list.SetItem(idx, 1, str(row[col]))
 
     def _maybe_load_values(self) -> None:
@@ -727,6 +768,17 @@ class BrowsePanel(wx.Panel):
     def _on_root_changed(self, _event: wx.CommandEvent) -> None:  # noqa: ARG002
         self._update_preview()
 
+    def _get_selected_entity_name(self) -> str:
+        """Extract entity name from formatted combo selection.
+
+        Returns:
+            Entity name (without base name suffix)
+        """
+        value = self._root_combo.GetValue()
+        if " - " in value:
+            return value.split(" - ", 1)[0]
+        return value
+
     # ------------------------------------------------------------------
     # Condition persistence
     # ------------------------------------------------------------------
@@ -776,7 +828,7 @@ class BrowsePanel(wx.Panel):
         self._preview.SetValue(json.dumps(query, indent=2))
 
     def _update_preview(self) -> None:
-        root = self._root_combo.GetValue()
+        root = self._get_selected_entity_name()
         if not root:
             self._preview.SetValue("")
             return

@@ -260,7 +260,7 @@ class ModelPanel(wx.Panel):
         model: ods.Model,
     ) -> None:
         icon = _entity_icon(entity.base_name)
-        label = f"{icon} {entity.name}"
+        label = f"{icon} {entity.name} - {entity.aid}"
         item = self._tree.AppendItem(parent, label)
         self._tree.SetItemData(item, _EntityNode(entity))
 
@@ -276,7 +276,12 @@ class ModelPanel(wx.Panel):
             self._tree.SetItemData(attrs_node, _AttrGroupNode(entity))
             for attr in attrs_sorted:
                 sym = _ods_type_symbol(attr.data_type)
-                attr_item = self._tree.AppendItem(attrs_node, f"{sym} {attr.name}")
+                attr_label = (
+                    f"{sym} {attr.name} - {attr.base_name}"
+                    if attr.base_name
+                    else f"{sym} {attr.name}"
+                )
+                attr_item = self._tree.AppendItem(attrs_node, attr_label)
                 self._tree.SetItemData(attr_item, _AttrNode(entity, attr))
 
         # Relations sub-group
@@ -287,7 +292,10 @@ class ModelPanel(wx.Panel):
             self._tree.SetItemData(rels_node, _RelGroupNode(entity))
             for rel in rels_sorted:
                 range_label = _rel_range(rel)
-                rel_label = f"{rel.name} \u2192 {rel.entity_name}  [{range_label}]"
+                if rel.base_name:
+                    rel_label = f"{rel.name} - {rel.base_name} → {rel.entity_name}  [{range_label}]"
+                else:
+                    rel_label = f"{rel.name} → {rel.entity_name}  [{range_label}]"
                 rel_item = self._tree.AppendItem(rels_node, rel_label)
                 self._tree.SetItemData(rel_item, _RelNode(entity, rel))
                 # Colour by target entity's base_name (light), italic font
@@ -576,6 +584,7 @@ class ModelPanel(wx.Panel):
                 [
                     ("Name", entity.name),
                     ("Base name", entity.base_name),
+                    ("Aid", str(entity.aid)),
                     ("Attributes", str(n_attrs)),
                     ("Relations", str(n_rels)),
                 ],

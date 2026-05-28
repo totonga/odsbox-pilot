@@ -24,7 +24,7 @@ dependencies = [
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.2.0",
     "pandas>=2.0.0",
-    "wodson>=1.1.0",
+    "wodson>=1.1.1",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +50,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "python-semantic-release>=9.0.0",
     "ruff>=0.15.12",
+    "types-requests>=2.33.0.20260518",
 ]
 
 [tool.uv]

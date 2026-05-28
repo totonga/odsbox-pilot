@@ -34,20 +34,27 @@ class AtfxConI:
         from odsbox.con_i import ConI
         from wodson.atfx import AtfxSession
 
+        from odsbox_pilot.splash import hide_splash, show_splash
+
         resolved = str(Path(file_path).resolve())
         _log.debug("Opening ATFX file: %s", resolved)
 
-        self._session: Any = AtfxSession(default_file=resolved)
-        self._session.__enter__()
+        splash = None
         try:
-            self._con: Any = ConI(
-                url=self._session.url,
-                auth=None,
-                custom_session=self._session,
-            )
-        except Exception:
-            self._session.close()
-            raise
+            splash = show_splash()
+            self._session: Any = AtfxSession(default_file=resolved)
+            self._session.__enter__()
+            try:
+                self._con: Any = ConI(
+                    url=self._session.url,
+                    auth=None,
+                    custom_session=self._session,
+                )
+            except Exception:
+                self._session.close()
+                raise
+        finally:
+            hide_splash(splash)
 
     # ------------------------------------------------------------------
     # Context manager
