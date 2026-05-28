@@ -1136,7 +1136,7 @@ requires-dist = [
     { name = "openvino-genai", marker = "extra == 'ai'", specifier = ">=2024.5.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "sentence-transformers", marker = "extra == 'gui'", specifier = ">=3.0" },
-    { name = "wodson", specifier = ">=1.1.0" },
+    { name = "wodson", specifier = ">=1.1.1" },
     { name = "wxpython", marker = "extra == 'gui'", specifier = ">=4.2.5" },
 ]
 provides-extras = ["gui", "ai"]
@@ -2120,15 +2120,15 @@ wheels = [
 
 [[package]]
 name = "wodson"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "odsbox", extra = ["oidc"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/09/f8e4c401878cd3da0110528953269ce8469116beb8a710d938c12a38eb02/wodson-1.1.0.tar.gz", hash = "sha256:7de70a4addb35f7e9ad7bb07ee00ec19cb84bf0ad37dafb55f5acf0a19f604eb", size = 40438, upload-time = "2026-05-25T17:36:34.433Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/95/10775d750ed4fa624bda948db34682e55a5662f25ac85c524ca4cd5156ca/wodson-1.1.1.tar.gz", hash = "sha256:fa5732379be658104aa31b3d75f6f14796e3ef4a0605aab3036a85903927aae6", size = 44112, upload-time = "2026-05-28T04:44:14.081Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/74/7159c9fb2c3136a9fc38c43506ac17bd451bf263dd2013bb102c9f0d2695/wodson-1.1.0-py3-none-any.whl", hash = "sha256:9b0c78d2d7f8eaa249418e6c65940fc35ecb68bf04f43eb545c7a822085820ac", size = 48187, upload-time = "2026-05-25T17:36:33.234Z" },
+    { url = "https://files.pythonhosted.org/packages/47/8a/c5a619d5ff01c06b46193902508bf410dc8d489780608c7b1670ff65fb99/wodson-1.1.1-py3-none-any.whl", hash = "sha256:3edf472013a5aedb84e6054ec5daadfa96245eddf1128dcec37a283e6d82066f", size = 52226, upload-time = "2026-05-28T04:44:13.029Z" },
 ]
 
 [[package]]

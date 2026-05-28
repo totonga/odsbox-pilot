@@ -24,7 +24,7 @@ dependencies = [
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.2.0",
     "pandas>=2.0.0",
-    "wodson>=1.1.0",
+    "wodson>=1.1.1",
 ]
 
 [project.optional-dependencies]
