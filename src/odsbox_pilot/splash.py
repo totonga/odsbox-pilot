@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 
@@ -140,4 +141,19 @@ def hide_splash(splash: Any) -> None:
         splash: Splash screen object to destroy (can be None)
     """
     if splash is not None:
+        # Hide first so the top-most splash disappears before modal dialogs open.
+        with suppress(Exception):
+            splash.Hide()
         splash.Destroy()
+        try:
+            import wx
+        except ModuleNotFoundError:
+            return
+
+        # Flush pending UI events so Destroy() is processed immediately on Windows.
+        if wx.App.Get() is not None:
+            yield_if_needed = getattr(wx, "YieldIfNeeded", None)
+            if callable(yield_if_needed):
+                yield_if_needed()
+            else:
+                wx.Yield()
