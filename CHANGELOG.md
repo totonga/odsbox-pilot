@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v1.11.0 (2026-06-23)
+
+### Bug Fixes
+
+- Ensure splash screen is hidden on connection error and add unit tests for connection flow
+  ([`48a6906`](https://github.com/totonga/odsbox-pilot/commit/48a690640cc03d7bdd8433db04dd52072bcc7acb))
+
+- Improve splash screen hide behavior and handle wx module import gracefully
+  ([`402827d`](https://github.com/totonga/odsbox-pilot/commit/402827de254b2b9069cf8c163b5f0918f7136cc0))
+
+- Update pip-audit ignore list to include PYSEC-2026-196 for accurate vulnerability checks
+  ([`87c2651`](https://github.com/totonga/odsbox-pilot/commit/87c265184007e97e54fc8be16b7f2eac14e815ab))
+
+### Build System
+
+- **deps**: Bump astral-sh/setup-uv from 8.1.0 to 8.2.0
+  ([#11](https://github.com/totonga/odsbox-pilot/pull/11),
+  [`0a31e75`](https://github.com/totonga/odsbox-pilot/commit/0a31e75bd710ef2024cae1f348b79197a8cb45e6))
+
+### Features
+
+- Enhance ConnectDialog with error handling and add unit tests for button actions
+  ([`b763766`](https://github.com/totonga/odsbox-pilot/commit/b763766ba6aa573786d7fcb30ac692be86035cc4))
+
+- Enhance connection handling in ConnectDialog and ServerListDialog with new direct ATFX file
+  support
+  ([`e72f947`](https://github.com/totonga/odsbox-pilot/commit/e72f947b651ab3c3222ccf5f80a42dddc3883af3))
+
+
 ## v1.10.0 (2026-05-28)
 
 ### Bug Fixes
