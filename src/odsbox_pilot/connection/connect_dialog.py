@@ -68,7 +68,8 @@ class ConnectDialog(wx.Dialog):
         manager: ServerConfigManager,
         config: ServerConfig | None,
     ) -> None:
-        title = "Edit Server" if config else "New Server"
+        is_existing_config = bool(config and any(c.id == config.id for c in manager.configs))
+        title = "Edit Server" if is_existing_config else "New Server"
         super().__init__(
             parent,
             title=title,
@@ -76,7 +77,7 @@ class ConnectDialog(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self._manager = manager
-        self._original_config = config
+        self._original_config = config if is_existing_config else None
         self._con_i = None  # set when "Save & Connect" succeeds
 
         self._build_ui(config)
@@ -155,6 +156,7 @@ class ConnectDialog(wx.Dialog):
 
         self._btn_save_connect.Bind(wx.EVT_BUTTON, self._on_save_connect)
         btn_save.Bind(wx.EVT_BUTTON, self._on_save_only)
+        btn_cancel.Bind(wx.EVT_BUTTON, self._on_cancel)
 
     def _build_basic_page(self) -> wx.Panel:
         page = wx.Panel(self._notebook)
@@ -539,16 +541,35 @@ class ConnectDialog(wx.Dialog):
     def _do_connect(self, config: ServerConfig, secret: str):  # type: ignore[return]
         return do_connect(config, secret)
 
+    def _show_save_error(self, config_id: str, exc: Exception) -> None:
+        if isinstance(exc, KeyError):
+            detail = f"GUID '{config_id}' could not be found."
+        else:
+            detail = str(exc)
+        wx.MessageBox(
+            f"Could not save server configuration:\n\n{detail}",
+            "Save Error",
+            wx.OK | wx.ICON_ERROR,
+            self,
+        )
+
     # ------------------------------------------------------------------
     # Button handlers
     # ------------------------------------------------------------------
+
+    def _on_cancel(self, _event: wx.Event) -> None:
+        self.EndModal(wx.ID_CANCEL)
 
     def _on_save_only(self, _event: wx.Event) -> None:
         result = self._build_config()
         if result is None:
             return
         config, secret = result
-        self._save_config(config, secret)
+        try:
+            self._save_config(config, secret)
+        except Exception as exc:
+            self._show_save_error(config.id, exc)
+            return
         self.EndModal(wx.ID_OK)
 
     def _on_save_connect(self, _event: wx.Event) -> None:
@@ -556,13 +577,16 @@ class ConnectDialog(wx.Dialog):
         if result is None:
             return
         config, secret = result
-        self._save_config(config, secret)
+        try:
+            self._save_config(config, secret)
+        except Exception as exc:
+            self._show_save_error(config.id, exc)
+            return
 
         try:
             wx.BeginBusyCursor()
             con_i = self._do_connect(config, secret)
         except Exception as exc:
-            wx.EndBusyCursor()
             _log.exception("Connection failed")
             detail = str(exc)
             response = getattr(exc, "response", None)
