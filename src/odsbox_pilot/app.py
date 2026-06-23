@@ -85,6 +85,8 @@ class OdsPilotApp(wx.App):
             con_i = do_connect(config, secret)
             return con_i
         except Exception as exc:
+            hide_splash(splash)
+            splash = None
             wx.MessageBox(
                 f"Connection failed:\n\n{exc}\n\nPlease check your settings.",
                 "Connection Error",
@@ -98,7 +100,8 @@ class OdsPilotApp(wx.App):
             connect_dlg.Destroy()
             return con_i
         finally:
-            hide_splash(splash)
+            if splash is not None:
+                hide_splash(splash)
 
     def _open_main_frame(self, con_i, server_name: str) -> None:
         from odsbox_pilot.query.main_frame import MainFrame
