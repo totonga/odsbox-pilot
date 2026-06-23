@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from dataclasses import replace
+from pathlib import Path
 
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
-from odsbox_pilot.models import ServerConfig
+from odsbox_pilot.models import AuthType, ServerConfig
 
 
 class ServerListDialog(wx.Dialog):
@@ -23,6 +25,7 @@ class ServerListDialog(wx.Dialog):
         )
         self._manager = manager
         self._selected_config: ServerConfig | None = None
+        self._connected_con_i = None
 
         self._build_ui()
         self._refresh_list()
@@ -35,6 +38,10 @@ class ServerListDialog(wx.Dialog):
     @property
     def selected_config(self) -> ServerConfig | None:
         return self._selected_config
+
+    @property
+    def connected_con_i(self):  # type: ignore[return]
+        return self._connected_con_i
 
     # ------------------------------------------------------------------
     # UI construction
@@ -66,6 +73,8 @@ class ServerListDialog(wx.Dialog):
         self._btn_delete = wx.Button(panel, label="Delete")
         self._btn_connect = wx.Button(panel, wx.ID_OK, label="Connect")
         btn_close = wx.Button(panel, wx.ID_CANCEL, label="Close")
+        self._btn_open_atfx_file = wx.Button(panel, label="📄", size=wx.Size(24, -1))
+        self._btn_open_atfx_file.SetToolTip("Open ATFX file")
 
         self._btn_edit.Disable()
         self._btn_copy.Disable()
@@ -79,7 +88,11 @@ class ServerListDialog(wx.Dialog):
         btn_sizer.Add(self._btn_delete)
         btn_sizer.AddStretchSpacer()
         btn_sizer.Add(btn_close, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_connect)
+
+        right_col = wx.BoxSizer(wx.HORIZONTAL)
+        right_col.Add(self._btn_connect, flag=wx.RIGHT, border=4)
+        right_col.Add(self._btn_open_atfx_file)
+        btn_sizer.Add(right_col)
 
         vbox.Add(btn_sizer, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=8)
 
@@ -88,6 +101,7 @@ class ServerListDialog(wx.Dialog):
         # Bind events
         self._btn_new.Bind(wx.EVT_BUTTON, self._on_new)
         self._btn_edit.Bind(wx.EVT_BUTTON, self._on_edit)
+        self._btn_open_atfx_file.Bind(wx.EVT_BUTTON, self._on_open_atfx_file)
         self._btn_copy.Bind(wx.EVT_BUTTON, self._on_copy)
         self._btn_delete.Bind(wx.EVT_BUTTON, self._on_delete)
         self._btn_connect.Bind(wx.EVT_BUTTON, self._on_connect)
@@ -141,8 +155,52 @@ class ServerListDialog(wx.Dialog):
 
         dlg = ConnectDialog(self, self._manager, config=None)
         if dlg.ShowModal() == wx.ID_OK:
+            if dlg.con_i is not None:
+                self._selected_config = dlg.result_config
+                self._connected_con_i = dlg.con_i
+                dlg.Destroy()
+                self.EndModal(wx.ID_OK)
+                return
             self._refresh_list()
         dlg.Destroy()
+
+    def _on_open_atfx_file(self, _event: wx.Event) -> None:
+        with wx.FileDialog(
+            self,
+            "Open ATFX file",
+            wildcard="ATFX files (*.atfx)|*.atfx|All files (*.*)|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            file_path = dlg.GetPath()
+
+        from odsbox_pilot.connection.atfx_factory import open_atfx
+
+        try:
+            wx.BeginBusyCursor()
+            con_i = open_atfx(file_path)
+        except Exception as exc:
+            wx.MessageBox(
+                f"Could not open ATFX file:\n\n{exc}",
+                "ATFX Open Error",
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            return
+        finally:
+            with contextlib.suppress(Exception):
+                wx.EndBusyCursor()
+
+        self._selected_config = ServerConfig(
+            id=str(uuid.uuid4()),
+            name=Path(file_path).stem,
+            url=file_path,
+            auth_type=AuthType.ATFX,
+            verify_certificate=False,
+        )
+        self._connected_con_i = con_i
+        self.EndModal(wx.ID_OK)
 
     def _on_edit(self, _event: wx.Event) -> None:
         config_id = self._selected_id()
@@ -153,6 +211,12 @@ class ServerListDialog(wx.Dialog):
         config = self._manager.get(config_id)
         dlg = ConnectDialog(self, self._manager, config=config)
         if dlg.ShowModal() == wx.ID_OK:
+            if dlg.con_i is not None:
+                self._selected_config = dlg.result_config
+                self._connected_con_i = dlg.con_i
+                dlg.Destroy()
+                self.EndModal(wx.ID_OK)
+                return
             self._refresh_list()
         dlg.Destroy()
 
@@ -171,6 +235,12 @@ class ServerListDialog(wx.Dialog):
         )
         dlg = ConnectDialog(self, self._manager, config=copied_config)
         if dlg.ShowModal() == wx.ID_OK:
+            if dlg.con_i is not None:
+                self._selected_config = dlg.result_config
+                self._connected_con_i = dlg.con_i
+                dlg.Destroy()
+                self.EndModal(wx.ID_OK)
+                return
             self._refresh_list()
         dlg.Destroy()
 

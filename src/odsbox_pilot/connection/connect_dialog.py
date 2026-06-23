@@ -73,12 +73,13 @@ class ConnectDialog(wx.Dialog):
         super().__init__(
             parent,
             title=title,
-            size=(480, 480),
+            size=wx.Size(480, 480),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self._manager = manager
         self._original_config = config if is_existing_config else None
         self._con_i = None  # set when "Save & Connect" succeeds
+        self._result_config: ServerConfig | None = None
 
         self._build_ui(config)
         self._populate(config)
@@ -92,6 +93,11 @@ class ConnectDialog(wx.Dialog):
     def con_i(self):  # type: ignore[return]
         """The live ConI instance after a successful 'Save & Connect'."""
         return self._con_i
+
+    @property
+    def result_config(self) -> ServerConfig | None:
+        """Config associated with a successful dialog result."""
+        return self._result_config
 
     # ------------------------------------------------------------------
     # UI
@@ -107,16 +113,16 @@ class ConnectDialog(wx.Dialog):
         grid.AddGrowableCol(1)
 
         grid.Add(wx.StaticText(panel, label="Name:"), flag=wx.ALIGN_CENTER_VERTICAL)
-        self._txt_name = wx.TextCtrl(panel, size=(300, -1))
+        self._txt_name = wx.TextCtrl(panel, size=wx.Size(300, -1))
         grid.Add(self._txt_name, flag=wx.EXPAND)
 
         grid.Add(wx.StaticText(panel, label="URL:"), flag=wx.ALIGN_CENTER_VERTICAL)
-        self._txt_url = wx.TextCtrl(panel, size=(300, -1))
+        self._txt_url = wx.TextCtrl(panel, size=wx.Size(300, -1))
         grid.Add(self._txt_url, flag=wx.EXPAND)
 
         self._chk_verify = wx.CheckBox(panel, label="Verify TLS certificate")
         self._chk_verify.SetValue(True)
-        grid.Add((0, 0))
+        grid.Add(wx.Size(0, 0))
         grid.Add(self._chk_verify)
 
         vbox.Add(grid, flag=wx.EXPAND | wx.ALL, border=10)
@@ -220,7 +226,7 @@ class ConnectDialog(wx.Dialog):
 
         self._chk_oidc_insecure = wx.CheckBox(page, label="Allow insecure redirect (localhost)")
         self._chk_oidc_insecure.SetValue(True)
-        grid.Add((0, 0))
+        grid.Add(wx.Size(0, 0))
         grid.Add(self._chk_oidc_insecure)
 
         note = wx.StaticText(
@@ -229,7 +235,7 @@ class ConnectDialog(wx.Dialog):
             style=wx.ST_ELLIPSIZE_END,
         )
         note.SetForegroundColour(wx.Colour(100, 100, 100))
-        grid.Add((0, 0))
+        grid.Add(wx.Size(0, 0))
         grid.Add(note, flag=wx.EXPAND)
 
         page.SetSizer(self._wrap_page(page, grid))
@@ -270,7 +276,7 @@ class ConnectDialog(wx.Dialog):
         self._lc_ctx_vars = wx.ListCtrl(
             parent,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
-            size=(-1, 120),
+            size=wx.Size(-1, 120),
         )
         self._lc_ctx_vars.AppendColumn("Name", width=180)
         self._lc_ctx_vars.AppendColumn("Value", width=220)
@@ -570,6 +576,7 @@ class ConnectDialog(wx.Dialog):
         except Exception as exc:
             self._show_save_error(config.id, exc)
             return
+        self._result_config = config
         self.EndModal(wx.ID_OK)
 
     def _on_save_connect(self, _event: wx.Event) -> None:
@@ -603,5 +610,6 @@ class ConnectDialog(wx.Dialog):
             with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
 
+        self._result_config = config
         self._con_i = con_i
         self.EndModal(wx.ID_OK)

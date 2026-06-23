@@ -50,6 +50,14 @@ class OdsPilotApp(wx.App):
                 dlg.Destroy()
                 return False
 
+            if dlg.connected_con_i is not None:
+                config = dlg.selected_config
+                server_name = config.name if config is not None else "ATFX"
+                con_i = dlg.connected_con_i
+                dlg.Destroy()
+                self._open_main_frame(con_i, server_name)
+                return True
+
             config = dlg.selected_config
             if config is None:
                 dlg.Destroy()
