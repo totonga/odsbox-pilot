@@ -131,7 +131,7 @@ class AiSettingsDialog(wx.Dialog):
             return
 
         manager = ModelManager(self._settings.model_cache_dir)
-        model_dir = manager._get_model_dir(self._settings.model_id)
+        model_dir = manager.get_model_dir(self._settings.model_id)
 
         if manager.is_downloaded(self._settings.model_id):
             self._lbl_status.SetForegroundColour(wx.Colour(0, 140, 0))
@@ -141,12 +141,12 @@ class AiSettingsDialog(wx.Dialog):
             self._chk_enabled.Enable()
         else:
             self._lbl_status.SetForegroundColour(wx.Colour(180, 0, 0))
-            self._lbl_status.SetLabel("✗ Model not downloaded")
-            self._lbl_model_path.SetLabel(f"Will be saved to: {model_dir}")
+            self._lbl_status.SetLabel("✗ Model not downloaded yet")
+            self._lbl_model_path.SetLabel(
+                f"Download later to: {model_dir}  •  AI can still be enabled now"
+            )
             self._btn_download.SetLabel("Download Model (~1 GB)")
-            # Can't enable AI without a model
-            self._chk_enabled.SetValue(False)
-            self._chk_enabled.Disable()
+            self._chk_enabled.Enable()
 
         self.Layout()
 

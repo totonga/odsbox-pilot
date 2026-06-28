@@ -22,7 +22,11 @@ from odsbox_pilot.browse._helpers import (
     _ods_type_symbol,
 )
 from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
-from odsbox_pilot.model.search_index import ModelMatch, ModelSearchIndex
+from odsbox_pilot.model.search_index import (
+    ModelMatch,
+    ModelSearchIndex,
+    SemanticSearchUnavailableError,
+)
 
 log = logging.getLogger(__name__)
 
@@ -323,14 +327,24 @@ class ModelPanel(wx.Panel):
         assert self._search_index is not None
         try:
             self._search_index.warm_up()
+        except SemanticSearchUnavailableError as exc:
+            log.warning("%s", exc.hint)
+            wx.CallAfter(self._apply_search_unavailable, exc.hint)
+            return
         except Exception:
             log.warning("Search index warm-up failed.", exc_info=True)
+            wx.CallAfter(
+                self._apply_search_unavailable,
+                "Search unavailable — semantic search could not be initialized",
+            )
+            return
         wx.CallAfter(self._on_search_index_ready)
 
     def _on_search_index_ready(self) -> None:
         """Called on the UI thread once the index is warm."""
         self._search_available = True
-        self._search_ctrl.SetHint("Search model\u2026")
+        self._search_ctrl.SetHint("Search model…")
+        self._search_ctrl.Enable()
         # Re-trigger search if the user already typed something.
         query = self._search_ctrl.GetValue().strip()
         if len(query) >= 2:
@@ -390,20 +404,23 @@ class ModelPanel(wx.Panel):
         """Execute the search on a background thread and post results to the UI."""
         try:
             results = index.search(query, top_k=30)
-        except ImportError:
-            log.warning(
-                "sentence-transformers is not installed; install it with: uv sync --extra gui"
-            )
-            wx.CallAfter(self._apply_search_unavailable)
+        except SemanticSearchUnavailableError as exc:
+            log.warning("%s", exc.hint)
+            wx.CallAfter(self._apply_search_unavailable, exc.hint)
             return
         except Exception:
             log.exception("Semantic search failed.")
+            wx.CallAfter(
+                self._apply_search_unavailable,
+                "Search unavailable — install semantic search support with: uv sync --extra ai",
+            )
             return
         wx.CallAfter(self._apply_search_results, results, gen)
 
-    def _apply_search_unavailable(self) -> None:
+    def _apply_search_unavailable(self, hint: str) -> None:
         self._search_available = False
-        self._search_ctrl.SetHint("Search unavailable — install sentence-transformers")
+        self._search_ctrl.SetHint(hint)
+        self._search_ctrl.Disable()
         self._hide_search_results()
 
     def _apply_search_results(self, results: list[ModelMatch], gen: int) -> None:

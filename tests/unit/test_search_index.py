@@ -12,7 +12,12 @@ import pytest
 from google.protobuf.json_format import ParseDict
 from odsbox.proto import ods
 
-from odsbox_pilot.model.search_index import ModelMatch, ModelSearchIndex, _tokenize
+from odsbox_pilot.model.search_index import (
+    ModelMatch,
+    ModelSearchIndex,
+    SemanticSearchUnavailableError,
+    _tokenize,
+)
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -209,6 +214,34 @@ class TestCache:
 
         idx2 = ModelSearchIndex(model)
         assert idx2._load_cache() is None
+
+
+class TestUnavailableDependency:
+    def test_missing_sentence_transformers_raises_human_hint(
+        self, index: ModelSearchIndex, mocker: Any
+    ) -> None:
+        idx = index
+        idx._embeddings = _make_fake_embeddings(len(idx._corpus))
+
+        original_import = __import__
+
+        def _fake_import(
+            name: str,
+            globals: Any | None = None,
+            locals: Any | None = None,
+            fromlist: tuple[str, ...] = (),
+            level: int = 0,
+        ) -> Any:
+            if name == "sentence_transformers":
+                raise ImportError("missing optional dependency")
+            return original_import(name, globals, locals, fromlist, level)
+
+        mocker.patch("builtins.__import__", side_effect=_fake_import)
+
+        with pytest.raises(SemanticSearchUnavailableError) as exc_info:
+            idx.search("vehicle manufacturer")
+
+        assert "uv sync --extra ai" in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------
