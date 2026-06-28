@@ -45,10 +45,13 @@ class MainFrame(wx.Frame):
         self._history = QueryHistory()
         self._settings = AppSettings.load()
         self._ai_settings = AiSettings.load()
+        self._ai_startup_hint: str | None = None
         self._on_disconnect_cb = on_disconnect
         self._is_disconnecting = False
 
         self._build_ui()
+        if self._ai_startup_hint:
+            self._log(self._ai_startup_hint, ok=False)
         self._set_icon()
         log_msg = f"Connected to {server_name}"
         if server_url:
@@ -217,7 +220,11 @@ class MainFrame(wx.Frame):
             manager = ModelManager(self._ai_settings.model_cache_dir)
             model_path = manager.get_model_path(self._ai_settings.model_id)
             if model_path is None:
-                log.warning(f"AI model not downloaded: {self._ai_settings.model_id}")
+                self._ai_startup_hint = (
+                    "AI model not downloaded yet. Open Settings → AI Query Assistant… "
+                    "to download it, or keep AI disabled until you are ready."
+                )
+                log.warning("AI model not downloaded: %s", self._ai_settings.model_id)
                 return None
 
             # Initialize LLM pipeline

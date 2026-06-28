@@ -28,8 +28,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gui = ["wxpython>=4.2.5", "matplotlib>=3.7", "sentence-transformers>=3.0"]
-ai = ["huggingface-hub>=0.20.0", "openvino-genai>=2024.5.0"]
+gui = ["wxpython>=4.2.5", "matplotlib>=3.7"]
+ai = [
+    "huggingface-hub>=0.20.0",
+    "openvino-genai>=2024.5.0",
+    "sentence-transformers>=3.0",
+]
 # npu = ["torch-directml>=0.2"]  # Windows Copilot+ NPU/GPU — no Python 3.14 wheels yet;
 #   install manually: pip install torch-directml --pre
 

@@ -42,6 +42,14 @@ _CACHE_DIR: Path = CONFIG_DIR / "search_cache"
 _CAMEL_RE = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
+class SemanticSearchUnavailableError(RuntimeError):
+    """Raised when semantic search cannot run because an optional dependency is missing."""
+
+    def __init__(self, hint: str) -> None:
+        super().__init__(hint)
+        self.hint = hint
+
+
 # ---------------------------------------------------------------------------
 # Public data types
 # ---------------------------------------------------------------------------
@@ -285,7 +293,12 @@ class ModelSearchIndex:
         """Ensure the SentenceTransformer encoder is initialised."""
         if self._encoder is not None:
             return
-        from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+        try:
+            from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+        except ImportError as exc:
+            raise SemanticSearchUnavailableError(
+                "Semantic search requires sentence-transformers. Install it with: uv sync --extra ai"
+            ) from exc
 
         device = self._detect_device()
         self._encoder = SentenceTransformer(_MODEL_NAME, device=device)

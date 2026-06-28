@@ -1102,7 +1102,7 @@ oidc = [
 
 [[package]]
 name = "odsbox-pilot"
-version = "1.10.0"
+version = "1.11.0"
 source = { editable = "." }
 dependencies = [
     { name = "keyring" },
@@ -1115,10 +1115,10 @@ dependencies = [
 ai = [
     { name = "huggingface-hub" },
     { name = "openvino-genai" },
+    { name = "sentence-transformers" },
 ]
 gui = [
     { name = "matplotlib" },
-    { name = "sentence-transformers" },
     { name = "wxpython" },
 ]
 
@@ -1141,7 +1141,7 @@ requires-dist = [
     { name = "odsbox", extras = ["oidc"], specifier = ">=1.2.0" },
     { name = "openvino-genai", marker = "extra == 'ai'", specifier = ">=2024.5.0" },
     { name = "pandas", specifier = ">=2.0.0" },
-    { name = "sentence-transformers", marker = "extra == 'gui'", specifier = ">=3.0" },
+    { name = "sentence-transformers", marker = "extra == 'ai'", specifier = ">=3.0" },
     { name = "wodson", specifier = ">=1.1.1" },
     { name = "wxpython", marker = "extra == 'gui'", specifier = ">=4.2.5" },
 ]

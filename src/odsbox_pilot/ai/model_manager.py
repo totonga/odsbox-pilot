@@ -35,7 +35,7 @@ class ModelManager:
         Returns:
             True if model exists locally, False otherwise.
         """
-        model_dir = self._get_model_dir(model_id)
+        model_dir = self.get_model_dir(model_id)
         # Check for required OpenVINO files
         required_files = ["openvino_model.xml", "openvino_model.bin"]
         return all((model_dir / f).exists() for f in required_files)
@@ -69,7 +69,7 @@ class ModelManager:
             )
             raise ImportError(msg) from e
 
-        model_dir = self._get_model_dir(model_id)
+        model_dir = self.get_model_dir(model_id)
 
         if self.is_downloaded(model_id):
             log.info(f"Model {model_id} already downloaded at {model_dir}")
@@ -96,7 +96,7 @@ class ModelManager:
             log.error(msg)
             raise RuntimeError(msg) from e
 
-    def _get_model_dir(self, model_id: str) -> Path:
+    def get_model_dir(self, model_id: str) -> Path:
         """Get local directory path for a model.
 
         Args:
@@ -109,6 +109,10 @@ class ModelManager:
         safe_name = model_id.replace("/", "--")
         return self._cache_dir / safe_name
 
+    def _get_model_dir(self, model_id: str) -> Path:
+        """Backward-compatible alias for :meth:`get_model_dir`."""
+        return self.get_model_dir(model_id)
+
     def get_model_path(self, model_id: str) -> Path | None:
         """Get path to a downloaded model, or None if not downloaded.
 
@@ -119,5 +123,5 @@ class ModelManager:
             Path to model directory if downloaded, None otherwise.
         """
         if self.is_downloaded(model_id):
-            return self._get_model_dir(model_id)
+            return self.get_model_dir(model_id)
         return None
