@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.12.0 (2026-06-28)
+
+### Features
+
+- Allow smaller install by only install gui ([#13](https://github.com/totonga/odsbox-pilot/pull/13),
+  [`78fd468`](https://github.com/totonga/odsbox-pilot/commit/78fd468390c4a81f12519c818aafe003f6291bf4))
+
+
 ## v1.11.0 (2026-06-23)
 
 ### Bug Fixes
