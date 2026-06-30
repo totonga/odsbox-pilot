@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.13.0 (2026-06-30)
+
+### Features
+
+- Added starter script generation ([#14](https://github.com/totonga/odsbox-pilot/pull/14),
+  [`49138ab`](https://github.com/totonga/odsbox-pilot/commit/49138ab7a6033356f0906575d1bd30198b583cbd))
+
+
 ## v1.12.0 (2026-06-28)
 
 ### Features
