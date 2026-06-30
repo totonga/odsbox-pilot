@@ -7,12 +7,13 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 
 import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
 
 from odsbox_pilot.browse._helpers import _load_prefs, _save_prefs
-from odsbox_pilot.models import AiSettings, AppSettings
+from odsbox_pilot.models import AiSettings, AppSettings, ServerConfig
 from odsbox_pilot.query.editor_panel import AiContext, EditorPanel
 from odsbox_pilot.query.history import HistoryEntry, QueryHistory
 from odsbox_pilot.query.result_grid import ResultGrid
@@ -27,7 +28,11 @@ class MainFrame(wx.Frame):
     """Main application window: query editor + result grid + status log."""
 
     def __init__(
-        self, con_i, server_name: str, on_disconnect: Callable[[], None] | None = None
+        self,
+        con_i,
+        server_name: str,
+        server_config: ServerConfig | None = None,
+        on_disconnect: Callable[[], None] | None = None,
     ) -> None:
         try:
             server_url: str = con_i.con_i_url()
@@ -42,6 +47,7 @@ class MainFrame(wx.Frame):
             style=wx.DEFAULT_FRAME_STYLE,
         )
         self._con_i = con_i
+        self._server_config = server_config
         self._history = QueryHistory()
         self._settings = AppSettings.load()
         self._ai_settings = AiSettings.load()
@@ -178,6 +184,7 @@ class MainFrame(wx.Frame):
         item_disconnect = file_menu.Append(wx.ID_ANY, "Disconnect\tCtrl+W")
         file_menu.AppendSeparator()
         item_export_csv = file_menu.Append(wx.ID_ANY, "Export CSV…\tCtrl+S")
+        item_script_starter = file_menu.Append(wx.ID_ANY, "Generate Script Starter…")
         file_menu.AppendSeparator()
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
         menubar.Append(file_menu, "&File")
@@ -196,6 +203,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
         self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
+        self.Bind(wx.EVT_MENU, self._on_generate_script_starter, item_script_starter)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
         self.Bind(wx.EVT_MENU, self._on_ai_settings, item_ai_settings)
         self.Bind(wx.EVT_MENU, self._on_about, item_about)
@@ -374,6 +382,55 @@ class MainFrame(wx.Frame):
             self.GetStatusBar().SetStatusText(f"Exported: {path}", 0)
         except Exception as exc:
             self._show_error(str(exc))
+
+    def _on_generate_script_starter(self, _event: wx.Event) -> None:
+        from odsbox_pilot.query.script_starter_generator import generate_starter
+        from odsbox_pilot.query.script_starter_logic import (
+            compute_target_path,
+            validate_script_starter_prerequisites,
+        )
+
+        # Step 1: Validate prerequisites
+        validation = validate_script_starter_prerequisites(self._server_config, self._history)
+        if not validation.is_valid:
+            wx.MessageBox(
+                validation.error_message,
+                "Generate Script Starter",
+                wx.OK | wx.ICON_INFORMATION,
+                self,
+            )
+            return
+
+        # Step 2: Ask user for directory
+        with wx.DirDialog(
+            self,
+            "Select destination folder for script starter",
+            style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            parent_path = Path(dlg.GetPath())
+
+        # Step 3: Compute target path with collision handling
+        target_result = compute_target_path(parent_path, self._server_config)
+        if isinstance(target_result, str):  # Error message
+            self._show_error(target_result)
+            return
+        target_path = target_result
+
+        # Step 4: Generate the script starter
+        last_query = next(
+            (e.query for e in self._history.entries if e.error is None),
+            None,
+        )
+        try:
+            generate_starter(self._server_config, last_query, target_path)
+        except Exception as exc:
+            self._show_error(str(exc))
+            return
+
+        self.GetStatusBar().SetStatusText(f"Script starter created: {target_path}", 0)
+        self._log(f"Script starter created: {target_path}", ok=True)
 
     def _on_about(self, _event: wx.Event) -> None:
         from odsbox_pilot import __version__
