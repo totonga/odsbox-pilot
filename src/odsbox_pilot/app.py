@@ -6,6 +6,7 @@ import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.connection.server_list_dialog import ServerListDialog
+from odsbox_pilot.models import ServerConfig
 
 
 class OdsPilotApp(wx.App):
@@ -36,7 +37,7 @@ class OdsPilotApp(wx.App):
         con_i = self._connect(None, manager, config)
         if con_i is None:
             return self._run_connection_loop()
-        self._open_main_frame(con_i, config.name)
+        self._open_main_frame(con_i, config.name, config)
         return True
 
     def _run_connection_loop(self) -> bool:
@@ -55,7 +56,7 @@ class OdsPilotApp(wx.App):
                 server_name = config.name if config is not None else "ATFX"
                 con_i = dlg.connected_con_i
                 dlg.Destroy()
-                self._open_main_frame(con_i, server_name)
+                self._open_main_frame(con_i, server_name, config)
                 return True
 
             config = dlg.selected_config
@@ -69,7 +70,7 @@ class OdsPilotApp(wx.App):
                 continue
 
             dlg.Destroy()
-            self._open_main_frame(con_i, config.name)
+            self._open_main_frame(con_i, config.name, config)
             return True
 
     def _on_reconnect(self) -> None:
@@ -111,9 +112,13 @@ class OdsPilotApp(wx.App):
             if splash is not None:
                 hide_splash(splash)
 
-    def _open_main_frame(self, con_i, server_name: str) -> None:
+    def _open_main_frame(
+        self, con_i, server_name: str, server_config: ServerConfig | None = None
+    ) -> None:
         from odsbox_pilot.query.main_frame import MainFrame
 
-        frame = MainFrame(con_i, server_name, on_disconnect=self._on_reconnect)
+        frame = MainFrame(
+            con_i, server_name, server_config=server_config, on_disconnect=self._on_reconnect
+        )
         frame.Show()
         self.SetTopWindow(frame)
