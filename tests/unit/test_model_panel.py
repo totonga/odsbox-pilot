@@ -35,7 +35,7 @@ class TestRelRange:
         assert _rel_range(self._make_rel(-1, 1)) == "1:n"
 
     def test_many_to_many(self) -> None:
-        assert _rel_range(self._make_rel(-1, -1)) == "n:n"
+        assert _rel_range(self._make_rel(-1, -1)) == "n:m"
 
     def test_zero_range(self) -> None:
         assert _rel_range(self._make_rel(0, 1)) == "1:0"

@@ -17,8 +17,9 @@ def _range_str(max_val: int) -> str:
 
 
 def _rel_range(rel: ods.Model.Relation) -> str:
-    """Return a human-readable cardinality string like ``'1:1'``, ``'1:n'``, ``'n:n'``."""
-    return f"{_range_str(rel.inverse_range_max)}:{_range_str(rel.range_max)}"
+    """Return a human-readable cardinality string like ``'1:1'``, ``'1:n'``, ``'n:m'``."""
+    rv = f"{_range_str(rel.inverse_range_max)}:{_range_str(rel.range_max)}"
+    return rv if rv != "n:n" else "n:m"
 
 
 def _rel_type_label(rel: ods.Model.Relation) -> str:
