@@ -23,7 +23,8 @@ data hierarchy, and inspect the entity-relation model — all without writing an
 | 📋 | **Examples & history** — built-in query examples and per-session history |
 | 📊 | **Tabular results** — sortable result grid powered by pandas; export to CSV |
 | 🌳 | **Browse tab** — point-and-click navigation of the data hierarchy with filter conditions |
-| 🗂️ | **Model tab** — read-only browser for the complete entity-relation schema and enumerations |
+| 🗂️ | **Model tab** — read-only browser for the complete entity-relation schema and enumeration s |
+| 📜 | **Starter scripts** — generate Python scripts for re-running queries outside the GUI |
 | 🤖 | **AI-powered queries** (optional) — natural language query parsing with local LLM inference |
 
 ---

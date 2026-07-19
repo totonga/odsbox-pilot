@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from odsbox_pilot.models import AuthType, ServerConfig
 
@@ -77,12 +78,75 @@ def _open_folder_fallback(folder: Path) -> None:
         _LOGGER.debug("Not on Windows, skipping file explorer fallback")
 
 
+def _build_mcp_env_basic(config: ServerConfig) -> dict[str, str]:
+    """Build MCP environment variables for BASIC authentication."""
+    return {
+        "ODSBOX_MCP_MODE": "basic",
+        "ODSBOX_MCP_URL": config.url,
+        "ODSBOX_MCP_USER": config.username,
+        "ODSBOX_MCP_VERIFY": "true" if config.verify_certificate else "false",
+    }
+
+
+def _build_mcp_env_m2m(config: ServerConfig) -> dict[str, str]:
+    """Build MCP environment variables for M2M (client credentials) authentication."""
+    return {
+        "ODSBOX_MCP_MODE": "m2m",
+        "ODSBOX_MCP_URL": config.url,
+        "ODSBOX_MCP_M2M_TOKEN_ENDPOINT": config.token_endpoint,
+        "ODSBOX_MCP_M2M_CLIENT_ID": config.client_id,
+        "ODSBOX_MCP_VERIFY": "true" if config.verify_certificate else "false",
+    }
+
+
+def _build_mcp_env_oidc(config: ServerConfig) -> dict[str, str]:
+    """Build MCP environment variables for OIDC authentication."""
+    env = {
+        "ODSBOX_MCP_MODE": "oidc",
+        "ODSBOX_MCP_URL": config.url,
+        "ODSBOX_MCP_OIDC_CLIENT_ID": config.client_id,
+        "ODSBOX_MCP_OIDC_REDIRECT_URI": config.redirect_uri,
+        "ODSBOX_MCP_VERIFY": "true" if config.verify_certificate else "false",
+    }
+    if config.webfinger_path_prefix:
+        env["ODSBOX_MCP_OIDC_WEBFINGER_PATH_PREFIX"] = config.webfinger_path_prefix
+    return env
+
+
+def _build_mcp_json(config: ServerConfig) -> dict[str, Any] | None:
+    """Build complete MCP configuration (mcp.json).
+
+    Returns the full mcp.json dict for BASIC/M2M/OIDC, or None for ATFX (no remote server).
+    """
+    if config.auth_type == AuthType.ATFX:
+        return None
+
+    if config.auth_type == AuthType.BASIC:
+        env = _build_mcp_env_basic(config)
+    elif config.auth_type == AuthType.M2M:
+        env = _build_mcp_env_m2m(config)
+    else:  # OIDC
+        env = _build_mcp_env_oidc(config)
+
+    return {
+        "servers": {
+            "ods-mcp": {
+                "type": "stdio",
+                "command": "uvx",
+                "args": ["odsbox-jaquel-mcp@latest"],
+                "env": env,
+            }
+        },
+        "inputs": [],
+    }
+
+
 def generate_starter(
     server_config: ServerConfig,
     query_json: str,
     target_folder: Path,
 ) -> Path:
-    """Create a starter project folder with pyproject.toml, script.py, README.md.
+    """Create a starter project folder with pyproject.toml, script.py, README.md, and .vscode/mcp.json.
 
     Args:
         server_config: Active ODS connection configuration (secrets excluded).
@@ -106,6 +170,13 @@ def generate_starter(
         _build_script(server_config, pretty_query), encoding="utf-8"
     )
     (target_folder / "README.md").write_text(_build_readme(server_config), encoding="utf-8")
+
+    # Generate .vscode/mcp.json if not ATFX
+    mcp_config = _build_mcp_json(server_config)
+    if mcp_config is not None:
+        vscode_dir = target_folder / ".vscode"
+        vscode_dir.mkdir(exist_ok=True)
+        (vscode_dir / "mcp.json").write_text(json.dumps(mcp_config, indent=4), encoding="utf-8")
 
     # Try to open the folder in VS Code or file explorer
     _open_folder(target_folder)
@@ -161,9 +232,6 @@ def _keyring_lines(url: str, credential: str) -> list[str]:
     """Lines that read a secret from keyring, with a setup comment."""
     account = f"{url}::{credential}"
     return [
-        "# Before running, store your secret in the OS keyring:",
-        f'#   keyring set {_KEYRING_SERVICE} "{account}"',
-        "",
         "import keyring",
         "",
         f"secret = keyring.get_password({_KEYRING_SERVICE!r}, {account!r})",
@@ -233,15 +301,11 @@ def _build_script(config: ServerConfig, pretty_query: str) -> str:
 
 
 def _build_script_basic(config: ServerConfig, pretty_query: str) -> str:
-    account = f"{config.url}::{config.username}"
     query_lines = _query_dict_lines(pretty_query)
     lines: list[str] = [
         f'"""Query script for {config.name}.',
         "",
-        "Before running, store your password in the OS keyring:",
-        f'    keyring set {_KEYRING_SERVICE} "{account}"',
-        "",
-        "Then run:",
+        "Run with:",
         "    uv run python script.py",
         '"""',
         "",
@@ -271,16 +335,12 @@ def _build_script_basic(config: ServerConfig, pretty_query: str) -> str:
 
 
 def _build_script_m2m(config: ServerConfig, pretty_query: str) -> str:
-    account = f"{config.url}::{config.client_id}"
     scope_val = repr(config.scope) if config.scope else "None"
     query_lines = _query_dict_lines(pretty_query)
     lines: list[str] = [
         f'"""Query script for {config.name}.',
         "",
-        "Before running, store your client secret in the OS keyring:",
-        f'    keyring set {_KEYRING_SERVICE} "{account}"',
-        "",
-        "Then run:",
+        "Run with:",
         "    uv run python script.py",
         '"""',
         "",
@@ -401,6 +461,9 @@ def _build_readme(config: ServerConfig) -> str:
         "```bash",
         "uv sync",
         "```",
+        "## MCP",
+        "",
+        "In Copilot Chat just call `Connect my ODS server with env`.",
         "",
     ]
 
@@ -438,6 +501,7 @@ def _build_readme(config: ServerConfig) -> str:
         "",
         "- [odsbox on GitHub](https://github.com/peak-solution/odsbox)",
         "- [JAQueL query syntax](https://peak-solution.github.io/odsbox/jaquel_examples_notebook.html)",
+        "- [odsbox-jaquel-mcp on GitHub](https://github.com/totonga/odsbox-jaquel-mcp)"
         "- [uv documentation](https://docs.astral.sh/uv/)",
         "- [ASAM ODS standard](https://www.asam.net/standards/detail/ods/)",
         "",

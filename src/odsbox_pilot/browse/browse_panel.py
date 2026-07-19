@@ -29,6 +29,7 @@ from odsbox_pilot.browse._helpers import (
     _save_prefs,
 )
 from odsbox_pilot.browse.filter_tree import FilterNode, FilterTree
+from odsbox_pilot.model.helpers import _rel_range
 
 
 @dataclass
@@ -131,7 +132,7 @@ class BrowsePanel(wx.Panel):
         self._splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
         self._build_tree(self._splitter)
         props_panel = self._build_props_panel(self._splitter)
-        self._splitter.SetSashGravity(2.0 / 3.0)
+        self._splitter.SetSashGravity(1.0)
         self._splitter.SplitVertically(self._tree, props_panel, sashPosition=600)
         wx.CallAfter(self._set_initial_sash)
         # Vertical splitter: top = tree/props, bottom = preview notebook
@@ -477,8 +478,11 @@ class BrowsePanel(wx.Panel):
             self._tree.SetItemHasChildren(item, False)
             return
         for rel in relations:
-            weight = FilterTree._relation_weight(rel)
-            text = f"\u2192 {rel.name}  \u2192  {rel.entity_name}  (w:{weight})"
+            range_label = _rel_range(rel)
+            if rel.base_name:
+                text = f"▷ {rel.name}({rel.base_name}) → {rel.entity_name}  [{range_label}]"
+            else:
+                text = f"▷ {rel.name} → {rel.entity_name}  [{range_label}]"
             child = self._tree.AppendItem(item, text)
             self._tree.SetItemData(
                 child,
@@ -596,7 +600,7 @@ class BrowsePanel(wx.Panel):
                 symbol = _ods_type_symbol(attr.data_type)
                 base_name = attr.base_name
             elif rel is not None:
-                symbol = "\u2192"
+                symbol = "▷"
                 base_name = rel.base_name
             else:
                 symbol = "?"
