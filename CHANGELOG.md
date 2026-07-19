@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v1.14.0 (2026-07-19)
+
+### Bug Fixes
+
+- Better relation display in browse tree ([#17](https://github.com/totonga/odsbox-pilot/pull/17),
+  [`9c411f4`](https://github.com/totonga/odsbox-pilot/commit/9c411f4baaab5736d5f2ebbe9cff22b575aa0b2a))
+
+- Better window resize ([#17](https://github.com/totonga/odsbox-pilot/pull/17),
+  [`9c411f4`](https://github.com/totonga/odsbox-pilot/commit/9c411f4baaab5736d5f2ebbe9cff22b575aa0b2a))
+
+### Features
+
+- Add MCP configuration to starter script folder
+  ([#17](https://github.com/totonga/odsbox-pilot/pull/17),
+  [`9c411f4`](https://github.com/totonga/odsbox-pilot/commit/9c411f4baaab5736d5f2ebbe9cff22b575aa0b2a))
+
+- Add mcp definition to starter scripts ([#17](https://github.com/totonga/odsbox-pilot/pull/17),
+  [`9c411f4`](https://github.com/totonga/odsbox-pilot/commit/9c411f4baaab5736d5f2ebbe9cff22b575aa0b2a))
+
+
 ## v1.13.0 (2026-06-30)
 
 ### Features

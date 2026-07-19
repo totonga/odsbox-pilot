@@ -1,3 +1,3 @@
 """ASAM ODS Pilot — desktop query tool for ASAM ODS servers."""
 
-__version__ = "1.13.0"
+__version__ = "1.14.0"
