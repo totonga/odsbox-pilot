@@ -148,7 +148,7 @@ class ModelPanel(wx.Panel):
 
         splitter.SplitVertically(self._left_panel, props_panel, sashPosition=420)
         splitter.SetMinimumPaneSize(120)
-        splitter.SetSashGravity(0.6)
+        splitter.SetSashGravity(1.0)
 
         # Search control above the splitter
         self._search_ctrl = wx.SearchCtrl(self, style=wx.TE_PROCESS_ENTER)

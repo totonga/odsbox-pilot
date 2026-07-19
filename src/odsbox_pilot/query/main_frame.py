@@ -144,6 +144,7 @@ class MainFrame(wx.Frame):
 
         outer_splitter.SplitHorizontally(notebook, log_panel, sashPosition=550)
         outer_splitter.SetMinimumPaneSize(60)
+        outer_splitter.SetSashGravity(1.0)
 
         # Status bar
         sb = self.CreateStatusBar(2)

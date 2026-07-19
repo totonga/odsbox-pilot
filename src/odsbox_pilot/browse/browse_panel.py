@@ -132,7 +132,7 @@ class BrowsePanel(wx.Panel):
         self._splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
         self._build_tree(self._splitter)
         props_panel = self._build_props_panel(self._splitter)
-        self._splitter.SetSashGravity(2.0 / 3.0)
+        self._splitter.SetSashGravity(1.0)
         self._splitter.SplitVertically(self._tree, props_panel, sashPosition=600)
         wx.CallAfter(self._set_initial_sash)
         # Vertical splitter: top = tree/props, bottom = preview notebook
