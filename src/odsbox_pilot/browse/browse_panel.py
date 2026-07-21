@@ -567,7 +567,7 @@ class BrowsePanel(wx.Panel):
             if entity_e.base_name.lower() == "aolocalcolumn":
                 attributes: dict[str, int] = {}
                 for attr in entity_e.attributes.values():
-                    if attr.name.lower() not in ["values", "flags"]:
+                    if attr.base_name.lower() not in ["values", "flags"]:
                         attributes[attr.name] = 1
                 for rel in entity_e.relations.values():
                     if rel.range_max == 1:
