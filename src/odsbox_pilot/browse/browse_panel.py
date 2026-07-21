@@ -121,6 +121,9 @@ class BrowsePanel(wx.Panel):
         self._relation_font = self.GetFont()
         self._relation_font.SetStyle(wx.FONTSTYLE_ITALIC)
 
+        # Style objects for property list colouring
+        self._rel_colour = wx.Colour(80, 100, 140)  # blue
+
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self._build_toolbar(), flag=wx.EXPAND | wx.ALL, border=4)
         self._cond_pane = self._build_conditions_section()
@@ -139,7 +142,7 @@ class BrowsePanel(wx.Panel):
         self._v_splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3DSASH)
         self._splitter.Reparent(self._v_splitter)
         self._preview_nb = self._build_preview_notebook(self._v_splitter)
-        self._v_splitter.SplitHorizontally(self._splitter, self._preview_nb, sashPosition=400)
+        self._v_splitter.SplitHorizontally(self._splitter, self._preview_nb)
         self._v_splitter.SetMinimumPaneSize(80)
         self._v_splitter.SetSashGravity(1.0)
         vbox.Add(self._v_splitter, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
@@ -157,12 +160,12 @@ class BrowsePanel(wx.Panel):
     def _set_initial_sash(self) -> None:
         w = self._splitter.GetClientSize().width
         if w > 0:
-            self._splitter.SetSashPosition(int(w * 2 / 3))
+            self._splitter.SetSashPosition(w // 2)
 
     def _set_initial_vsash(self) -> None:
         h = self._v_splitter.GetClientSize().height
         if h > 0:
-            self._v_splitter.SetSashPosition(max(80, h - 220))
+            self._v_splitter.SetSashPosition(h // 2)
 
     def _initial_canvas_draw(self) -> None:
         """Force the matplotlib canvas to render at its actual laid-out size."""
@@ -592,30 +595,44 @@ class BrowsePanel(wx.Panel):
             rel_map = {}
 
         # Build sortable property list with metadata
-        properties: list[tuple[str, Any, str]] = []
+        properties: list[tuple[str, Any, str, bool, int]] = []
         for col in df.columns:
             attr = attr_map.get(col)
             rel = rel_map.get(col)
             if attr is not None:
                 symbol = _ods_type_symbol(attr.data_type)
                 base_name = attr.base_name
+                weight = (
+                    5
+                    + (1 if attr.base_name else 0)
+                    + (1 if attr.base_name in ["name", "id"] else 0)
+                )
             elif rel is not None:
                 symbol = "▷"
                 base_name = rel.base_name
+                weight = 2 + (1 if rel.base_name else 0)
             else:
                 symbol = "?"
                 base_name = None
-            properties.append((col, base_name, symbol))
+                weight = 0
+            properties.append((col, base_name, symbol, rel is not None, weight))
 
-        # Sort properties case-insensitively by column name
-        properties.sort(key=lambda x: x[0].lower())
+        # Sort properties: by weight descending, then by name
+        properties.sort(
+            key=lambda x: (
+                -x[4],  # sort by weight descending
+                x[0].lower(),  # alphabetically by column name
+            )
+        )
 
         # Display sorted properties
-        for col, base_name, symbol in properties:
+        for col, base_name, symbol, is_rel, _weight in properties:
             idx = self._props_list.GetItemCount()
             label = f"{symbol} {col} - {base_name}" if base_name else f"{symbol} {col}"
             self._props_list.InsertItem(idx, label)
             self._props_list.SetItem(idx, 1, str(row[col]))
+            if is_rel:
+                self._props_list.SetItemTextColour(idx, self._rel_colour)
 
     def _maybe_load_values(self) -> None:
         """Trigger a values load only when the Values tab is currently shown."""
