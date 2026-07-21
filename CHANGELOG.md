@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.14.1 (2026-07-21)
+
+### Bug Fixes
+
+- Better attribute sort in browse tab ([#19](https://github.com/totonga/odsbox-pilot/pull/19),
+  [`0132618`](https://github.com/totonga/odsbox-pilot/commit/0132618c395e7fed41238b0a3e17f1bd0a3c103f))
+
+- Fix attribute visibility and improve sorting in property window
+  ([#19](https://github.com/totonga/odsbox-pilot/pull/19),
+  [`0132618`](https://github.com/totonga/odsbox-pilot/commit/0132618c395e7fed41238b0a3e17f1bd0a3c103f))
+
+- Hide values and flags on localcolumn ([#19](https://github.com/totonga/odsbox-pilot/pull/19),
+  [`0132618`](https://github.com/totonga/odsbox-pilot/commit/0132618c395e7fed41238b0a3e17f1bd0a3c103f))
+
+
 ## v1.14.0 (2026-07-19)
 
 ### Bug Fixes
