@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v1.15.0 (2026-07-24)
+
+### Bug Fixes
+
+- Moved export results ([#20](https://github.com/totonga/odsbox-pilot/pull/20),
+  [`8ac63ca`](https://github.com/totonga/odsbox-pilot/commit/8ac63ca4a3f3ba59639551215e7a1ce57b3bfc5d))
+
+### Features
+
+- Add high DPI support and context variable display
+  ([#20](https://github.com/totonga/odsbox-pilot/pull/20),
+  [`8ac63ca`](https://github.com/totonga/odsbox-pilot/commit/8ac63ca4a3f3ba59639551215e7a1ce57b3bfc5d))
+
+- Added font scaling ([#20](https://github.com/totonga/odsbox-pilot/pull/20),
+  [`8ac63ca`](https://github.com/totonga/odsbox-pilot/commit/8ac63ca4a3f3ba59639551215e7a1ce57b3bfc5d))
+
+- Show context variables ([#20](https://github.com/totonga/odsbox-pilot/pull/20),
+  [`8ac63ca`](https://github.com/totonga/odsbox-pilot/commit/8ac63ca4a3f3ba59639551215e7a1ce57b3bfc5d))
+
+
 ## v1.14.1 (2026-07-21)
 
 ### Bug Fixes
