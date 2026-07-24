@@ -61,6 +61,10 @@ class ResultGrid(wx.Panel):
             return
         self._df.to_csv(path, index=False)
 
+    def has_data(self) -> bool:
+        """Return True if a DataFrame is currently displayed."""
+        return self._df is not None
+
     def clear(self) -> None:
         self._df = None
         self._sort_col = None

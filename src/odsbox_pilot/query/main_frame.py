@@ -111,14 +111,15 @@ class MainFrame(wx.Frame):
         # Initialize AI context if enabled
         ai_context = self._init_ai_context()
 
+        self._grid = ResultGrid(inner_splitter)
         self._editor = EditorPanel(
             inner_splitter,
             self._history,
             self._on_execute,
             settings=self._settings,
             ai_context=ai_context,
+            grid=self._grid,
         )
-        self._grid = ResultGrid(inner_splitter)
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=self.FromDIP(280))
         inner_splitter.SetMinimumPaneSize(self.FromDIP(80))
         notebook.AddPage(inner_splitter, "Query")
@@ -186,7 +187,6 @@ class MainFrame(wx.Frame):
         item_disconnect = file_menu.Append(wx.ID_ANY, "Disconnect\tCtrl+W")
         file_menu.AppendSeparator()
         item_context_vars = file_menu.Append(wx.ID_ANY, "Context Variables…")
-        item_export_csv = file_menu.Append(wx.ID_ANY, "Export CSV…\tCtrl+S")
         item_script_starter = file_menu.Append(wx.ID_ANY, "Generate Script Starter…")
         file_menu.AppendSeparator()
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
@@ -209,7 +209,6 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
         self.Bind(wx.EVT_MENU, self._on_context_variables, item_context_vars)
-        self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
         self.Bind(wx.EVT_MENU, self._on_generate_script_starter, item_script_starter)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
         self.Bind(wx.EVT_MENU, self._on_ai_settings, item_ai_settings)
@@ -374,38 +373,6 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Menu handlers
     # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Settings handlers
-    # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Menu handlers
-    # ------------------------------------------------------------------
-
-    def _on_export_csv(self, _event: wx.Event) -> None:
-        if self._grid._df is None:
-            wx.MessageBox(
-                "No results to export. Execute a query first.",
-                "Export CSV",
-                wx.OK | wx.ICON_INFORMATION,
-                self,
-            )
-            return
-        with wx.FileDialog(
-            self,
-            "Export CSV",
-            wildcard="CSV files (*.csv)|*.csv",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        ) as dlg:
-            if dlg.ShowModal() != wx.ID_OK:
-                return
-            path = dlg.GetPath()
-        try:
-            self._grid.export_csv(path)
-            self.GetStatusBar().SetStatusText(f"Exported: {path}", 0)
-        except Exception as exc:
-            self._show_error(str(exc))
 
     def _on_generate_script_starter(self, _event: wx.Event) -> None:
         from odsbox_pilot.query.script_starter_generator import generate_starter

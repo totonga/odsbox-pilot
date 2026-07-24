@@ -17,6 +17,7 @@ from odsbox_pilot import styles
 from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.examples import by_category, categories
 from odsbox_pilot.query.history import QueryHistory
+from odsbox_pilot.query.result_grid import ResultGrid
 
 log = logging.getLogger(__name__)
 
@@ -43,12 +44,14 @@ class EditorPanel(wx.Panel):
         on_execute: Callable[[str], None],
         settings: AppSettings | None = None,
         ai_context: AiContext | None = None,
+        grid: ResultGrid | None = None,
     ) -> None:
         super().__init__(parent)
         self._history = history
         self._on_execute = on_execute
         self._settings = settings
         self._ai_context = ai_context
+        self._grid = grid
         self._webview_ready = False
 
         self._build_ui()
@@ -153,6 +156,11 @@ class EditorPanel(wx.Panel):
         tbar_sizer.Add(self._btn_history, flag=wx.RIGHT, border=4)
 
         tbar_sizer.AddStretchSpacer()
+
+        # Save Results
+        self._btn_save_results = wx.Button(toolbar, label="Save Results…")
+        self._btn_save_results.Bind(wx.EVT_BUTTON, self._on_save_results_btn)
+        tbar_sizer.Add(self._btn_save_results, flag=wx.RIGHT, border=4)
 
         # Pretty Print
         btn_pretty = wx.Button(toolbar, label="Pretty Print")
@@ -286,6 +294,31 @@ class EditorPanel(wx.Panel):
                 wx.OK | wx.ICON_WARNING,
                 self,
             )
+
+    def _on_save_results_btn(self, _event: wx.Event) -> None:
+        frame = wx.GetTopLevelParent(self)
+        if self._grid is None or not self._grid.has_data():
+            wx.MessageBox(
+                "No results to export. Execute a query first.",
+                "Save Results",
+                wx.OK | wx.ICON_INFORMATION,
+                frame,
+            )
+            return
+        with wx.FileDialog(
+            frame,
+            "Save Results",
+            wildcard="CSV files (*.csv)|*.csv",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            self._grid.export_csv(path)
+            self._set_status(f"Exported: {path}")
+        except Exception as exc:
+            wx.MessageBox(str(exc), "Query Error", wx.OK | wx.ICON_ERROR, frame)
 
     def _on_execute_btn(self, _event: wx.Event) -> None:
         raw = self.get_query().strip()
