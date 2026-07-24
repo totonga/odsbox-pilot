@@ -185,6 +185,7 @@ class MainFrame(wx.Frame):
         file_menu = wx.Menu()
         item_disconnect = file_menu.Append(wx.ID_ANY, "Disconnect\tCtrl+W")
         file_menu.AppendSeparator()
+        item_context_vars = file_menu.Append(wx.ID_ANY, "Context Variables…")
         item_export_csv = file_menu.Append(wx.ID_ANY, "Export CSV…\tCtrl+S")
         item_script_starter = file_menu.Append(wx.ID_ANY, "Generate Script Starter…")
         file_menu.AppendSeparator()
@@ -207,6 +208,7 @@ class MainFrame(wx.Frame):
         menubar.Append(help_menu, "&Help")
 
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
+        self.Bind(wx.EVT_MENU, self._on_context_variables, item_context_vars)
         self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
         self.Bind(wx.EVT_MENU, self._on_generate_script_starter, item_script_starter)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
@@ -284,6 +286,13 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self._settings = dlg.get_settings()
             self._settings.save()
+        dlg.Destroy()
+
+    def _on_context_variables(self, _event: wx.Event) -> None:
+        from odsbox_pilot.query.context_variables_dialog import ContextVariablesDialog
+
+        dlg = ContextVariablesDialog(self, self._con_i)
+        dlg.ShowModal()
         dlg.Destroy()
 
     # ------------------------------------------------------------------
