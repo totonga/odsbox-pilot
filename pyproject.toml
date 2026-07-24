@@ -107,6 +107,7 @@ module = [
     "odsbox_pilot.query.result_grid",
     "odsbox_pilot.query.ai_preview_dialog",
     "odsbox_pilot.query.ai_settings_dialog",
+    "odsbox_pilot.query.settings_dialog",
     "odsbox_pilot.connection.connect_dialog",
     "odsbox_pilot.connection.server_list_dialog",
     "odsbox_pilot.browse.browse_panel",

@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 import wx  # type: ignore[import-untyped]
 import wx.grid  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
+
 if TYPE_CHECKING:
     import pandas
 
@@ -81,9 +83,7 @@ class ResultGrid(wx.Panel):
         self._banner = wx.StaticText(self, label="")
         self._banner.SetBackgroundColour(_BANNER_COLOUR)
         self._banner.SetForegroundColour(_BANNER_TEXT_COLOUR)
-        font = self._banner.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self._banner.SetFont(font)
+        self._banner.SetFont(styles.bold_font(self._banner))
         self._banner.Hide()
         vbox.Add(self._banner, flag=wx.EXPAND)
 
@@ -92,7 +92,16 @@ class ResultGrid(wx.Panel):
         self._grid.CreateGrid(0, 0)
         self._grid.SetDefaultCellOverflow(False)
         self._grid.EnableEditing(False)
-        self._grid.SetDefaultRowSize(22)
+        # wx.grid.Grid does not inherit the parent's scaled font, so apply the
+        # scaled GUI font to cells and labels and size rows to match.
+        grid_font = styles.scaled_gui_font()
+        self._grid.SetDefaultCellFont(grid_font)
+        self._grid.SetLabelFont(grid_font)
+        self._grid.SetDefaultRowSize(
+            self.FromDIP(round(22 * styles.get_scale_factor())), resizeExistingRows=True
+        )
+        # Auto-size the (two-line) column header height to the scaled font.
+        self._grid.SetColLabelSize(wx.grid.GRID_AUTOSIZE)
         self._grid.SetLabelBackgroundColour(wx.Colour(240, 240, 240))
         self._grid.Bind(wx.grid.EVT_GRID_LABEL_LEFT_CLICK, self._on_col_label_click)
         vbox.Add(self._grid, proportion=1, flag=wx.EXPAND)

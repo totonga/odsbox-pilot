@@ -13,6 +13,7 @@ import uuid
 
 import wx  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.models import AuthType, ServerConfig
 
@@ -76,6 +77,8 @@ class ConnectDialog(wx.Dialog):
             size=wx.Size(480, 480),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(480, 480)))
         self._manager = manager
         self._original_config = config if is_existing_config else None
         self._con_i = None  # set when "Save & Connect" succeeds
@@ -276,10 +279,10 @@ class ConnectDialog(wx.Dialog):
         self._lc_ctx_vars = wx.ListCtrl(
             parent,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
-            size=wx.Size(-1, 120),
+            size=self.FromDIP(wx.Size(-1, 120)),
         )
-        self._lc_ctx_vars.AppendColumn("Name", width=180)
-        self._lc_ctx_vars.AppendColumn("Value", width=220)
+        self._lc_ctx_vars.AppendColumn("Name", width=self.FromDIP(180))
+        self._lc_ctx_vars.AppendColumn("Value", width=self.FromDIP(220))
         vbox.Add(self._lc_ctx_vars, flag=wx.EXPAND | wx.ALL, border=6)
 
         btn_row = wx.BoxSizer(wx.HORIZONTAL)

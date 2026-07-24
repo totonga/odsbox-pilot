@@ -13,6 +13,7 @@ from typing import Any
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
 from odsbox_pilot.models import AppSettings
 from odsbox_pilot.query.examples import by_category, categories
 from odsbox_pilot.query.history import QueryHistory
@@ -107,15 +108,13 @@ class EditorPanel(wx.Panel):
         ai_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         ai_label = wx.StaticText(ai_panel, label="✨ AI Query:")
-        ai_label_font = ai_label.GetFont()
-        ai_label_font.SetWeight(wx.FONTWEIGHT_BOLD)
-        ai_label.SetFont(ai_label_font)
+        ai_label.SetFont(styles.bold_font(ai_label))
         ai_sizer.Add(ai_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, border=8)
 
         self._ai_input = wx.TextCtrl(
             ai_panel,
             style=wx.TE_PROCESS_ENTER,
-            size=(500, -1),
+            size=self.FromDIP(wx.Size(500, -1)),
         )
         self._ai_input.Bind(wx.EVT_TEXT_ENTER, self._on_ai_parse)
         ai_sizer.Add(
@@ -164,9 +163,7 @@ class EditorPanel(wx.Panel):
         self._btn_execute = wx.Button(toolbar, label="▶  Execute  (Alt+Enter)")
         self._btn_execute.SetBackgroundColour(wx.Colour(0, 120, 215))
         self._btn_execute.SetForegroundColour(wx.WHITE)
-        font = self._btn_execute.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self._btn_execute.SetFont(font)
+        self._btn_execute.SetFont(styles.bold_font(self._btn_execute))
         self._btn_execute.Bind(wx.EVT_BUTTON, self._on_execute_btn)
         tbar_sizer.Add(self._btn_execute)
 

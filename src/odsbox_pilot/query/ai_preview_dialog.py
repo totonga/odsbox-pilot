@@ -8,6 +8,8 @@ from typing import Any
 
 import wx  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
+
 _COL_INVALID = wx.Colour(255, 220, 220)  # light red background for invalid rows
 
 _JAQUEL_OPERATORS = [
@@ -63,6 +65,8 @@ class AiPreviewDialog(wx.Dialog):
             size=(920, 680),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(920, 680)))
         # Merge all conditions; invalid ones carry "_invalid": True
         self._all_conditions: list[dict[str, Any]] = [
             *[dict(c) for c in conditions],
@@ -95,9 +99,8 @@ class AiPreviewDialog(wx.Dialog):
 
         # Title
         title = wx.StaticText(self, label="Review AI-Generated Query")
-        title_font = title.GetFont()
+        title_font = styles.bold_font(title)
         title_font.SetPointSize(title_font.GetPointSize() + 2)
-        title_font.SetWeight(wx.FONTWEIGHT_BOLD)
         title.SetFont(title_font)
         vbox.Add(title, flag=wx.ALL, border=10)
 
@@ -109,9 +112,7 @@ class AiPreviewDialog(wx.Dialog):
 
         # Conditions header label
         cond_label = wx.StaticText(self, label="Extracted Conditions:")
-        cond_label_font = cond_label.GetFont()
-        cond_label_font.SetWeight(wx.FONTWEIGHT_BOLD)
-        cond_label.SetFont(cond_label_font)
+        cond_label.SetFont(styles.bold_font(cond_label))
         vbox.Add(cond_label, flag=wx.LEFT | wx.RIGHT | wx.TOP, border=10)
 
         # Scrollable conditions area
@@ -139,9 +140,7 @@ class AiPreviewDialog(wx.Dialog):
                 self._scroll,
                 label="\u26a0 Red rows could not be resolved \u2014 edit to fix or remove.",
             )
-            note_font = note.GetFont()
-            note_font.SetStyle(wx.FONTSTYLE_ITALIC)
-            note.SetFont(note_font)
+            note.SetFont(styles.italic_font(note))
             note.SetForegroundColour(wx.Colour(140, 0, 0))
             self._rows_sizer.Add(note, flag=wx.LEFT | wx.TOP | wx.BOTTOM, border=6)
 
@@ -152,9 +151,7 @@ class AiPreviewDialog(wx.Dialog):
 
         # JAQueL section
         jaquel_label = wx.StaticText(self, label="Generated JAQueL Query:")
-        jaquel_label_font = jaquel_label.GetFont()
-        jaquel_label_font.SetWeight(wx.FONTWEIGHT_BOLD)
-        jaquel_label.SetFont(jaquel_label_font)
+        jaquel_label.SetFont(styles.bold_font(jaquel_label))
         vbox.Add(jaquel_label, flag=wx.LEFT | wx.RIGHT | wx.TOP, border=10)
 
         self._jaquel_text = wx.TextCtrl(
@@ -162,7 +159,12 @@ class AiPreviewDialog(wx.Dialog):
             value=json.dumps(self._jaquel, indent=2),
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
         )
-        mono_font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        mono_font = wx.Font(
+            styles.scaled_point_size(9),
+            wx.FONTFAMILY_TELETYPE,
+            wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_NORMAL,
+        )
         self._jaquel_text.SetFont(mono_font)
         vbox.Add(
             self._jaquel_text,
@@ -191,12 +193,10 @@ class AiPreviewDialog(wx.Dialog):
         row = wx.Panel(parent)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         for label, width in zip(("Entity", "Attribute", "Operator", "Value"), _COL_W, strict=False):
-            txt = wx.StaticText(row, label=label, size=(width, -1))
-            f = txt.GetFont()
-            f.SetWeight(wx.FONTWEIGHT_BOLD)
-            txt.SetFont(f)
+            txt = wx.StaticText(row, label=label, size=self.FromDIP(wx.Size(width, -1)))
+            txt.SetFont(styles.bold_font(txt))
             sizer.Add(txt, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=4)
-        sizer.Add((90, 0))  # spacer for remove button column
+        sizer.Add((self.FromDIP(90), 0))  # spacer for remove button column
         row.SetSizer(sizer)
         return row
 
@@ -222,7 +222,7 @@ class AiPreviewDialog(wx.Dialog):
             row,
             value=cond.get("entity", ""),
             choices=entity_choices,
-            size=(_COL_W[0], -1),
+            size=self.FromDIP(wx.Size(_COL_W[0], -1)),
             style=wx.CB_DROPDOWN,
         )
         if invalid:
@@ -237,7 +237,7 @@ class AiPreviewDialog(wx.Dialog):
             row,
             value=cond.get("attr", ""),
             choices=attr_choices,
-            size=(_COL_W[1], -1),
+            size=self.FromDIP(wx.Size(_COL_W[1], -1)),
             style=wx.CB_DROPDOWN,
         )
         if invalid:
@@ -249,7 +249,7 @@ class AiPreviewDialog(wx.Dialog):
         op_choices = list(_JAQUEL_OPERATORS)
         if current_op not in op_choices:
             op_choices.insert(0, current_op)
-        op_choice = wx.Choice(row, choices=op_choices, size=(_COL_W[2], -1))
+        op_choice = wx.Choice(row, choices=op_choices, size=self.FromDIP(wx.Size(_COL_W[2], -1)))
         op_choice.SetSelection(op_choices.index(current_op))
         if invalid:
             op_choice.SetBackgroundColour(_COL_INVALID)
@@ -257,7 +257,7 @@ class AiPreviewDialog(wx.Dialog):
         # ── Value (TextCtrl) ─────────────────────────────────────────────
         val_raw = cond.get("val", "")
         val_str = json.dumps(val_raw) if isinstance(val_raw, (list, dict)) else str(val_raw)
-        val_tc = wx.TextCtrl(row, value=val_str, size=(_COL_W[3], -1))
+        val_tc = wx.TextCtrl(row, value=val_str, size=self.FromDIP(wx.Size(_COL_W[3], -1)))
         if invalid:
             val_tc.SetBackgroundColour(_COL_INVALID)
             val_tc.SetForegroundColour(wx.Colour(140, 0, 0))
@@ -266,7 +266,7 @@ class AiPreviewDialog(wx.Dialog):
             sizer.Add(widget, flag=wx.LEFT | wx.ALIGN_CENTER_VERTICAL, border=4)
 
         # ── Remove button ────────────────────────────────────────────────
-        btn_remove = wx.Button(row, label="\u2715 Remove", size=(85, -1))
+        btn_remove = wx.Button(row, label="\u2715 Remove", size=self.FromDIP(wx.Size(85, -1)))
         reason = cond.get("reason", "")
         btn_remove.SetToolTip(reason if reason else "Remove this condition")
         if invalid:
