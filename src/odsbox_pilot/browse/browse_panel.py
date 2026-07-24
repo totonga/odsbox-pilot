@@ -17,6 +17,7 @@ from typing import Any
 import wx  # type: ignore[import-untyped]
 from odsbox.proto import ods
 
+from odsbox_pilot import styles
 from odsbox_pilot.browse._helpers import (
     _build_filter_nodes,
     _entity_colour,
@@ -118,8 +119,7 @@ class BrowsePanel(wx.Panel):
         # Style objects for tree node colouring
         self._instance_colour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
         self._relation_colour = wx.Colour(80, 100, 140)
-        self._relation_font = self.GetFont()
-        self._relation_font.SetStyle(wx.FONTSTYLE_ITALIC)
+        self._relation_font = styles.italic_font(self)
 
         # Style objects for property list colouring
         self._rel_colour = wx.Colour(80, 100, 140)  # blue
@@ -136,15 +136,16 @@ class BrowsePanel(wx.Panel):
         self._build_tree(self._splitter)
         props_panel = self._build_props_panel(self._splitter)
         self._splitter.SetSashGravity(1.0)
-        self._splitter.SplitVertically(self._tree, props_panel, sashPosition=600)
+        self._splitter.SplitVertically(self._tree, props_panel, sashPosition=self.FromDIP(600))
         wx.CallAfter(self._set_initial_sash)
         # Vertical splitter: top = tree/props, bottom = preview notebook
         self._v_splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_3DSASH)
         self._splitter.Reparent(self._v_splitter)
         self._preview_nb = self._build_preview_notebook(self._v_splitter)
         self._v_splitter.SplitHorizontally(self._splitter, self._preview_nb)
-        self._v_splitter.SetMinimumPaneSize(80)
+        self._v_splitter.SetMinimumPaneSize(self.FromDIP(80))
         self._v_splitter.SetSashGravity(1.0)
+        self._v_splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self._on_v_splitter_sash_changed)
         vbox.Add(self._v_splitter, proportion=1, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=4)
         self.SetSizer(vbox)
         _saved_page = _load_prefs().get("preview_page", 0)
@@ -169,12 +170,33 @@ class BrowsePanel(wx.Panel):
 
     def _initial_canvas_draw(self) -> None:
         """Force the matplotlib canvas to render at its actual laid-out size."""
+        self._sync_values_canvas_size()
+
+    def _sync_values_canvas_size(self) -> None:
+        """Resize the matplotlib figure to match the Values canvas' current size.
+
+        Relied upon instead of matplotlib's own resize handling: embedding the
+        canvas inside a ``wx.Notebook`` page within a ``wx.SplitterWindow``
+        means it can be resized (or created) while its page is not the
+        active/visible one, in which case matplotlib's cached width/height
+        never gets updated and the figure is left stale. Call this after any
+        layout change that might affect the canvas' size (window/splitter
+        resize, notebook page switch) to keep it in sync.
+        """
         if getattr(self, "_values_canvas_type", None) == "matplotlib":
             w, h = self._values_display.GetClientSize()
             dpi = self._values_fig.get_dpi()
             if w > 0 and h > 0:
                 self._values_fig.set_size_inches(w / dpi, h / dpi, forward=False)
             self._values_display.draw_idle()
+
+    def _on_values_canvas_size(self, event: wx.SizeEvent) -> None:
+        event.Skip()
+        wx.CallAfter(self._sync_values_canvas_size)
+
+    def _on_v_splitter_sash_changed(self, event: wx.SplitterEvent) -> None:
+        event.Skip()
+        wx.CallAfter(self._sync_values_canvas_size)
 
     def _on_destroy(self, event: wx.WindowDestroyEvent) -> None:
         if event.GetEventObject() is self:
@@ -193,7 +215,9 @@ class BrowsePanel(wx.Panel):
         entity_objs.sort(key=lambda e: e.name.lower())
         choices = [f"{e.name} - {e.base_name}" for e in entity_objs]
 
-        self._root_combo = wx.ComboBox(self, choices=choices, style=wx.CB_READONLY, size=(220, -1))
+        self._root_combo = wx.ComboBox(
+            self, choices=choices, style=wx.CB_READONLY, size=self.FromDIP(wx.Size(220, -1))
+        )
 
         # Preselect AoTest-derived entity, fallback to Project, then first entity
         selected = None
@@ -215,7 +239,7 @@ class BrowsePanel(wx.Panel):
 
         self._root_combo.Bind(wx.EVT_COMBOBOX, self._on_root_changed)
         hbox.Add(self._root_combo, flag=wx.RIGHT, border=8)
-        self._query_btn = wx.Button(self, label="Query")
+        self._query_btn = wx.Button(self, label="Assign")
         self._query_btn.Bind(wx.EVT_BUTTON, self._on_query)
         hbox.Add(self._query_btn)
         return hbox
@@ -240,12 +264,12 @@ class BrowsePanel(wx.Panel):
         self._cond_list = wx.ListCtrl(
             self._cond_body,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
-            size=(-1, 90),
+            size=self.FromDIP(wx.Size(-1, 90)),
         )
-        self._cond_list.AppendColumn("Entity", width=140)
-        self._cond_list.AppendColumn("Attribute", width=120)
-        self._cond_list.AppendColumn("Operator", width=75)
-        self._cond_list.AppendColumn("Value", width=140)
+        self._cond_list.AppendColumn("Entity", width=self.FromDIP(140))
+        self._cond_list.AppendColumn("Attribute", width=self.FromDIP(120))
+        self._cond_list.AppendColumn("Operator", width=self.FromDIP(75))
+        self._cond_list.AppendColumn("Value", width=self.FromDIP(140))
         self._cond_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_edit_condition)
         body_hbox.Add(self._cond_list, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=4)
 
@@ -303,16 +327,14 @@ class BrowsePanel(wx.Panel):
         panel = wx.Panel(parent)
         vbox = wx.BoxSizer(wx.VERTICAL)
         self._props_header = wx.StaticText(panel, label="Properties")
-        font = self._props_header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self._props_header.SetFont(font)
+        self._props_header.SetFont(styles.bold_font(self._props_header))
         vbox.Add(self._props_header, flag=wx.ALL, border=4)
         self._props_list = wx.ListCtrl(
             panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._props_list.AppendColumn("Property", width=280)
-        self._props_list.AppendColumn("Value", width=250)
+        self._props_list.AppendColumn("Property", width=self.FromDIP(280))
+        self._props_list.AppendColumn("Value", width=self.FromDIP(250))
         vbox.Add(
             self._props_list,
             proportion=1,
@@ -325,7 +347,7 @@ class BrowsePanel(wx.Panel):
     def _build_preview_notebook(self, parent: wx.Window) -> wx.Notebook:
         """Create the tabbed preview pane: *Jaquel* query and *Values* plot."""
         nb = wx.Notebook(parent)
-        nb.SetMinSize((-1, 80))
+        nb.SetMinSize(self.FromDIP(wx.Size(-1, 80)))
 
         # ── Page 0: Jaquel query preview ─────────────────────────────────
         jaquel_panel = wx.Panel(nb)
@@ -375,13 +397,14 @@ class BrowsePanel(wx.Panel):
                 transform=ax.transAxes,
                 ha="center",
                 va="center",
-                fontsize=9,
+                fontsize=9 * styles.get_scale_factor(),
                 color="gray",
             )
             canvas = FigureCanvasWxAgg(parent, -1, fig)
             self._values_fig = fig
             self._values_ax = ax
             self._values_canvas_type = "matplotlib"
+            canvas.Bind(wx.EVT_SIZE, self._on_values_canvas_size)
             return canvas
         except Exception:  # noqa: BLE001
             self._values_canvas_type = "text"
@@ -396,6 +419,7 @@ class BrowsePanel(wx.Panel):
         prefs["preview_page"] = page
         _save_prefs(prefs)
         if page == 1:
+            wx.CallAfter(self._sync_values_canvas_size)
             wx.CallAfter(self._load_values_preview)
         event.Skip()
 
@@ -694,7 +718,7 @@ class BrowsePanel(wx.Panel):
             self._values_ax.clear()
             if arr.ndim > 0 and np.issubdtype(arr.dtype, np.number):
                 self._values_ax.plot(np.arange(len(arr)), arr, linewidth=0.8)
-                self._values_ax.tick_params(labelsize=7)
+                self._values_ax.tick_params(labelsize=7 * styles.get_scale_factor())
             else:
                 self._values_ax.axis("off")
                 sample = repr(list(arr[:30]))
@@ -707,7 +731,7 @@ class BrowsePanel(wx.Panel):
                     transform=self._values_ax.transAxes,
                     ha="center",
                     va="center",
-                    fontsize=8,
+                    fontsize=8 * styles.get_scale_factor(),
                 )
             self._values_fig.tight_layout(pad=0.3)
             self._values_display.draw()
@@ -729,7 +753,7 @@ class BrowsePanel(wx.Panel):
                     transform=self._values_ax.transAxes,
                     ha="center",
                     va="center",
-                    fontsize=9,
+                    fontsize=9 * styles.get_scale_factor(),
                     color="gray",
                 )
             self._values_display.draw()

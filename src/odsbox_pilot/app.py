@@ -6,15 +6,23 @@ import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.connection.server_list_dialog import ServerListDialog
-from odsbox_pilot.models import ServerConfig
+from odsbox_pilot.models import AppSettings, ServerConfig
+from odsbox_pilot.styles import ScaleLevel, set_scale_level
 
 
 class OdsPilotApp(wx.App):
-    def __init__(self, initial_server: str | None = None) -> None:
+    def __init__(self, initial_server: str | None = None, scaling: str | None = None) -> None:
         self._initial_server = initial_server
+        # None => use the persisted startup scaling; a value => CLI override.
+        self._scaling_override = ScaleLevel(scaling) if scaling is not None else None
         super().__init__()
 
     def OnInit(self) -> bool:  # noqa: N802
+        if self._scaling_override is not None:
+            scaling = self._scaling_override
+        else:
+            scaling = ScaleLevel(AppSettings.load().startup_scaling)
+        set_scale_level(scaling)
         self.SetExitOnFrameDelete(False)
         if self._initial_server is not None:
             return self._connect_to_named_server(self._initial_server)

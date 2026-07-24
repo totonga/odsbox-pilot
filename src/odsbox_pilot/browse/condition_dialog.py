@@ -7,6 +7,7 @@ from typing import Any
 import wx  # type: ignore[import-untyped]
 from odsbox.proto import ods
 
+from odsbox_pilot import styles
 from odsbox_pilot.browse.filter_tree import FilterTree
 
 _OPERATORS: list[str] = ["$like", "$eq", "$gt", "$lt", "$gte", "$lte"]
@@ -40,6 +41,7 @@ class ConditionDialog(wx.Dialog):
     ) -> None:
         title = "Edit Condition" if existing else "Add Condition"
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        styles.apply_scaled_app_font(self)
         self._mc = mc
         self._con_i = con_i
         self._result: dict[str, Any] | None = None
@@ -47,7 +49,7 @@ class ConditionDialog(wx.Dialog):
         if existing:
             self._prefill(existing)
         self.Fit()
-        self.SetMinSize(wx.Size(380, 200))
+        self.SetMinSize(self.FromDIP(wx.Size(380, 200)))
         self.Centre(wx.BOTH)
 
     # ------------------------------------------------------------------
@@ -61,18 +63,22 @@ class ConditionDialog(wx.Dialog):
         # Entity
         grid.Add(wx.StaticText(self, label="Entity:"), flag=wx.ALIGN_CENTER_VERTICAL)
         entities = sorted(self._mc.model().entities.keys())
-        self._entity_cb = wx.ComboBox(self, choices=entities, style=wx.CB_READONLY, size=(220, -1))
+        self._entity_cb = wx.ComboBox(
+            self, choices=entities, style=wx.CB_READONLY, size=self.FromDIP(wx.Size(220, -1))
+        )
         self._entity_cb.Bind(wx.EVT_COMBOBOX, self._on_entity_changed)
         grid.Add(self._entity_cb, flag=wx.EXPAND)
 
         # Attribute
         grid.Add(wx.StaticText(self, label="Attribute:"), flag=wx.ALIGN_CENTER_VERTICAL)
-        self._attr_cb = wx.ComboBox(self, choices=[], size=(220, -1))
+        self._attr_cb = wx.ComboBox(self, choices=[], size=self.FromDIP(wx.Size(220, -1)))
         grid.Add(self._attr_cb, flag=wx.EXPAND)
 
         # Operator
         grid.Add(wx.StaticText(self, label="Operator:"), flag=wx.ALIGN_CENTER_VERTICAL)
-        self._op_cb = wx.ComboBox(self, choices=_OPERATORS, style=wx.CB_READONLY, size=(100, -1))
+        self._op_cb = wx.ComboBox(
+            self, choices=_OPERATORS, style=wx.CB_READONLY, size=self.FromDIP(wx.Size(100, -1))
+        )
         self._op_cb.SetSelection(0)
         grid.Add(self._op_cb, flag=wx.ALIGN_LEFT)
 
@@ -81,7 +87,7 @@ class ConditionDialog(wx.Dialog):
         val_row = wx.BoxSizer(wx.HORIZONTAL)
         self._val_tc = wx.TextCtrl(self, value="*")
         val_row.Add(self._val_tc, proportion=1, flag=wx.EXPAND)
-        ellipsis_btn = wx.Button(self, label="\u2026", size=(28, -1))
+        ellipsis_btn = wx.Button(self, label="\u2026", size=self.FromDIP(wx.Size(28, -1)))
         ellipsis_btn.Bind(wx.EVT_BUTTON, self._on_discover)
         val_row.Add(ellipsis_btn, flag=wx.LEFT, border=4)
         grid.Add(val_row, flag=wx.EXPAND)
@@ -192,6 +198,8 @@ class DiscoverDialog(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
             size=(380, 400),
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(380, 400)))
         self._mc = mc
         self._con_i = con_i
         self._entity_name = entity_name
@@ -206,9 +214,7 @@ class DiscoverDialog(wx.Dialog):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         header = wx.StaticText(self, label=f"{self._entity_name}.{self._attr}")
-        font = header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        header.SetFont(font)
+        header.SetFont(styles.bold_font(header))
         vbox.Add(header, flag=wx.ALL, border=10)
 
         if is_numeric:

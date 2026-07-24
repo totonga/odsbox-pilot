@@ -8,6 +8,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from odsbox_pilot.styles import ScaleLevel
+
 
 class AuthType(StrEnum):
     BASIC = "basic"
@@ -80,6 +82,7 @@ SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
 AI_SETTINGS_FILE: Path = CONFIG_DIR / "ai_settings.json"
 
 _VALID_NAMING_MODES = frozenset({"query", "model"})
+_VALID_SCALING_LEVELS = frozenset(level.value for level in ScaleLevel)
 
 
 @dataclass
@@ -87,6 +90,7 @@ class AppSettings:
     """Application-level preferences persisted across sessions."""
 
     result_naming_mode: str = "query"  # "query" or "model"
+    startup_scaling: str = ScaleLevel.MEDIUM.value  # SMALL/MEDIUM/LARGE/XLARGE
 
     def save(self) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -100,6 +104,8 @@ class AppSettings:
             obj = cls(**{k: v for k, v in data.items() if k in known})
             if obj.result_naming_mode not in _VALID_NAMING_MODES:
                 obj.result_naming_mode = "query"
+            if obj.startup_scaling not in _VALID_SCALING_LEVELS:
+                obj.startup_scaling = ScaleLevel.MEDIUM.value
             return obj
         except Exception:
             return cls()

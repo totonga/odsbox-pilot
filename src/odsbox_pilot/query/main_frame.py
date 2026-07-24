@@ -12,6 +12,7 @@ from pathlib import Path
 import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
 from odsbox_pilot.browse._helpers import _load_prefs, _save_prefs
 from odsbox_pilot.models import AiSettings, AppSettings, ServerConfig
 from odsbox_pilot.query.editor_panel import AiContext, EditorPanel
@@ -46,6 +47,8 @@ class MainFrame(wx.Frame):
             size=(1100, 750),
             style=wx.DEFAULT_FRAME_STYLE,
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(1100, 750)))
         self._con_i = con_i
         self._server_config = server_config
         self._history = QueryHistory()
@@ -77,7 +80,7 @@ class MainFrame(wx.Frame):
         dc.SetBackground(wx.Brush(wx.Colour(0, 120, 180)))
         dc.Clear()
         font = wx.Font(
-            22,
+            styles.scaled_point_size(22),
             wx.FONTFAMILY_DEFAULT,
             wx.FONTSTYLE_NORMAL,
             wx.FONTWEIGHT_BOLD,
@@ -108,16 +111,17 @@ class MainFrame(wx.Frame):
         # Initialize AI context if enabled
         ai_context = self._init_ai_context()
 
+        self._grid = ResultGrid(inner_splitter)
         self._editor = EditorPanel(
             inner_splitter,
             self._history,
             self._on_execute,
             settings=self._settings,
             ai_context=ai_context,
+            grid=self._grid,
         )
-        self._grid = ResultGrid(inner_splitter)
-        inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=280)
-        inner_splitter.SetMinimumPaneSize(80)
+        inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=self.FromDIP(280))
+        inner_splitter.SetMinimumPaneSize(self.FromDIP(80))
         notebook.AddPage(inner_splitter, "Query")
 
         # Tab 1 — Browse: FilterTree browser panel
@@ -142,8 +146,8 @@ class MainFrame(wx.Frame):
         # Log panel
         log_panel = self._build_log_panel(outer_splitter)
 
-        outer_splitter.SplitHorizontally(notebook, log_panel, sashPosition=550)
-        outer_splitter.SetMinimumPaneSize(60)
+        outer_splitter.SplitHorizontally(notebook, log_panel, sashPosition=self.FromDIP(550))
+        outer_splitter.SetMinimumPaneSize(self.FromDIP(60))
         outer_splitter.SetSashGravity(1.0)
 
         # Status bar
@@ -159,19 +163,17 @@ class MainFrame(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         self._log_label = wx.StaticText(panel, label="Query Log")
-        font = self._log_label.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self._log_label.SetFont(font)
+        self._log_label.SetFont(styles.bold_font(self._log_label))
         vbox.Add(self._log_label, flag=wx.LEFT | wx.TOP, border=4)
 
         self._log_list = wx.ListCtrl(
             panel,
             style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.BORDER_NONE,
         )
-        self._log_list.AppendColumn("", width=40)
-        self._log_list.AppendColumn("Time", width=80)
-        self._log_list.AppendColumn("Rows", width=60)
-        self._log_list.AppendColumn("Query", width=600)
+        self._log_list.AppendColumn("", width=self.FromDIP(40))
+        self._log_list.AppendColumn("Time", width=self.FromDIP(80))
+        self._log_list.AppendColumn("Rows", width=self.FromDIP(60))
+        self._log_list.AppendColumn("Query", width=self.FromDIP(600))
 
         vbox.Add(self._log_list, proportion=1, flag=wx.EXPAND | wx.ALL, border=2)
         panel.SetSizer(vbox)
@@ -184,7 +186,7 @@ class MainFrame(wx.Frame):
         file_menu = wx.Menu()
         item_disconnect = file_menu.Append(wx.ID_ANY, "Disconnect\tCtrl+W")
         file_menu.AppendSeparator()
-        item_export_csv = file_menu.Append(wx.ID_ANY, "Export CSV…\tCtrl+S")
+        item_context_vars = file_menu.Append(wx.ID_ANY, "Context Variables…")
         item_script_starter = file_menu.Append(wx.ID_ANY, "Generate Script Starter…")
         file_menu.AppendSeparator()
         item_exit = file_menu.Append(wx.ID_EXIT, "Exit\tAlt+F4")
@@ -192,6 +194,9 @@ class MainFrame(wx.Frame):
 
         # Settings menu
         settings_menu = wx.Menu()
+        item_preferences = settings_menu.Append(
+            wx.ID_ANY, "Preferences…", "Configure application-wide settings"
+        )
         item_ai_settings = settings_menu.Append(
             wx.ID_ANY, "AI Query Assistant…", "Configure AI model and download settings"
         )
@@ -203,10 +208,11 @@ class MainFrame(wx.Frame):
         menubar.Append(help_menu, "&Help")
 
         self.Bind(wx.EVT_MENU, self._on_disconnect, item_disconnect)
-        self.Bind(wx.EVT_MENU, self._on_export_csv, item_export_csv)
+        self.Bind(wx.EVT_MENU, self._on_context_variables, item_context_vars)
         self.Bind(wx.EVT_MENU, self._on_generate_script_starter, item_script_starter)
         self.Bind(wx.EVT_MENU, lambda _e: self.Close(), item_exit)
         self.Bind(wx.EVT_MENU, self._on_ai_settings, item_ai_settings)
+        self.Bind(wx.EVT_MENU, self._on_preferences, item_preferences)
         self.Bind(wx.EVT_MENU, self._on_about, item_about)
         self.Bind(wx.EVT_CLOSE, self._on_close)
 
@@ -270,6 +276,22 @@ class MainFrame(wx.Frame):
             # Re-initialize and push the new context to the editor
             ai_context = self._init_ai_context()
             self._editor.set_ai_context(ai_context)
+        dlg.Destroy()
+
+    def _on_preferences(self, _event: wx.Event) -> None:
+        from odsbox_pilot.query.settings_dialog import AppSettingsDialog
+
+        dlg = AppSettingsDialog(self, self._settings)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._settings = dlg.get_settings()
+            self._settings.save()
+        dlg.Destroy()
+
+    def _on_context_variables(self, _event: wx.Event) -> None:
+        from odsbox_pilot.query.context_variables_dialog import ContextVariablesDialog
+
+        dlg = ContextVariablesDialog(self, self._con_i)
+        dlg.ShowModal()
         dlg.Destroy()
 
     # ------------------------------------------------------------------
@@ -351,38 +373,6 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Menu handlers
     # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Settings handlers
-    # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Menu handlers
-    # ------------------------------------------------------------------
-
-    def _on_export_csv(self, _event: wx.Event) -> None:
-        if self._grid._df is None:
-            wx.MessageBox(
-                "No results to export. Execute a query first.",
-                "Export CSV",
-                wx.OK | wx.ICON_INFORMATION,
-                self,
-            )
-            return
-        with wx.FileDialog(
-            self,
-            "Export CSV",
-            wildcard="CSV files (*.csv)|*.csv",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        ) as dlg:
-            if dlg.ShowModal() != wx.ID_OK:
-                return
-            path = dlg.GetPath()
-        try:
-            self._grid.export_csv(path)
-            self.GetStatusBar().SetStatusText(f"Exported: {path}", 0)
-        except Exception as exc:
-            self._show_error(str(exc))
 
     def _on_generate_script_starter(self, _event: wx.Event) -> None:
         from odsbox_pilot.query.script_starter_generator import generate_starter

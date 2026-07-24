@@ -15,6 +15,7 @@ from typing import Any
 import wx  # type: ignore[import-untyped]
 from odsbox.proto import ods
 
+from odsbox_pilot import styles
 from odsbox_pilot.browse._helpers import (
     _entity_colour,
     _entity_colour_light,
@@ -111,9 +112,8 @@ class ModelPanel(wx.Panel):
 
     def _build_ui(self) -> None:
         # Font variants used for tree items
-        base_font = self.GetFont()
-        self._bold_font = base_font.Bold()
-        self._italic_font = base_font.Italic()
+        self._bold_font = styles.bold_font(self)
+        self._italic_font = styles.italic_font(self)
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
 
@@ -134,10 +134,10 @@ class ModelPanel(wx.Panel):
             self._left_panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._results_list.AppendColumn("Kind", width=70)
-        self._results_list.AppendColumn("Entity", width=130)
-        self._results_list.AppendColumn("Name", width=160)
-        self._results_list.AppendColumn("Score", width=55)
+        self._results_list.AppendColumn("Kind", width=self.FromDIP(70))
+        self._results_list.AppendColumn("Entity", width=self.FromDIP(130))
+        self._results_list.AppendColumn("Name", width=self.FromDIP(160))
+        self._results_list.AppendColumn("Score", width=self.FromDIP(55))
         self._results_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_result_activated)
         self._results_list.Hide()
         left_sizer.Add(self._results_list, proportion=0, flag=wx.EXPAND)
@@ -146,8 +146,8 @@ class ModelPanel(wx.Panel):
         # Right — properties
         props_panel = self._build_props_panel(splitter)
 
-        splitter.SplitVertically(self._left_panel, props_panel, sashPosition=420)
-        splitter.SetMinimumPaneSize(120)
+        splitter.SplitVertically(self._left_panel, props_panel, sashPosition=self.FromDIP(420))
+        splitter.SetMinimumPaneSize(self.FromDIP(120))
         splitter.SetSashGravity(1.0)
 
         # Search control above the splitter
@@ -181,17 +181,15 @@ class ModelPanel(wx.Panel):
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         self._props_header = wx.StaticText(panel, label="Model")
-        font = self._props_header.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        self._props_header.SetFont(font)
+        self._props_header.SetFont(styles.bold_font(self._props_header))
         vbox.Add(self._props_header, flag=wx.ALL, border=4)
 
         self._props_list = wx.ListCtrl(
             panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._props_list.AppendColumn("Property", width=160)
-        self._props_list.AppendColumn("Value", width=260)
+        self._props_list.AppendColumn("Property", width=self.FromDIP(160))
+        self._props_list.AppendColumn("Value", width=self.FromDIP(260))
         vbox.Add(
             self._props_list,
             proportion=1,

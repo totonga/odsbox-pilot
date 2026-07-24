@@ -11,6 +11,20 @@ EXAMPLES: list[tuple[str, str, str]] = [
     # ── Basic Access ────────────────────────────────────────────────────────
     (
         "Basic Access",
+        "Some Measurements",
+        """{
+  "AoMeasurement": {},
+  "$attributes": {
+    "name": 1,
+    "id": 1
+  },
+  "$options": {
+    "$rowlimit": 25
+  }
+}""",
+    ),
+    (
+        "Basic Access",
         "All Units",
         """{
   "Unit": {}

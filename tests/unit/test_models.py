@@ -111,6 +111,7 @@ class TestAppSettings:
     def test_defaults(self) -> None:
         s = AppSettings()
         assert s.result_naming_mode == "query"
+        assert s.startup_scaling == "MEDIUM"
 
     def test_save_and_load(self, tmp_path: Path) -> None:
         import odsbox_pilot.models as models_module
@@ -118,10 +119,11 @@ class TestAppSettings:
         orig_settings_file = models_module.SETTINGS_FILE
         models_module.SETTINGS_FILE = tmp_path / "settings.json"
         try:
-            s = AppSettings(result_naming_mode="model")
+            s = AppSettings(result_naming_mode="model", startup_scaling="LARGE")
             s.save()
             loaded = AppSettings.load()
             assert loaded.result_naming_mode == "model"
+            assert loaded.startup_scaling == "LARGE"
         finally:
             models_module.SETTINGS_FILE = orig_settings_file
 
@@ -159,5 +161,18 @@ class TestAppSettings:
         try:
             s = AppSettings.load()
             assert s.result_naming_mode == "model"
+        finally:
+            models_module.SETTINGS_FILE = orig_settings_file
+
+    def test_load_invalid_scaling_fallback(self, tmp_path: Path) -> None:
+        import odsbox_pilot.models as models_module
+
+        orig_settings_file = models_module.SETTINGS_FILE
+        f = tmp_path / "settings.json"
+        f.write_text(json.dumps({"startup_scaling": "HUGE"}))
+        models_module.SETTINGS_FILE = f
+        try:
+            s = AppSettings.load()
+            assert s.startup_scaling == "MEDIUM"
         finally:
             models_module.SETTINGS_FILE = orig_settings_file

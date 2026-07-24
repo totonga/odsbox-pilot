@@ -8,6 +8,7 @@ from copy import copy
 
 import wx  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
 from odsbox_pilot.models import AiSettings
 
 log = logging.getLogger(__name__)
@@ -29,6 +30,8 @@ class AiSettingsDialog(wx.Dialog):
             size=(540, 440),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(540, 440)))
         # Work on a copy so Cancel discards changes
         self._settings = copy(settings)
         self._downloading = False

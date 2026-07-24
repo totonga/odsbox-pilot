@@ -9,6 +9,7 @@ from pathlib import Path
 
 import wx  # type: ignore[import-untyped]
 
+from odsbox_pilot import styles
 from odsbox_pilot.connection.manager import ServerConfigManager
 from odsbox_pilot.models import AuthType, ServerConfig
 
@@ -23,6 +24,8 @@ class ServerListDialog(wx.Dialog):
             size=(600, 380),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        styles.apply_scaled_app_font(self)
+        self.SetSize(self.FromDIP(wx.Size(600, 380)))
         self._manager = manager
         self._selected_config: ServerConfig | None = None
         self._connected_con_i = None
@@ -56,9 +59,9 @@ class ServerListDialog(wx.Dialog):
             panel,
             style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN,
         )
-        self._list.AppendColumn("Name", width=180)
-        self._list.AppendColumn("URL", width=260)
-        self._list.AppendColumn("Auth", width=80)
+        self._list.AppendColumn("Name", width=self.FromDIP(180))
+        self._list.AppendColumn("URL", width=self.FromDIP(260))
+        self._list.AppendColumn("Auth", width=self.FromDIP(80))
         self._list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_connect)
         self._list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_selection_changed)
         self._list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self._on_selection_changed)

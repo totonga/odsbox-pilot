@@ -4,8 +4,31 @@ import argparse
 import signal
 import sys
 
+from odsbox_pilot.styles import ScaleLevel
+
+
+def _enable_windows_dpi_awareness() -> None:
+    """Enable Per-Monitor-V2 DPI awareness on Windows before wx is imported.
+
+    Must run before any wx import so the process is DPI-aware from the start.
+    Silently ignores failures on older Windows or non-Windows platforms.
+    """
+    if sys.platform != "win32":
+        return
+    import contextlib  # noqa: PLC0415
+    import ctypes  # noqa: PLC0415
+
+    try:
+        # PROCESS_PER_MONITOR_DPI_AWARE = 2
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        with contextlib.suppress(Exception):
+            ctypes.windll.user32.SetProcessDPIAware()  # type: ignore[attr-defined]
+
 
 def main() -> None:
+    _enable_windows_dpi_awareness()
+
     parser = argparse.ArgumentParser(
         prog="odsbox-pilot",
         description="ASAM ODS desktop query tool",
@@ -20,6 +43,15 @@ def main() -> None:
         "--list-servers",
         action="store_true",
         help="Print all saved servers and exit.",
+    )
+    parser.add_argument(
+        "--scaling",
+        choices=[level.value for level in ScaleLevel],
+        default=None,
+        help=(
+            "Global UI font scaling level. Overrides the persistent startup "
+            "scaling saved in Settings for this launch only."
+        ),
     )
     args = parser.parse_args()
 
@@ -45,7 +77,7 @@ def main() -> None:
         )
         raise SystemExit(1) from exc
 
-    app = OdsPilotApp(initial_server=args.server)
+    app = OdsPilotApp(initial_server=args.server, scaling=args.scaling)
 
     import wx  # type: ignore[import-untyped]  # already loaded by OdsPilotApp  # noqa: PLC0415
 

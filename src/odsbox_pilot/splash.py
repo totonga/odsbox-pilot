@@ -22,6 +22,8 @@ def create_splash_bitmap(width: int = 600, height: int = 250) -> Any:
     """
     import wx
 
+    from odsbox_pilot import styles
+
     bmp = wx.Bitmap(width, height)
     dc = wx.MemoryDC(bmp)
 
@@ -78,7 +80,7 @@ def create_splash_bitmap(width: int = 600, height: int = 250) -> Any:
 
     # Main title font
     title_font = wx.Font(
-        32,
+        styles.scaled_point_size(32),
         wx.FONTFAMILY_DEFAULT,
         wx.FONTSTYLE_NORMAL,
         wx.FONTWEIGHT_BOLD,
@@ -89,7 +91,7 @@ def create_splash_bitmap(width: int = 600, height: int = 250) -> Any:
 
     # Subtitle
     subtitle_font = wx.Font(
-        11,
+        styles.scaled_point_size(11),
         wx.FONTFAMILY_DEFAULT,
         wx.FONTSTYLE_NORMAL,
         wx.FONTWEIGHT_NORMAL,
