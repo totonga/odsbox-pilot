@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.16.0 (2026-07-25)
+
+### Bug Fixes
+
+- Buttons moved to context menu ([#21](https://github.com/totonga/odsbox-pilot/pull/21),
+  [`4c647db`](https://github.com/totonga/odsbox-pilot/commit/4c647dbb6c463b5deccd7eccebb5f20fcf90009c))
+
+### Features
+
+- Add ability to import and export connection information for transport
+  ([#21](https://github.com/totonga/odsbox-pilot/pull/21),
+  [`4c647db`](https://github.com/totonga/odsbox-pilot/commit/4c647dbb6c463b5deccd7eccebb5f20fcf90009c))
+
+- Add import/export functionality for connection information
+  ([#21](https://github.com/totonga/odsbox-pilot/pull/21),
+  [`4c647db`](https://github.com/totonga/odsbox-pilot/commit/4c647dbb6c463b5deccd7eccebb5f20fcf90009c))
+
+
 ## v1.15.0 (2026-07-24)
 
 ### Bug Fixes
