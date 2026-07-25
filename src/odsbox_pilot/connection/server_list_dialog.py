@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import re
 import uuid
 from dataclasses import replace
 from pathlib import Path
@@ -10,8 +11,14 @@ from pathlib import Path
 import wx  # type: ignore[import-untyped]
 
 from odsbox_pilot import styles
-from odsbox_pilot.connection.manager import ServerConfigManager
+from odsbox_pilot.connection.manager import (
+    PORTABLE_CONFIG_SUFFIX,
+    PORTABLE_CONFIG_WILDCARD,
+    ServerConfigManager,
+)
 from odsbox_pilot.models import AuthType, ServerConfig
+
+_INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*]+')
 
 
 class ServerListDialog(wx.Dialog):
@@ -65,30 +72,22 @@ class ServerListDialog(wx.Dialog):
         self._list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_connect)
         self._list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_selection_changed)
         self._list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self._on_selection_changed)
+        self._list.Bind(wx.EVT_CONTEXT_MENU, self._on_list_context_menu)
         vbox.Add(self._list, proportion=1, flag=wx.EXPAND | wx.ALL, border=8)
 
         # --- Buttons ---
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self._btn_new = wx.Button(panel, label="New…")
-        self._btn_edit = wx.Button(panel, label="Edit…")
-        self._btn_copy = wx.Button(panel, label="Copy")
-        self._btn_delete = wx.Button(panel, label="Delete")
         self._btn_connect = wx.Button(panel, wx.ID_OK, label="Connect")
         btn_close = wx.Button(panel, wx.ID_CANCEL, label="Close")
         self._btn_open_atfx_file = wx.Button(panel, label="📄", size=wx.Size(24, -1))
         self._btn_open_atfx_file.SetToolTip("Open ATFX file")
 
-        self._btn_edit.Disable()
-        self._btn_copy.Disable()
-        self._btn_delete.Disable()
         self._btn_connect.Disable()
         self._btn_connect.SetDefault()
 
         btn_sizer.Add(self._btn_new, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_edit, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_copy, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_delete)
         btn_sizer.AddStretchSpacer()
         btn_sizer.Add(btn_close, flag=wx.RIGHT, border=4)
 
@@ -103,10 +102,7 @@ class ServerListDialog(wx.Dialog):
 
         # Bind events
         self._btn_new.Bind(wx.EVT_BUTTON, self._on_new)
-        self._btn_edit.Bind(wx.EVT_BUTTON, self._on_edit)
         self._btn_open_atfx_file.Bind(wx.EVT_BUTTON, self._on_open_atfx_file)
-        self._btn_copy.Bind(wx.EVT_BUTTON, self._on_copy)
-        self._btn_delete.Bind(wx.EVT_BUTTON, self._on_delete)
         self._btn_connect.Bind(wx.EVT_BUTTON, self._on_connect)
 
         # Keyboard shortcut: Delete key on list
@@ -135,10 +131,48 @@ class ServerListDialog(wx.Dialog):
 
     def _update_buttons(self) -> None:
         has_selection = self._list.GetFirstSelected() != -1
-        self._btn_edit.Enable(has_selection)
-        self._btn_copy.Enable(has_selection)
-        self._btn_delete.Enable(has_selection)
         self._btn_connect.Enable(has_selection)
+
+    @staticmethod
+    def _default_export_filename(server_name: str) -> str:
+        base_name = _INVALID_FILENAME_CHARS.sub("_", server_name).strip().rstrip(".")
+        return f"{base_name or 'server'}{PORTABLE_CONFIG_SUFFIX}"
+
+    @staticmethod
+    def _ensure_export_suffix(path: Path) -> Path:
+        if str(path).endswith(PORTABLE_CONFIG_SUFFIX):
+            return path
+        return path.with_name(f"{path.name}{PORTABLE_CONFIG_SUFFIX}")
+
+    def _selected_config_or_none(self) -> ServerConfig | None:
+        config_id = self._selected_id()
+        if config_id is None:
+            return None
+        return self._manager.get(config_id)
+
+    def _show_connect_dialog(
+        self,
+        config: ServerConfig | None,
+        *,
+        allow_secret_prefill: bool = True,
+    ) -> None:
+        from odsbox_pilot.connection.connect_dialog import ConnectDialog
+
+        dlg = ConnectDialog(
+            self,
+            self._manager,
+            config=config,
+            allow_secret_prefill=allow_secret_prefill,
+        )
+        if dlg.ShowModal() == wx.ID_OK:
+            if dlg.con_i is not None:
+                self._selected_config = dlg.result_config
+                self._connected_con_i = dlg.con_i
+                dlg.Destroy()
+                self.EndModal(wx.ID_OK)
+                return
+            self._refresh_list()
+        dlg.Destroy()
 
     # ------------------------------------------------------------------
     # Event handlers
@@ -153,19 +187,31 @@ class ServerListDialog(wx.Dialog):
         else:
             event.Skip()
 
-    def _on_new(self, _event: wx.Event) -> None:
-        from odsbox_pilot.connection.connect_dialog import ConnectDialog
+    def _on_list_context_menu(self, _event: wx.ContextMenuEvent) -> None:
+        menu = wx.Menu()
+        item_import = menu.Append(wx.ID_ANY, "Import...")
+        menu.AppendSeparator()
+        item_edit = menu.Append(wx.ID_ANY, "Edit...")
+        item_copy = menu.Append(wx.ID_ANY, "Copy")
+        item_export = menu.Append(wx.ID_ANY, "Export...")
+        item_delete = menu.Append(wx.ID_ANY, "Delete")
 
-        dlg = ConnectDialog(self, self._manager, config=None)
-        if dlg.ShowModal() == wx.ID_OK:
-            if dlg.con_i is not None:
-                self._selected_config = dlg.result_config
-                self._connected_con_i = dlg.con_i
-                dlg.Destroy()
-                self.EndModal(wx.ID_OK)
-                return
-            self._refresh_list()
-        dlg.Destroy()
+        has_selection = self._selected_config_or_none() is not None
+        item_edit.Enable(has_selection)
+        item_copy.Enable(has_selection)
+        item_export.Enable(has_selection)
+        item_delete.Enable(has_selection)
+
+        self.Bind(wx.EVT_MENU, self._on_import, item_import)
+        self.Bind(wx.EVT_MENU, self._on_edit, item_edit)
+        self.Bind(wx.EVT_MENU, self._on_copy, item_copy)
+        self.Bind(wx.EVT_MENU, self._on_export, item_export)
+        self.Bind(wx.EVT_MENU, self._on_delete, item_delete)
+        self._list.PopupMenu(menu)
+        menu.Destroy()
+
+    def _on_new(self, _event: wx.Event) -> None:
+        self._show_connect_dialog(config=None)
 
     def _on_open_atfx_file(self, _event: wx.Event) -> None:
         with wx.FileDialog(
@@ -206,52 +252,77 @@ class ServerListDialog(wx.Dialog):
         self.EndModal(wx.ID_OK)
 
     def _on_edit(self, _event: wx.Event) -> None:
-        config_id = self._selected_id()
-        if config_id is None:
+        config = self._selected_config_or_none()
+        if config is None:
             return
-        from odsbox_pilot.connection.connect_dialog import ConnectDialog
-
-        config = self._manager.get(config_id)
-        dlg = ConnectDialog(self, self._manager, config=config)
-        if dlg.ShowModal() == wx.ID_OK:
-            if dlg.con_i is not None:
-                self._selected_config = dlg.result_config
-                self._connected_con_i = dlg.con_i
-                dlg.Destroy()
-                self.EndModal(wx.ID_OK)
-                return
-            self._refresh_list()
-        dlg.Destroy()
+        self._show_connect_dialog(config=config)
 
     def _on_copy(self, _event: wx.Event) -> None:
-        config_id = self._selected_id()
-        if config_id is None:
+        original_config = self._selected_config_or_none()
+        if original_config is None:
             return
-        from odsbox_pilot.connection.connect_dialog import ConnectDialog
-
-        original_config = self._manager.get(config_id)
         # Create a copy with new ID and modified name
         copied_config = replace(
             original_config,
             id=str(uuid.uuid4()),
             name=f"{original_config.name} - copy",
         )
-        dlg = ConnectDialog(self, self._manager, config=copied_config)
-        if dlg.ShowModal() == wx.ID_OK:
-            if dlg.con_i is not None:
-                self._selected_config = dlg.result_config
-                self._connected_con_i = dlg.con_i
-                dlg.Destroy()
-                self.EndModal(wx.ID_OK)
+        self._show_connect_dialog(config=copied_config)
+
+    def _on_import(self, _event: wx.Event) -> None:
+        with wx.FileDialog(
+            self,
+            "Import server configuration",
+            wildcard=PORTABLE_CONFIG_WILDCARD,
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
                 return
-            self._refresh_list()
-        dlg.Destroy()
+            import_path = Path(dlg.GetPath())
+
+        try:
+            imported_config = self._manager.read_portable_config(import_path)
+        except Exception as exc:
+            wx.MessageBox(
+                f"Could not import server configuration:\n\n{exc}",
+                "Import Error",
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            return
+
+        self._show_connect_dialog(config=imported_config, allow_secret_prefill=False)
+
+    def _on_export(self, _event: wx.Event) -> None:
+        config = self._selected_config_or_none()
+        if config is None:
+            return
+
+        with wx.FileDialog(
+            self,
+            "Export server configuration",
+            defaultFile=self._default_export_filename(config.name),
+            wildcard=PORTABLE_CONFIG_WILDCARD,
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            export_path = self._ensure_export_suffix(Path(dlg.GetPath()))
+
+        try:
+            self._manager.export_to_file(config, export_path)
+        except Exception as exc:
+            wx.MessageBox(
+                f"Could not export server configuration:\n\n{exc}",
+                "Export Error",
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
 
     def _on_delete(self, _event: wx.Event) -> None:
-        config_id = self._selected_id()
-        if config_id is None:
+        config = self._selected_config_or_none()
+        if config is None:
             return
-        config = self._manager.get(config_id)
         answer = wx.MessageBox(
             f"Delete server '{config.name}'?",
             "Confirm Delete",
@@ -259,7 +330,7 @@ class ServerListDialog(wx.Dialog):
             self,
         )
         if answer == wx.YES:
-            self._manager.remove(config_id)
+            self._manager.remove(config.id)
             self._refresh_list()
 
     def _on_connect(self, _event: wx.Event) -> None:

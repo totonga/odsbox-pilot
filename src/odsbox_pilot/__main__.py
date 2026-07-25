@@ -1,8 +1,10 @@
 """Entry point: python -m odsbox_pilot"""
 
 import argparse
+import getpass
 import signal
 import sys
+from pathlib import Path
 
 from odsbox_pilot.styles import ScaleLevel
 
@@ -26,23 +28,63 @@ def _enable_windows_dpi_awareness() -> None:
             ctypes.windll.user32.SetProcessDPIAware()  # type: ignore[attr-defined]
 
 
-def main() -> None:
+def _prompt_secret_for_import(config) -> str:
+    secret_label = getattr(config, "secret_label", None)
+    if not getattr(config, "requires_secret", False) or secret_label is None:
+        return ""
+    if not sys.stdin.isatty():
+        print(
+            f"Imported server '{config.name}' requires a {secret_label}, "
+            "but no interactive terminal is available. Skipping secret prompt.",
+            file=sys.stderr,
+        )
+        return ""
+    return getpass.getpass(f"Enter {secret_label} for '{config.name}' (leave blank to skip): ")
+
+
+def _import_server(import_path: str) -> int:
+    from odsbox_pilot.connection.manager import ServerConfigManager
+
+    manager = ServerConfigManager()
+    config = manager.read_portable_config(Path(import_path))
+    secret = _prompt_secret_for_import(config)
+    manager.add(config)
+    if secret:
+        manager.save_secret(config, secret)
+
+    print(f"Imported server '{config.name}' (id: {config.id}).")
+    if config.requires_secret and not secret:
+        print(
+            f"No {config.secret_label} was stored for '{config.name}'. "
+            "You can add it later by editing the server.",
+        )
+    return 0
+
+
+def main(argv: list[str] | None = None) -> None:
     _enable_windows_dpi_awareness()
 
     parser = argparse.ArgumentParser(
         prog="odsbox-pilot",
         description="ASAM ODS desktop query tool",
     )
-    parser.add_argument(
+    action_group = parser.add_mutually_exclusive_group()
+    action_group.add_argument(
         "--server",
         metavar="NAME_OR_ID",
         default=None,
         help="Name or ID of a saved server to connect to directly, skipping the server list.",
     )
-    parser.add_argument(
+    action_group.add_argument(
         "--list-servers",
         action="store_true",
         help="Print all saved servers and exit.",
+    )
+    action_group.add_argument(
+        "--import-server",
+        metavar="PATH",
+        default=None,
+        help="Import a portable server file (*.odsbox-pilot.con.json) and exit.",
     )
     parser.add_argument(
         "--scaling",
@@ -53,7 +95,14 @@ def main() -> None:
             "scaling saved in Settings for this launch only."
         ),
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.import_server:
+        try:
+            sys.exit(_import_server(args.import_server))
+        except Exception as exc:
+            print(f"Could not import server: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
 
     if args.list_servers:
         from odsbox_pilot.connection.manager import ServerConfigManager

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import json
+import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -16,6 +19,11 @@ class AuthType(StrEnum):
     M2M = "m2m"
     OIDC = "oidc"
     ATFX = "atfx"
+
+
+_DEFAULT_REDIRECT_URI = "http://127.0.0.1:12345"
+_DEFAULT_REDIRECT_URL_ALLOW_INSECURE = True
+_DEFAULT_VERIFY_CERTIFICATE = True
 
 
 @dataclass
@@ -39,12 +47,12 @@ class ServerConfig:
     scope: list[str] = field(default_factory=list)
 
     # --- OIDC fields ---
-    redirect_uri: str = "http://127.0.0.1:12345"
+    redirect_uri: str = _DEFAULT_REDIRECT_URI
     webfinger_path_prefix: str = ""
-    redirect_url_allow_insecure: bool = True
+    redirect_url_allow_insecure: bool = _DEFAULT_REDIRECT_URL_ALLOW_INSECURE
 
     # --- Shared TLS option ---
-    verify_certificate: bool = True
+    verify_certificate: bool = _DEFAULT_VERIFY_CERTIFICATE
 
     # --- Context variables passed to ConI on connect ---
     context_variables: dict[str, str] = field(default_factory=dict)
@@ -55,6 +63,18 @@ class ServerConfig:
     def keyring_account(self) -> str:
         credential = self.username or self.client_id
         return f"{self.url}::{credential}"
+
+    @property
+    def requires_secret(self) -> bool:
+        return self.auth_type in {AuthType.BASIC, AuthType.M2M}
+
+    @property
+    def secret_label(self) -> str | None:
+        if self.auth_type == AuthType.BASIC:
+            return "password"
+        if self.auth_type == AuthType.M2M:
+            return "client secret"
+        return None
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -73,6 +93,158 @@ class ServerConfig:
     @classmethod
     def from_json(cls, s: str) -> ServerConfig:
         return cls.from_dict(json.loads(s))
+
+    def to_portable_dict(self) -> dict[str, Any]:
+        """Serialize to a minimal portable config payload without secrets."""
+        name = self.name.strip()
+        url = self.url.strip()
+        if not name:
+            raise ValueError("Portable export requires a non-empty server name.")
+        if not url:
+            raise ValueError("Portable export requires a non-empty server URL or file path.")
+
+        data: dict[str, Any] = {
+            "name": name,
+            "url": url,
+            "auth_type": self.auth_type.value,
+        }
+
+        if self.auth_type == AuthType.BASIC:
+            username = self.username.strip()
+            if not username:
+                raise ValueError("Portable export for Basic auth requires a username.")
+            data["username"] = username
+        elif self.auth_type == AuthType.M2M:
+            token_endpoint = self.token_endpoint.strip()
+            client_id = self.client_id.strip()
+            if not token_endpoint or not client_id:
+                raise ValueError(
+                    "Portable export for M2M auth requires token endpoint and client ID."
+                )
+            data["token_endpoint"] = token_endpoint
+            data["client_id"] = client_id
+            if self.scope:
+                data["scope"] = copy.deepcopy(self.scope)
+        elif self.auth_type == AuthType.OIDC:
+            client_id = self.client_id.strip()
+            if not client_id:
+                raise ValueError("Portable export for OIDC auth requires a client ID.")
+            data["client_id"] = client_id
+            if self.redirect_uri != _DEFAULT_REDIRECT_URI:
+                data["redirect_uri"] = self.redirect_uri
+            if self.webfinger_path_prefix:
+                data["webfinger_path_prefix"] = self.webfinger_path_prefix
+            if self.redirect_url_allow_insecure != _DEFAULT_REDIRECT_URL_ALLOW_INSECURE:
+                data["redirect_url_allow_insecure"] = self.redirect_url_allow_insecure
+
+        if (
+            self.auth_type != AuthType.ATFX
+            and self.verify_certificate != _DEFAULT_VERIFY_CERTIFICATE
+        ):
+            data["verify_certificate"] = self.verify_certificate
+        if self.context_variables:
+            data["context_variables"] = copy.deepcopy(self.context_variables)
+
+        return data
+
+    @classmethod
+    def from_portable_dict(
+        cls, data: Mapping[str, Any], *, config_id: str | None = None
+    ) -> ServerConfig:
+        """Create a new config from a minimal portable config payload."""
+        name = cls._required_portable_str(data, "name")
+        url = cls._required_portable_str(data, "url")
+        auth_type_str = cls._required_portable_str(data, "auth_type")
+        try:
+            auth_type = AuthType(auth_type_str)
+        except ValueError as exc:
+            raise ValueError(f"Unsupported auth_type {auth_type_str!r}.") from exc
+
+        base_kwargs: dict[str, Any] = {
+            "id": config_id or str(uuid.uuid4()),
+            "name": name,
+            "url": url,
+            "auth_type": auth_type,
+            "verify_certificate": cls._optional_portable_bool(
+                data, "verify_certificate", default=_DEFAULT_VERIFY_CERTIFICATE
+            ),
+            "context_variables": cls._optional_portable_context_variables(data),
+        }
+
+        if auth_type == AuthType.BASIC:
+            base_kwargs["username"] = cls._required_portable_str(data, "username")
+        elif auth_type == AuthType.M2M:
+            base_kwargs["token_endpoint"] = cls._required_portable_str(data, "token_endpoint")
+            base_kwargs["client_id"] = cls._required_portable_str(data, "client_id")
+            base_kwargs["scope"] = cls._optional_portable_scope(data)
+        elif auth_type == AuthType.OIDC:
+            base_kwargs["client_id"] = cls._required_portable_str(data, "client_id")
+            base_kwargs["redirect_uri"] = cls._optional_portable_str(
+                data, "redirect_uri", default=_DEFAULT_REDIRECT_URI
+            )
+            base_kwargs["webfinger_path_prefix"] = cls._optional_portable_str(
+                data, "webfinger_path_prefix", default=""
+            )
+            base_kwargs["redirect_url_allow_insecure"] = cls._optional_portable_bool(
+                data,
+                "redirect_url_allow_insecure",
+                default=_DEFAULT_REDIRECT_URL_ALLOW_INSECURE,
+            )
+        elif auth_type == AuthType.ATFX:
+            base_kwargs["verify_certificate"] = False
+
+        return cls(**base_kwargs)
+
+    @staticmethod
+    def _required_portable_str(data: Mapping[str, Any], key: str) -> str:
+        value = data.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Portable config field {key!r} must be a non-empty string.")
+        return value.strip()
+
+    @staticmethod
+    def _optional_portable_str(data: Mapping[str, Any], key: str, *, default: str) -> str:
+        value = data.get(key)
+        if value is None:
+            return default
+        if not isinstance(value, str):
+            raise ValueError(f"Portable config field {key!r} must be a string.")
+        return value.strip()
+
+    @staticmethod
+    def _optional_portable_bool(data: Mapping[str, Any], key: str, *, default: bool) -> bool:
+        value = data.get(key)
+        if value is None:
+            return default
+        if not isinstance(value, bool):
+            raise ValueError(f"Portable config field {key!r} must be a boolean.")
+        return value
+
+    @staticmethod
+    def _optional_portable_scope(data: Mapping[str, Any]) -> list[str]:
+        value = data.get("scope")
+        if value is None:
+            return []
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            raise ValueError("Portable config field 'scope' must be a list of strings.")
+        return [item for item in value if item]
+
+    @staticmethod
+    def _optional_portable_context_variables(data: Mapping[str, Any]) -> dict[str, str]:
+        value = data.get("context_variables")
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise ValueError("Portable config field 'context_variables' must be an object.")
+
+        result: dict[str, str] = {}
+        for key, item in value.items():
+            if not isinstance(key, str) or not key.strip() or not isinstance(item, str):
+                raise ValueError(
+                    "Portable config context_variables entries must map non-empty strings to strings."
+                )
+            result[key.strip()] = item
+        return result
 
 
 CONFIG_DIR: Path = Path.home() / ".ods-pilot"

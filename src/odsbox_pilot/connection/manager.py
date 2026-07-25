@@ -17,6 +17,11 @@ import keyring
 from odsbox_pilot.models import SERVERS_FILE, ServerConfig
 
 _KEYRING_SERVICE = "ods-pilot"
+PORTABLE_CONFIG_SUFFIX = ".odsbox-pilot.con.json"
+PORTABLE_CONFIG_WILDCARD = (
+    "ODS Pilot Connection (*.odsbox-pilot.con.json)|*.odsbox-pilot.con.json|"
+    "JSON files (*.json)|*.json|All files (*.*)|*.*"
+)
 
 
 class ServerConfigManager:
@@ -39,6 +44,16 @@ class ServerConfigManager:
         """Add a new server config. Raises ValueError if id already exists."""
         if any(c.id == config.id for c in self._configs):
             raise ValueError(f"Config with id {config.id!r} already exists.")
+
+        if any(c.name == config.name for c in self._configs):
+            base_name = config.name.strip()
+            suffix = 2
+            candidate_name = f"{base_name} ({suffix})"
+            while any(c.name == candidate_name for c in self._configs):
+                suffix += 1
+                candidate_name = f"{base_name} ({suffix})"
+            config.name = candidate_name
+
         self._configs.append(config)
         self._save()
 
@@ -78,6 +93,25 @@ class ServerConfigManager:
     def load_secret(self, config: ServerConfig) -> str | None:
         """Retrieve the password or client secret from the OS keyring."""
         return keyring.get_password(_KEYRING_SERVICE, config.keyring_account)
+
+    def export_to_file(self, config: ServerConfig, path: Path) -> None:
+        """Write a minimal, secret-free config export file."""
+        path.write_text(json.dumps(config.to_portable_dict(), indent=2), encoding="utf-8")
+
+    def read_portable_config(self, path: Path) -> ServerConfig:
+        """Read a portable config file into a new unsaved config draft."""
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("Portable config file must contain a JSON object.")
+        return ServerConfig.from_portable_dict(data, config_id=self.new_id())
+
+    def import_from_file(self, path: Path, secret: str = "") -> ServerConfig:
+        """Import a portable config file into the saved server list."""
+        config = self.read_portable_config(path)
+        self.add(config)
+        if secret:
+            self.save_secret(config, secret)
+        return config
 
     # ------------------------------------------------------------------
     # Factory helpers

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -47,6 +48,17 @@ class TestManagerCRUD:
         manager.add(_cfg("x"))
         with pytest.raises(ValueError, match="already exists"):
             manager.add(_cfg("x"))
+
+    def test_add_duplicate_name_makes_unique(self, manager: ServerConfigManager) -> None:
+        first = _cfg("x")
+        first.name = "Shared Name"
+        manager.add(first)
+
+        second = _cfg("y")
+        second.name = "Shared Name"
+        manager.add(second)
+
+        assert manager.get(second.id).name == "Shared Name (2)"
 
     def test_update(self, manager: ServerConfigManager) -> None:
         manager.add(_cfg("b"))
@@ -118,6 +130,50 @@ class TestManagerPersistence:
         m = ServerConfigManager(path=path)
         assert m.configs == []
 
+    def test_export_to_file_omits_secret_and_defaults(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        cfg = _cfg("export")
+        manager.add(cfg)
+        manager.save_secret(cfg, "s3cr3t")
+
+        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        manager.export_to_file(cfg, export_path)
+
+        data = json.loads(export_path.read_text(encoding="utf-8"))
+        assert data == {
+            "name": "Server export",
+            "url": "https://serverexport.example.com/api",
+            "auth_type": "basic",
+            "username": "userexport",
+        }
+
+    def test_read_portable_config_creates_new_unsaved_draft(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "name": "Imported Server",
+                    "url": "https://import.example.com/api",
+                    "auth_type": "m2m",
+                    "token_endpoint": "https://auth.example.com/token",
+                    "client_id": "client-123",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        imported = manager.read_portable_config(export_path)
+
+        assert imported.id
+        assert imported.id != "id-1"
+        assert imported.name == "Imported Server"
+        assert imported.auth_type == AuthType.M2M
+        assert imported.client_id == "client-123"
+        assert manager.configs == []
+
 
 class TestKeyringIntegration:
     def test_save_and_load_secret(self, tmp_path: Path, mocker: MockerFixture) -> None:
@@ -137,3 +193,32 @@ class TestKeyringIntegration:
         set_mock.assert_called_once_with("ods-pilot", cfg.keyring_account, "s3cr3t")
         get_mock.assert_called_once_with("ods-pilot", cfg.keyring_account)
         assert secret == "s3cr3t"
+
+    def test_import_from_file_saves_secret(self, tmp_path: Path, mocker: MockerFixture) -> None:
+        set_mock = mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
+        mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
+        mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
+
+        path = tmp_path / "servers.json"
+        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "name": "Imported Server",
+                    "url": "https://import.example.com/api",
+                    "auth_type": "basic",
+                    "username": "alice",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        manager = ServerConfigManager(path=path)
+        imported = manager.import_from_file(export_path, secret="imported-secret")
+
+        assert manager.get(imported.id) == imported
+        set_mock.assert_called_once_with(
+            "ods-pilot",
+            imported.keyring_account,
+            "imported-secret",
+        )

@@ -114,6 +114,7 @@ class ModelPanel(wx.Panel):
         # Font variants used for tree items
         self._bold_font = styles.bold_font(self)
         self._italic_font = styles.italic_font(self)
+        self._destroyed = False
 
         splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
 
@@ -171,7 +172,13 @@ class ModelPanel(wx.Panel):
         # Set initial sash after layout is complete
         wx.CallAfter(self._set_initial_sash, splitter)
 
+    def Destroy(self) -> None:  # type: ignore[override]
+        self._destroyed = True
+        super().Destroy()
+
     def _set_initial_sash(self, splitter: wx.SplitterWindow) -> None:
+        if self._destroyed or not self._is_widget_alive(self):
+            return
         w = splitter.GetClientSize().width
         if w > 0:
             splitter.SetSashPosition(int(w * 0.55))
@@ -203,7 +210,17 @@ class ModelPanel(wx.Panel):
     # Tree population
     # ------------------------------------------------------------------
 
+    def _is_widget_alive(self, widget: wx.Window | None) -> bool:
+        if widget is None:
+            return False
+        try:
+            return bool(widget.IsShown() or widget.GetId() != -1)
+        except RuntimeError:
+            return False
+
     def _populate_tree(self) -> None:
+        if not self._is_widget_alive(self._tree):
+            return
         self._tree.DeleteAllItems()
         try:
             model: ods.Model = self._mc.model()
@@ -248,7 +265,8 @@ class ModelPanel(wx.Panel):
         # first search completes instantly without loading weights on the UI thread.
         self._search_index = ModelSearchIndex(model)
         self._search_available = False
-        self._search_ctrl.SetHint("Indexing model…")
+        if self._is_widget_alive(self._search_ctrl):
+            self._search_ctrl.SetHint("Indexing model…")
         threading.Thread(
             target=self._warm_up_index,
             daemon=True,
@@ -340,6 +358,8 @@ class ModelPanel(wx.Panel):
 
     def _on_search_index_ready(self) -> None:
         """Called on the UI thread once the index is warm."""
+        if self._destroyed or not self._is_widget_alive(self._search_ctrl):
+            return
         self._search_available = True
         self._search_ctrl.SetHint("Search model…")
         self._search_ctrl.Enable()
@@ -353,6 +373,8 @@ class ModelPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_search_text(self, event: wx.CommandEvent) -> None:
+        if self._destroyed or not self._is_widget_alive(self._search_ctrl):
+            return
         # Cancel any pending debounce timer.
         if self._search_timer is not None and self._search_timer.IsRunning():
             self._search_timer.Stop()
@@ -363,10 +385,14 @@ class ModelPanel(wx.Panel):
         self._search_timer = wx.CallLater(300, self._do_search, query)
 
     def _on_search_cancel(self, event: wx.CommandEvent) -> None:
+        if self._destroyed or not self._is_widget_alive(self._search_ctrl):
+            return
         self._search_ctrl.SetValue("")
         self._hide_search_results()
 
     def _hide_search_results(self) -> None:
+        if not self._is_widget_alive(self._results_list):
+            return
         self._results_list.DeleteAllItems()
         self._result_matches.clear()
         if self._results_list.IsShown():
@@ -374,7 +400,11 @@ class ModelPanel(wx.Panel):
             self._left_panel.Layout()
 
     def _do_search(self, query: str) -> None:
-        if not self._search_available or self._search_index is None:
+        if self._destroyed or not self._search_available or self._search_index is None:
+            return
+        if not self._is_widget_alive(self._results_list) or not self._is_widget_alive(
+            self._left_panel
+        ):
             return
         self._search_generation += 1
         gen = self._search_generation
@@ -385,7 +415,7 @@ class ModelPanel(wx.Panel):
         self._results_list.InsertItem(0, "")
         self._results_list.SetItem(0, 2, "Searching…")
         row_h = self._results_list.GetCharHeight() + 4
-        self._results_list.SetMinSize((-1, row_h * 2))
+        self._results_list.SetMinSize(wx.Size(-1, row_h * 2))
         if not self._results_list.IsShown():
             self._results_list.Show()
         self._left_panel.Layout()
@@ -416,6 +446,8 @@ class ModelPanel(wx.Panel):
         wx.CallAfter(self._apply_search_results, results, gen)
 
     def _apply_search_unavailable(self, hint: str) -> None:
+        if self._destroyed or not self._is_widget_alive(self._search_ctrl):
+            return
         self._search_available = False
         self._search_ctrl.SetHint(hint)
         self._search_ctrl.Disable()
@@ -423,6 +455,8 @@ class ModelPanel(wx.Panel):
 
     def _apply_search_results(self, results: list[ModelMatch], gen: int) -> None:
         """Called on the UI thread with search results from the background thread."""
+        if self._destroyed or not self._is_widget_alive(self._results_list):
+            return
         if gen != self._search_generation:
             return  # superseded by a newer query
 
@@ -444,7 +478,7 @@ class ModelPanel(wx.Panel):
             # Give the results list a reasonable height (up to 8 visible rows).
             row_h = self._results_list.GetCharHeight() + 4
             desired_h = min(len(results), 8) * row_h + self._results_list.GetCharHeight()
-            self._results_list.SetMinSize((-1, desired_h))
+            self._results_list.SetMinSize(wx.Size(-1, desired_h))
             if not self._results_list.IsShown():
                 self._results_list.Show()
             self._left_panel.Layout()
@@ -452,6 +486,8 @@ class ModelPanel(wx.Panel):
             self._hide_search_results()
 
     def _on_result_activated(self, event: wx.ListEvent) -> None:
+        if self._destroyed:
+            return
         idx = event.GetIndex()
         if 0 <= idx < len(self._result_matches):
             self._navigate_to_match(self._result_matches[idx])
@@ -474,6 +510,8 @@ class ModelPanel(wx.Panel):
         return wx.TreeItemId()
 
     def _navigate_to_match(self, match: ModelMatch) -> None:
+        if self._destroyed:
+            return
         root = self._tree.GetRootItem()
         if not root.IsOk():
             return
@@ -532,6 +570,8 @@ class ModelPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_tree_expanding(self, event: wx.TreeEvent) -> None:
+        if self._destroyed:
+            return
         item = event.GetItem()
         first_child, _ = self._tree.GetFirstChild(item)
         if first_child.IsOk():
@@ -551,6 +591,8 @@ class ModelPanel(wx.Panel):
 
     def _entity_in_ancestors(self, item: wx.TreeItemId, entity_name: str) -> bool:
         """Return True if *entity_name* appears as an _EntityNode on the ancestor path."""
+        if self._destroyed:
+            return False
         parent = self._tree.GetItemParent(item)
         while parent.IsOk():
             node_data = self._tree.GetItemData(parent)
@@ -564,7 +606,7 @@ class ModelPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_sel_changed(self, event: wx.TreeEvent) -> None:
-        if not self._tree:
+        if self._destroyed or not self._tree:
             return
         item = event.GetItem()
         if not item.IsOk():
@@ -586,6 +628,8 @@ class ModelPanel(wx.Panel):
             self._props_list.SetItem(idx, 1, value)
 
     def _show_props(self, data: Any) -> None:  # noqa: PLR0912
+        if self._destroyed:
+            return
         if data is None:
             self._clear_props("Model")
 

@@ -92,6 +92,66 @@ class TestServerConfigSerialization:
         d = cfg.to_dict()
         assert d["context_variables"] == {}
 
+    def test_portable_dict_omits_defaults(self) -> None:
+        cfg = _make_oidc()
+        data = cfg.to_portable_dict()
+
+        assert data == {
+            "name": "Demo OIDC",
+            "url": "https://demo.example.com/api",
+            "auth_type": "oidc",
+            "client_id": "oidc-client",
+            "webfinger_path_prefix": "/ods",
+        }
+
+    def test_portable_dict_keeps_non_default_values(self) -> None:
+        cfg = _make_m2m()
+        cfg.verify_certificate = False
+        cfg.context_variables = {"WRITE_MODE": "FILE"}
+
+        data = cfg.to_portable_dict()
+
+        assert data == {
+            "name": "Demo M2M",
+            "url": "https://demo.example.com/api",
+            "auth_type": "m2m",
+            "token_endpoint": "https://auth.example.com/token",
+            "client_id": "client-abc",
+            "scope": ["api", "admin"],
+            "verify_certificate": False,
+            "context_variables": {"WRITE_MODE": "FILE"},
+        }
+
+    def test_from_portable_dict_uses_defaults_and_new_id(self) -> None:
+        cfg = ServerConfig.from_portable_dict(
+            {
+                "name": "Imported OIDC",
+                "url": "https://example.com/api",
+                "auth_type": "oidc",
+                "client_id": "client-1",
+            }
+        )
+
+        assert cfg.id
+        assert cfg.name == "Imported OIDC"
+        assert cfg.redirect_uri == "http://127.0.0.1:12345"
+        assert cfg.redirect_url_allow_insecure is True
+        assert cfg.verify_certificate is True
+        assert cfg.context_variables == {}
+
+    def test_from_portable_dict_rejects_invalid_scope(self) -> None:
+        with pytest.raises(ValueError, match="scope"):
+            ServerConfig.from_portable_dict(
+                {
+                    "name": "Imported M2M",
+                    "url": "https://example.com/api",
+                    "auth_type": "m2m",
+                    "token_endpoint": "https://auth.example.com/token",
+                    "client_id": "client-1",
+                    "scope": "api admin",
+                }
+            )
+
 
 class TestKeyringAccount:
     def test_basic_keyring_account(self) -> None:
@@ -105,6 +165,11 @@ class TestKeyringAccount:
     def test_oidc_keyring_account(self) -> None:
         cfg = _make_oidc()
         assert cfg.keyring_account == "https://demo.example.com/api::oidc-client"
+
+    def test_requires_secret_for_secret_backed_auth(self) -> None:
+        assert _make_basic().requires_secret is True
+        assert _make_m2m().requires_secret is True
+        assert _make_oidc().requires_secret is False
 
 
 class TestAppSettings:
