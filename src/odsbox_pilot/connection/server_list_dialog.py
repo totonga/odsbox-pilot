@@ -79,24 +79,15 @@ class ServerListDialog(wx.Dialog):
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self._btn_new = wx.Button(panel, label="New…")
-        self._btn_edit = wx.Button(panel, label="Edit…")
-        self._btn_copy = wx.Button(panel, label="Copy")
-        self._btn_delete = wx.Button(panel, label="Delete")
         self._btn_connect = wx.Button(panel, wx.ID_OK, label="Connect")
         btn_close = wx.Button(panel, wx.ID_CANCEL, label="Close")
         self._btn_open_atfx_file = wx.Button(panel, label="📄", size=wx.Size(24, -1))
         self._btn_open_atfx_file.SetToolTip("Open ATFX file")
 
-        self._btn_edit.Disable()
-        self._btn_copy.Disable()
-        self._btn_delete.Disable()
         self._btn_connect.Disable()
         self._btn_connect.SetDefault()
 
         btn_sizer.Add(self._btn_new, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_edit, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_copy, flag=wx.RIGHT, border=4)
-        btn_sizer.Add(self._btn_delete)
         btn_sizer.AddStretchSpacer()
         btn_sizer.Add(btn_close, flag=wx.RIGHT, border=4)
 
@@ -111,10 +102,7 @@ class ServerListDialog(wx.Dialog):
 
         # Bind events
         self._btn_new.Bind(wx.EVT_BUTTON, self._on_new)
-        self._btn_edit.Bind(wx.EVT_BUTTON, self._on_edit)
         self._btn_open_atfx_file.Bind(wx.EVT_BUTTON, self._on_open_atfx_file)
-        self._btn_copy.Bind(wx.EVT_BUTTON, self._on_copy)
-        self._btn_delete.Bind(wx.EVT_BUTTON, self._on_delete)
         self._btn_connect.Bind(wx.EVT_BUTTON, self._on_connect)
 
         # Keyboard shortcut: Delete key on list
@@ -143,9 +131,6 @@ class ServerListDialog(wx.Dialog):
 
     def _update_buttons(self) -> None:
         has_selection = self._list.GetFirstSelected() != -1
-        self._btn_edit.Enable(has_selection)
-        self._btn_copy.Enable(has_selection)
-        self._btn_delete.Enable(has_selection)
         self._btn_connect.Enable(has_selection)
 
     @staticmethod
