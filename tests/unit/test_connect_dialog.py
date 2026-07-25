@@ -49,6 +49,32 @@ def _basic_config() -> ServerConfig:
     )
 
 
+class _ValueControl:
+    def __init__(self) -> None:
+        self.value = ""
+
+    def SetValue(self, value: object) -> None:
+        self.value = value
+
+
+class _FakeListControl:
+    def __init__(self) -> None:
+        self.items: list[list[str]] = []
+
+    def DeleteAllItems(self) -> None:
+        self.items = []
+
+    def GetItemCount(self) -> int:
+        return len(self.items)
+
+    def InsertItem(self, index: int, text: str) -> int:
+        self.items.insert(index, [text, ""])
+        return index
+
+    def SetItem(self, index: int, column: int, value: str) -> None:
+        self.items[index][column] = value
+
+
 def test_on_cancel_closes_dialog(mocker: MockerFixture) -> None:
     module = _load_connect_dialog_module(mocker)
     dialog = module.ConnectDialog.__new__(module.ConnectDialog)
@@ -131,3 +157,26 @@ def test_on_save_only_missing_guid_error_message(mocker: MockerFixture) -> None:
     module.wx.MessageBox.assert_called_once()
     message = module.wx.MessageBox.call_args.args[0]
     assert "GUID 'missing-guid' could not be found." in message
+
+
+def test_populate_skips_secret_lookup_when_secret_prefill_disabled(
+    mocker: MockerFixture,
+) -> None:
+    module = _load_connect_dialog_module(mocker)
+    dialog = module.ConnectDialog.__new__(module.ConnectDialog)
+    dialog._allow_secret_prefill = False
+    dialog._manager = mocker.Mock()
+    dialog._txt_name = _ValueControl()
+    dialog._txt_url = _ValueControl()
+    dialog._chk_verify = _ValueControl()
+    dialog._lc_ctx_vars = _FakeListControl()
+    dialog._update_cpane_label = mocker.Mock()
+    dialog._notebook = mocker.Mock()
+    dialog._txt_basic_user = _ValueControl()
+    dialog._txt_basic_pass = _ValueControl()
+
+    module.ConnectDialog._populate(dialog, _basic_config())
+
+    dialog._manager.load_secret.assert_not_called()
+    assert dialog._txt_basic_user.value == "user"
+    assert dialog._txt_basic_pass.value == ""

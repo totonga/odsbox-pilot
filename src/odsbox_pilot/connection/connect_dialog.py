@@ -68,6 +68,8 @@ class ConnectDialog(wx.Dialog):
         parent: wx.Window | None,
         manager: ServerConfigManager,
         config: ServerConfig | None,
+        *,
+        allow_secret_prefill: bool = True,
     ) -> None:
         is_existing_config = bool(config and any(c.id == config.id for c in manager.configs))
         title = "Edit Server" if is_existing_config else "New Server"
@@ -81,6 +83,7 @@ class ConnectDialog(wx.Dialog):
         self.SetSize(self.FromDIP(wx.Size(480, 480)))
         self._manager = manager
         self._original_config = config if is_existing_config else None
+        self._allow_secret_prefill = allow_secret_prefill
         self._con_i = None  # set when "Save & Connect" succeeds
         self._result_config: ServerConfig | None = None
 
@@ -395,18 +398,20 @@ class ConnectDialog(wx.Dialog):
         if config.auth_type == AuthType.BASIC:
             self._notebook.SetSelection(0)
             self._txt_basic_user.SetValue(config.username)
-            secret = self._manager.load_secret(config)
-            if secret:
-                self._txt_basic_pass.SetValue(secret)
+            if self._allow_secret_prefill:
+                secret = self._manager.load_secret(config)
+                if secret:
+                    self._txt_basic_pass.SetValue(secret)
 
         elif config.auth_type == AuthType.M2M:
             self._notebook.SetSelection(1)
             self._txt_m2m_token_ep.SetValue(config.token_endpoint)
             self._txt_m2m_client_id.SetValue(config.client_id)
             self._txt_m2m_scope.SetValue(" ".join(config.scope))
-            secret = self._manager.load_secret(config)
-            if secret:
-                self._txt_m2m_secret.SetValue(secret)
+            if self._allow_secret_prefill:
+                secret = self._manager.load_secret(config)
+                if secret:
+                    self._txt_m2m_secret.SetValue(secret)
 
         elif config.auth_type == AuthType.OIDC:
             self._notebook.SetSelection(2)

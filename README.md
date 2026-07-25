@@ -63,16 +63,24 @@ python -m odsbox_pilot
 ## Quick start
 
 1. Launch ODS Pilot — the **Server List** dialog opens automatically.
-2. Click **Add…** and enter your server URL, username, and password.
+2. Click **New…** and enter your server URL, username, and password.
 3. Double-click your server (or select it and click **Connect**).
 4. Use the tabs to query, browse, and inspect your data.
 
-**Command-line shortcut** — skip the server list and connect directly:
+Right-click a saved server in the list to import or export portable
+`.odsbox-pilot.con.json` files. Exported files omit secrets and only keep the
+non-default fields needed to recreate the connection.
+
+**Command-line shortcuts**:
 
 ```bash
 odsbox-pilot --server "My Server"   # connect by saved name
 odsbox-pilot --list-servers         # print all saved names
+odsbox-pilot --import-server path/to/server.odsbox-pilot.con.json
 ```
+
+When the imported server uses Basic or M2M auth, the CLI import command prompts
+for the missing secret and stores it in the OS keyring if you provide one.
 
 ---
 
