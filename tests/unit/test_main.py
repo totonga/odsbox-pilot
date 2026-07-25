@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import json
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 from pytest_mock import MockerFixture
@@ -20,7 +21,7 @@ def _load_main_module() -> ModuleType:
 
 
 def test_import_server_prompts_for_secret_and_saves_it(
-    tmp_path, mocker: MockerFixture, capsys
+    tmp_path: Any, mocker: MockerFixture, capsys: Any
 ) -> None:
     set_mock = mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
     mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
@@ -57,7 +58,7 @@ def test_import_server_prompts_for_secret_and_saves_it(
     assert "Imported server 'Imported Basic'" in captured.out
 
 
-def test_import_server_skips_secret_prompt_for_oidc(tmp_path, mocker: MockerFixture) -> None:
+def test_import_server_skips_secret_prompt_for_oidc(tmp_path: Any, mocker: MockerFixture) -> None:
     mocker.patch("odsbox_pilot.connection.manager.keyring.set_password")
     mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
     mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)

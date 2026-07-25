@@ -51,10 +51,10 @@ def _basic_config() -> ServerConfig:
 
 class _ValueControl:
     def __init__(self) -> None:
-        self.value = ""
+        self.value: str = ""
 
     def SetValue(self, value: object) -> None:
-        self.value = value
+        self.value = str(value)
 
 
 class _FakeListControl:

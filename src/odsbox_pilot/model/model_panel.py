@@ -402,7 +402,9 @@ class ModelPanel(wx.Panel):
     def _do_search(self, query: str) -> None:
         if self._destroyed or not self._search_available or self._search_index is None:
             return
-        if not self._is_widget_alive(self._results_list) or not self._is_widget_alive(self._left_panel):
+        if not self._is_widget_alive(self._results_list) or not self._is_widget_alive(
+            self._left_panel
+        ):
             return
         self._search_generation += 1
         gen = self._search_generation

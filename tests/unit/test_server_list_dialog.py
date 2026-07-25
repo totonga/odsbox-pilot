@@ -170,7 +170,7 @@ def test_server_list_toolbar_omits_edit_copy_delete_buttons(mocker: MockerFixtur
 
     original_box_sizer = module.wx.BoxSizer
 
-    class TrackingBoxSizer(original_box_sizer):
+    class TrackingBoxSizer(original_box_sizer):  # type: ignore[misc, valid-type]
         def __init__(self, orientation: int) -> None:
             super().__init__(orientation)
             tracked_sizers.append(self)

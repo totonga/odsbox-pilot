@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
+from odsbox import ConI
 from odsbox.model_cache import ModelCache
 from odsbox.proto import ods
 
@@ -117,7 +118,7 @@ class FilterTree:
 
     def query(
         self,
-        con_i: Any,
+        con_i: ConI,
         root_entity: str | ods.Model.Entity,
         attributes: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
@@ -270,7 +271,7 @@ class FilterTree:
 
     def follow(
         self,
-        con_i: Any,
+        con_i: ConI,
         parent_entity: str | ods.Model.Entity,
         parent_ids: list[int],
         target_entity: str | ods.Model.Entity,
