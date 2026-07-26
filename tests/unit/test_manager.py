@@ -76,6 +76,32 @@ class TestManagerCRUD:
         manager.remove("id-c")
         assert len(manager.configs) == 0
 
+    def test_remove_keeps_secret_until_last_config_with_same_account_is_removed(
+        self, manager: ServerConfigManager, mocker: MockerFixture
+    ) -> None:
+        delete_mock = mocker.patch(
+            "odsbox_pilot.connection.manager.keyring.delete_password",
+            side_effect=None,
+        )
+
+        first = _cfg("shared-a")
+        second = _cfg("shared-b")
+        first.url = "https://shared.example.com/api"
+        first.username = "shared-user"
+        second.url = first.url
+        second.username = first.username
+
+        manager.add(first)
+        manager.add(second)
+        manager.save_secret(first, "s3cr3t")
+        manager.save_secret(second, "s3cr3t")
+
+        manager.remove(first.id)
+        delete_mock.assert_not_called()
+
+        manager.remove(second.id)
+        delete_mock.assert_called_once_with("ods-pilot", first.keyring_account)
+
     def test_remove_missing_raises(self, manager: ServerConfigManager) -> None:
         with pytest.raises(KeyError):
             manager.remove("no-such-id")

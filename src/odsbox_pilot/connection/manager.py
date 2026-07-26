@@ -67,10 +67,17 @@ class ServerConfigManager:
         raise KeyError(f"Config {config.id!r} not found.")
 
     def remove(self, config_id: str) -> None:
-        """Remove a config and its associated keyring secret."""
+        """Remove a config and its associated keyring secret if it is no longer shared."""
         config = self.get(config_id)
         self._configs = [c for c in self._configs if c.id != config_id]
         self._save()
+
+        remaining_configs = [
+            c for c in self._configs if c.keyring_account == config.keyring_account
+        ]
+        if remaining_configs:
+            return
+
         # Best-effort cleanup of keyring secret
         with contextlib.suppress(keyring.errors.PasswordDeleteError):
             keyring.delete_password(_KEYRING_SERVICE, config.keyring_account)
