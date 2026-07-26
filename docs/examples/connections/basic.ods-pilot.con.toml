@@ -1,0 +1,9 @@
+# Portable connection example for a basic-auth ODS server
+# Display name shown in the server list
+name = "Basic demo"
+# Target ODS server URL
+url = "https://demo.example.com/api"
+# Authentication mode: basic, m2m, oidc, or atfx
+auth_type = "basic"
+# Username used for HTTP basic authentication
+username = "alice"

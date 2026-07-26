@@ -84,7 +84,7 @@ def main(argv: list[str] | None = None) -> None:
         "--import-server",
         metavar="PATH",
         default=None,
-        help="Import a portable server file (*.ods-pilot.con.json) and exit.",
+        help="Import a portable server file (*.ods-pilot.con.json, *.ods-pilot.con.toml) and exit.",
     )
     parser.add_argument(
         "--scaling",
