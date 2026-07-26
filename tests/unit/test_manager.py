@@ -76,6 +76,32 @@ class TestManagerCRUD:
         manager.remove("id-c")
         assert len(manager.configs) == 0
 
+    def test_remove_keeps_secret_until_last_config_with_same_account_is_removed(
+        self, manager: ServerConfigManager, mocker: MockerFixture
+    ) -> None:
+        delete_mock = mocker.patch(
+            "odsbox_pilot.connection.manager.keyring.delete_password",
+            side_effect=None,
+        )
+
+        first = _cfg("shared-a")
+        second = _cfg("shared-b")
+        first.url = "https://shared.example.com/api"
+        first.username = "shared-user"
+        second.url = first.url
+        second.username = first.username
+
+        manager.add(first)
+        manager.add(second)
+        manager.save_secret(first, "s3cr3t")
+        manager.save_secret(second, "s3cr3t")
+
+        manager.remove(first.id)
+        delete_mock.assert_not_called()
+
+        manager.remove(second.id)
+        delete_mock.assert_called_once_with("ods-pilot", first.keyring_account)
+
     def test_remove_missing_raises(self, manager: ServerConfigManager) -> None:
         with pytest.raises(KeyError):
             manager.remove("no-such-id")
@@ -137,7 +163,7 @@ class TestManagerPersistence:
         manager.add(cfg)
         manager.save_secret(cfg, "s3cr3t")
 
-        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        export_path = tmp_path / "server.ods-pilot.con.json"
         manager.export_to_file(cfg, export_path)
 
         data = json.loads(export_path.read_text(encoding="utf-8"))
@@ -148,10 +174,24 @@ class TestManagerPersistence:
             "username": "userexport",
         }
 
+    def test_export_to_file_writes_schema_sidecar(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        cfg = _cfg("sidecar")
+        manager.add(cfg)
+
+        export_path = tmp_path / "server.ods-pilot.con.json"
+        manager.export_to_file(cfg, export_path)
+
+        schema_path = export_path.with_name("ods-pilot.con.schema.json")
+        assert schema_path.exists()
+        schema_data = json.loads(schema_path.read_text(encoding="utf-8"))
+        assert schema_data["title"] == "ODS Pilot portable connection"
+
     def test_read_portable_config_creates_new_unsaved_draft(
         self, manager: ServerConfigManager, tmp_path: Path
     ) -> None:
-        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        export_path = tmp_path / "server.ods-pilot.con.json"
         export_path.write_text(
             json.dumps(
                 {
@@ -173,6 +213,26 @@ class TestManagerPersistence:
         assert imported.auth_type == AuthType.M2M
         assert imported.client_id == "client-123"
         assert manager.configs == []
+
+    def test_read_portable_config_rejects_invalid_schema(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        export_path = tmp_path / "server.ods-pilot.con.json"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "name": "Imported Server",
+                    "url": "https://import.example.com/api",
+                    "auth_type": "basic",
+                    "username": "alice",
+                    "unexpected": True,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="schema"):
+            manager.read_portable_config(export_path)
 
 
 class TestKeyringIntegration:
@@ -200,7 +260,7 @@ class TestKeyringIntegration:
         mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
 
         path = tmp_path / "servers.json"
-        export_path = tmp_path / "server.odsbox-pilot.con.json"
+        export_path = tmp_path / "server.ods-pilot.con.json"
         export_path.write_text(
             json.dumps(
                 {

@@ -1,0 +1,6 @@
+{
+  "name": "Basic demo",
+  "url": "https://demo.example.com/api",
+  "auth_type": "basic",
+  "username": "alice"
+}

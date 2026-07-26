@@ -8,8 +8,11 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
+
+from jsonschema import Draft202012Validator, ValidationError
 
 from odsbox_pilot.styles import ScaleLevel
 
@@ -22,8 +25,19 @@ class AuthType(StrEnum):
 
 
 _DEFAULT_REDIRECT_URI = "http://127.0.0.1:12345"
-_DEFAULT_REDIRECT_URL_ALLOW_INSECURE = True
+_DEFAULT_REDIRECT_URL_ALLOW_INSECURE = False
 _DEFAULT_VERIFY_CERTIFICATE = True
+
+
+def _read_portable_config_schema_text() -> str:
+    return (
+        files("odsbox_pilot.connection")
+        .joinpath("ods-pilot.con.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+
+_PORTABLE_CONFIG_SCHEMA: dict[str, Any] = json.loads(_read_portable_config_schema_text())
 
 
 @dataclass
@@ -130,8 +144,7 @@ class ServerConfig:
             if not client_id:
                 raise ValueError("Portable export for OIDC auth requires a client ID.")
             data["client_id"] = client_id
-            if self.redirect_uri != _DEFAULT_REDIRECT_URI:
-                data["redirect_uri"] = self.redirect_uri
+            data["redirect_uri"] = self.redirect_uri
             if self.webfinger_path_prefix:
                 data["webfinger_path_prefix"] = self.webfinger_path_prefix
             if self.redirect_url_allow_insecure != _DEFAULT_REDIRECT_URL_ALLOW_INSECURE:
@@ -145,6 +158,7 @@ class ServerConfig:
         if self.context_variables:
             data["context_variables"] = copy.deepcopy(self.context_variables)
 
+        self._validate_portable_config(data)
         return data
 
     @classmethod
@@ -152,6 +166,7 @@ class ServerConfig:
         cls, data: Mapping[str, Any], *, config_id: str | None = None
     ) -> ServerConfig:
         """Create a new config from a minimal portable config payload."""
+        cls._validate_portable_config(data)
         name = cls._required_portable_str(data, "name")
         url = cls._required_portable_str(data, "url")
         auth_type_str = cls._required_portable_str(data, "auth_type")
@@ -179,9 +194,7 @@ class ServerConfig:
             base_kwargs["scope"] = cls._optional_portable_scope(data)
         elif auth_type == AuthType.OIDC:
             base_kwargs["client_id"] = cls._required_portable_str(data, "client_id")
-            base_kwargs["redirect_uri"] = cls._optional_portable_str(
-                data, "redirect_uri", default=_DEFAULT_REDIRECT_URI
-            )
+            base_kwargs["redirect_uri"] = cls._required_portable_str(data, "redirect_uri")
             base_kwargs["webfinger_path_prefix"] = cls._optional_portable_str(
                 data, "webfinger_path_prefix", default=""
             )
@@ -194,6 +207,20 @@ class ServerConfig:
             base_kwargs["verify_certificate"] = False
 
         return cls(**base_kwargs)
+
+    @staticmethod
+    def _validate_portable_config(data: Mapping[str, Any]) -> None:
+        if "scope" in data:
+            try:
+                ServerConfig._optional_portable_scope(data)
+            except ValueError as exc:
+                raise ValueError(str(exc)) from exc
+
+        validator = Draft202012Validator(_PORTABLE_CONFIG_SCHEMA)
+        try:
+            validator.validate(dict(data))
+        except ValidationError as exc:
+            raise ValueError(f"Portable config failed schema validation: {exc.message}") from exc
 
     @staticmethod
     def _required_portable_str(data: Mapping[str, Any], key: str) -> str:

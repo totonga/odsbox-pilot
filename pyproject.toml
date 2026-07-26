@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Database :: Front-Ends",
 ]
 dependencies = [
+    "jsonschema>=4.26.0",
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.6.0",
     "pandas>=2.0.0",
@@ -56,6 +57,12 @@ dev = [
     "ruff>=0.15.12",
     "types-requests>=2.33.0.20260518",
 ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"odsbox_pilot.connection" = ["*.json"]
 
 [tool.uv]
 # Minimum versions that resolve known CVEs in transitive dependencies.

@@ -27,7 +27,7 @@ def test_import_server_prompts_for_secret_and_saves_it(
     mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
     mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
 
-    export_path = tmp_path / "server.odsbox-pilot.con.json"
+    export_path = tmp_path / "server.ods-pilot.con.json"
     export_path.write_text(
         json.dumps(
             {
@@ -63,7 +63,7 @@ def test_import_server_skips_secret_prompt_for_oidc(tmp_path: Any, mocker: Mocke
     mocker.patch("odsbox_pilot.connection.manager.keyring.get_password", return_value=None)
     mocker.patch("odsbox_pilot.connection.manager.keyring.delete_password", side_effect=None)
 
-    export_path = tmp_path / "server.odsbox-pilot.con.json"
+    export_path = tmp_path / "server.ods-pilot.con.json"
     export_path.write_text(
         json.dumps(
             {
@@ -71,6 +71,7 @@ def test_import_server_skips_secret_prompt_for_oidc(tmp_path: Any, mocker: Mocke
                 "url": "https://example.com/api",
                 "auth_type": "oidc",
                 "client_id": "oidc-client",
+                "redirect_uri": "https://example.com/callback",
             }
         ),
         encoding="utf-8",

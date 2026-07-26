@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/totonga/odsbox-pilot/schemas/ods-pilot.con.schema.json",
+  "title": "ODS Pilot portable connection",
+  "description": "Portable connection file format used to export/import ODS server configurations without secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "url", "auth_type"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name for the server entry in ODS Pilot.",
+      "examples": ["Local ODS demo"]
+    },
+    "url": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Base URL of the ODS API, or a local ATFX file path for atfx connections.",
+      "examples": ["https://demo.example.com/api", "C:/data/Example_Simple.atfx"]
+    },
+    "auth_type": {
+      "type": "string",
+      "enum": ["basic", "m2m", "oidc", "atfx"],
+      "description": "Authentication mode. Choose basic for username/password, m2m for client credentials, oidc for browser-based OpenID Connect, or atfx for local ATFX files.",
+      "examples": ["basic", "m2m", "oidc", "atfx"]
+    },
+    "username": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Username for basic authentication. Required when auth_type is basic.",
+      "examples": ["alice"]
+    },
+    "token_endpoint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "OAuth token endpoint used for m2m authentication. Required when auth_type is m2m.",
+      "examples": ["https://auth.example.com/oauth2/token"]
+    },
+    "client_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Client identifier for m2m or oidc authentication. Required when auth_type is m2m or oidc.",
+      "examples": ["client-123", "oidc-client"]
+    },
+    "scope": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Optional scopes for m2m authentication. Leave empty for most setups.",
+      "examples": [["profile", "openid"]]
+    },
+    "webfinger_path_prefix": {
+      "type": "string",
+      "description": "Optional path prefix used by some OIDC providers for WebFinger discovery.",
+      "examples": ["/ods"]
+    },
+    "redirect_uri": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Redirect URI used for OIDC browser authentication. If http: is used, the redirect_url_allow_insecure flag must be set to true.",
+      "examples": ["http://127.0.0.1:12345"]
+    },
+    "redirect_url_allow_insecure": {
+      "type": "boolean",
+      "description": "Allow insecure redirect URLs during OIDC login. Only enable if your provider requires it.",
+      "examples": [true]
+    },
+    "verify_certificate": {
+      "type": "boolean",
+      "description": "Whether TLS certificate validation is enabled for HTTPS endpoints. Disable only for test or self-signed environments.",
+      "examples": [true, false]
+    },
+    "context_variables": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Optional context variables passed to the ODS connection for environment or workflow-specific setup.",
+      "examples": [{"WRITE_MODE": "FILE", "LANGUAGE": "en"}]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"auth_type": {"const": "basic"}}},
+      "then": {
+        "required": ["username"],
+        "properties": {
+          "token_endpoint": false,
+          "scope": false,
+          "client_id": false,
+          "redirect_uri": false,
+          "webfinger_path_prefix": false,
+          "redirect_url_allow_insecure": false
+        }
+      }
+    },
+    {
+      "if": {"properties": {"auth_type": {"const": "m2m"}}},
+      "then": {
+        "required": ["token_endpoint", "client_id"],
+        "properties": {
+          "username": false,
+          "webfinger_path_prefix": false,
+          "redirect_uri": false,
+          "redirect_url_allow_insecure": false
+        }
+      }
+    },
+    {
+      "if": {"properties": {"auth_type": {"const": "oidc"}}},
+      "then": {
+        "required": ["client_id", "redirect_uri"],
+        "properties": {
+          "username": false,
+          "token_endpoint": false,
+          "scope": false
+        }
+      }
+    },
+    {
+      "if": {"properties": {"auth_type": {"const": "atfx"}}},
+      "then": {
+        "properties": {
+          "username": false,
+          "token_endpoint": false,
+          "client_id": false,
+          "scope": false,
+          "webfinger_path_prefix": false,
+          "redirect_uri": false,
+          "redirect_url_allow_insecure": false
+        }
+      }
+    }
+  ]
+}

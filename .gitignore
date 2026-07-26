@@ -11,3 +11,4 @@ wheels/
 .*_cache/
 node_modules/
 temp/
+docs/examples/connections/ods-pilot.con.schema.json
