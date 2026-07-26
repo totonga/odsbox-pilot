@@ -88,6 +88,8 @@ for the missing secret and stores it in the OS keyring if you provide one.
 
 ### Query tab
 
+![Query tab](https://github.com/totonga/odsbox-pilot/blob/main/docs/screenshots/query-tab.gif)
+
 Write [JAQueL](https://github.com/totonga/jaquel) queries in a JSON editor and run them
 against the server. Results appear in a sortable table.
 
@@ -112,6 +114,8 @@ uv sync --extra ai  # installs openvino-genai and huggingface-hub
 
 ### Browse tab
 
+![Browse tab](https://github.com/totonga/odsbox-pilot/blob/main/docs/screenshots/browse-tab.gif) 
+
 Navigate the ODS data hierarchy without writing queries. Pick a root entity, add optional
 filter conditions, and click **Query**. Expand tree nodes to follow relations level by
 level. Click any instance to see its attributes on the right. The JAQueL query for the
@@ -121,6 +125,8 @@ Filter conditions are saved in `~/.ods-pilot/browse_conditions.json` and persist
 sessions.
 
 ### Model tab
+
+![Model tab](https://github.com/totonga/odsbox-pilot/blob/main/docs/screenshots/model-tab.gif)
 
 A read-only schema browser loaded from the ODS model on connect (no extra server calls).
 Entities are colour-coded by base type. Expand any entity to see its attributes
