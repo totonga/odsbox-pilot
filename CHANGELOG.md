@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.17.1 (2026-07-26)
+
+### Bug Fixes
+
+- Allow toml files in additional ([#23](https://github.com/totonga/odsbox-pilot/pull/23),
+  [`d5cfd0f`](https://github.com/totonga/odsbox-pilot/commit/d5cfd0fb0218f22c25ef0f4e799af1b9beb26c9d))
+
+
 ## v1.17.0 (2026-07-26)
 
 ### Bug Fixes
