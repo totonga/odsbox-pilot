@@ -14,12 +14,12 @@ from pathlib import Path
 
 import keyring
 
-from odsbox_pilot.models import SERVERS_FILE, ServerConfig
+from odsbox_pilot.models import SERVERS_FILE, ServerConfig, _read_portable_config_schema_text
 
 _KEYRING_SERVICE = "ods-pilot"
-PORTABLE_CONFIG_SUFFIX = ".odsbox-pilot.con.json"
+PORTABLE_CONFIG_SUFFIX = ".ods-pilot.con.json"
 PORTABLE_CONFIG_WILDCARD = (
-    "ODS Pilot Connection (*.odsbox-pilot.con.json)|*.odsbox-pilot.con.json|"
+    "ODS Pilot Connection (*.ods-pilot.con.json)|*.ods-pilot.con.json|"
     "JSON files (*.json)|*.json|All files (*.*)|*.*"
 )
 
@@ -95,15 +95,26 @@ class ServerConfigManager:
         return keyring.get_password(_KEYRING_SERVICE, config.keyring_account)
 
     def export_to_file(self, config: ServerConfig, path: Path) -> None:
-        """Write a minimal, secret-free config export file."""
+        """Write a minimal, secret-free config export file and an adjacent schema sidecar."""
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(config.to_portable_dict(), indent=2), encoding="utf-8")
+
+        schema_path = path.with_name("ods-pilot.con.schema.json")
+        if not schema_path.exists():
+            schema_path.write_text(_read_portable_config_schema_text(), encoding="utf-8")
 
     def read_portable_config(self, path: Path) -> ServerConfig:
         """Read a portable config file into a new unsaved config draft."""
-        data = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError("Portable config file must contain valid JSON.") from exc
         if not isinstance(data, dict):
             raise ValueError("Portable config file must contain a JSON object.")
-        return ServerConfig.from_portable_dict(data, config_id=self.new_id())
+        try:
+            return ServerConfig.from_portable_dict(data, config_id=self.new_id())
+        except ValueError as exc:
+            raise ValueError(f"Portable config file failed schema validation: {exc}") from exc
 
     def import_from_file(self, path: Path, secret: str = "") -> ServerConfig:
         """Import a portable config file into the saved server list."""

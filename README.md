@@ -68,7 +68,7 @@ python -m odsbox_pilot
 4. Use the tabs to query, browse, and inspect your data.
 
 Right-click a saved server in the list to import or export portable
-`.odsbox-pilot.con.json` files. Exported files omit secrets and only keep the
+`.ods-pilot.con.json` files. Exported files omit secrets and only keep the
 non-default fields needed to recreate the connection.
 
 **Command-line shortcuts**:
@@ -76,7 +76,7 @@ non-default fields needed to recreate the connection.
 ```bash
 odsbox-pilot --server "My Server"   # connect by saved name
 odsbox-pilot --list-servers         # print all saved names
-odsbox-pilot --import-server path/to/server.odsbox-pilot.con.json
+odsbox-pilot --import-server path/to/server.ods-pilot.con.json
 ```
 
 When the imported server uses Basic or M2M auth, the CLI import command prompts

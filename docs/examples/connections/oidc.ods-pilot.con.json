@@ -1,0 +1,8 @@
+{
+  "name": "OIDC demo",
+  "url": "https://demo.example.com/api",
+  "auth_type": "oidc",
+  "client_id": "oidc-client",
+  "redirect_uri": "http://127.0.0.1:12345",
+  "redirect_url_allow_insecure": true
+}

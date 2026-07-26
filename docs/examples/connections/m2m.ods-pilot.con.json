@@ -1,0 +1,8 @@
+{
+  "name": "M2M demo",
+  "url": "https://demo.example.com/api",
+  "auth_type": "m2m",
+  "token_endpoint": "https://auth.example.com/oauth2/token",
+  "client_id": "client-123",
+  "scope": ["profile", "openid"]
+}

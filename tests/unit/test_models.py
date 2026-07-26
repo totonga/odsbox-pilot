@@ -102,6 +102,7 @@ class TestServerConfigSerialization:
             "auth_type": "oidc",
             "client_id": "oidc-client",
             "webfinger_path_prefix": "/ods",
+            "redirect_uri": "http://127.0.0.1:12345",
         }
 
     def test_portable_dict_keeps_non_default_values(self) -> None:
@@ -129,13 +130,14 @@ class TestServerConfigSerialization:
                 "url": "https://example.com/api",
                 "auth_type": "oidc",
                 "client_id": "client-1",
+                "redirect_uri": "http://127.0.0.1:12345",
             }
         )
 
         assert cfg.id
         assert cfg.name == "Imported OIDC"
         assert cfg.redirect_uri == "http://127.0.0.1:12345"
-        assert cfg.redirect_url_allow_insecure is True
+        assert cfg.redirect_url_allow_insecure is False
         assert cfg.verify_certificate is True
         assert cfg.context_variables == {}
 
@@ -149,6 +151,30 @@ class TestServerConfigSerialization:
                     "token_endpoint": "https://auth.example.com/token",
                     "client_id": "client-1",
                     "scope": "api admin",
+                }
+            )
+
+    def test_from_portable_dict_rejects_unknown_fields(self) -> None:
+        with pytest.raises(ValueError, match="schema"):
+            ServerConfig.from_portable_dict(
+                {
+                    "name": "Imported Basic",
+                    "url": "https://example.com/api",
+                    "auth_type": "basic",
+                    "username": "alice",
+                    "unexpected": True,
+                }
+            )
+
+    def test_from_portable_dict_rejects_auth_specific_field_for_wrong_auth(self) -> None:
+        with pytest.raises(ValueError, match="schema"):
+            ServerConfig.from_portable_dict(
+                {
+                    "name": "Imported Basic",
+                    "url": "https://example.com/api",
+                    "auth_type": "basic",
+                    "username": "alice",
+                    "redirect_uri": "http://127.0.0.1:12345",
                 }
             )
 
