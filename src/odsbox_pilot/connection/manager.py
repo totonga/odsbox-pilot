@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import contextlib
 import json
+import tomllib
 import uuid
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import keyring
 
@@ -18,10 +21,61 @@ from odsbox_pilot.models import SERVERS_FILE, ServerConfig, _read_portable_confi
 
 _KEYRING_SERVICE = "ods-pilot"
 PORTABLE_CONFIG_SUFFIX = ".ods-pilot.con.json"
+PORTABLE_CONFIG_TOML_SUFFIX = ".ods-pilot.con.toml"
 PORTABLE_CONFIG_WILDCARD = (
-    "ODS Pilot Connection (*.ods-pilot.con.json)|*.ods-pilot.con.json|"
-    "JSON files (*.json)|*.json|All files (*.*)|*.*"
+    "ODS Pilot Connection (*.ods-pilot.con.json; *.ods-pilot.con.toml)|"
+    "*.ods-pilot.con.json;*.ods-pilot.con.toml|"
+    "JSON files (*.json)|*.json|"
+    "TOML files (*.toml)|*.toml|"
+    "All files (*.*)|*.*"
 )
+
+
+def _toml_escape_string(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _serialize_toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, str):
+        return _toml_escape_string(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_serialize_toml_value(item) for item in value) + "]"
+    if isinstance(value, Mapping):
+        inline_items = ", ".join(
+            f"{key} = {_serialize_toml_value(item)}" for key, item in value.items()
+        )
+        return "{" + inline_items + "}"
+    raise ValueError(f"Unsupported TOML value type: {type(value).__name__}")
+
+
+def _serialize_portable_config_toml(data: Mapping[str, Any]) -> str:
+    lines = [f"{key} = {_serialize_toml_value(value)}" for key, value in data.items()]
+    return "\n".join(lines) + "\n"
+
+
+def _load_portable_config_data(path: Path) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8")
+    if path.suffix.lower() == ".toml":
+        try:
+            data = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise ValueError("Portable config file must contain valid TOML.") from exc
+    else:
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            try:
+                data = tomllib.loads(text)
+            except tomllib.TOMLDecodeError as exc2:
+                raise ValueError("Portable config file must contain valid JSON or TOML.") from exc2
+    if not isinstance(data, dict):
+        raise ValueError("Portable config file must contain a top-level object.")
+    return data
 
 
 class ServerConfigManager:
@@ -104,7 +158,12 @@ class ServerConfigManager:
     def export_to_file(self, config: ServerConfig, path: Path) -> None:
         """Write a minimal, secret-free config export file and an adjacent schema sidecar."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(config.to_portable_dict(), indent=2), encoding="utf-8")
+        data = config.to_portable_dict()
+        if path.suffix.lower() == ".toml":
+            payload = _serialize_portable_config_toml(data)
+        else:
+            payload = json.dumps(data, indent=2)
+        path.write_text(payload, encoding="utf-8")
 
         schema_path = path.with_name("ods-pilot.con.schema.json")
         if not schema_path.exists():
@@ -113,11 +172,9 @@ class ServerConfigManager:
     def read_portable_config(self, path: Path) -> ServerConfig:
         """Read a portable config file into a new unsaved config draft."""
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            raise ValueError("Portable config file must contain valid JSON.") from exc
-        if not isinstance(data, dict):
-            raise ValueError("Portable config file must contain a JSON object.")
+            data = _load_portable_config_data(path)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
         try:
             return ServerConfig.from_portable_dict(data, config_id=self.new_id())
         except ValueError as exc:

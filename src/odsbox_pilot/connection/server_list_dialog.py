@@ -13,6 +13,7 @@ import wx  # type: ignore[import-untyped]
 from odsbox_pilot import styles
 from odsbox_pilot.connection.manager import (
     PORTABLE_CONFIG_SUFFIX,
+    PORTABLE_CONFIG_TOML_SUFFIX,
     PORTABLE_CONFIG_WILDCARD,
     ServerConfigManager,
 )
@@ -140,7 +141,7 @@ class ServerListDialog(wx.Dialog):
 
     @staticmethod
     def _ensure_export_suffix(path: Path) -> Path:
-        if str(path).endswith(PORTABLE_CONFIG_SUFFIX):
+        if str(path).endswith((PORTABLE_CONFIG_SUFFIX, PORTABLE_CONFIG_TOML_SUFFIX)):
             return path
         return path.with_name(f"{path.name}{PORTABLE_CONFIG_SUFFIX}")
 

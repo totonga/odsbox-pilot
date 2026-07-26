@@ -1,0 +1,13 @@
+# Portable connection example for an M2M-auth ODS server
+# Display name shown in the server list
+name = "M2M demo"
+# Target ODS server URL
+url = "https://demo.example.com/api"
+# Authentication mode: basic, m2m, oidc, or atfx
+auth_type = "m2m"
+# OAuth token endpoint used for client credentials flow
+token_endpoint = "https://auth.example.com/oauth2/token"
+# OAuth client ID
+client_id = "client-123"
+# Requested scopes for the token request
+scope = ["profile", "openid"]

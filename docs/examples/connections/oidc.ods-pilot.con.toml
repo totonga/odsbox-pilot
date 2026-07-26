@@ -1,0 +1,13 @@
+# Portable connection example for an OIDC-auth ODS server
+# Display name shown in the server list
+name = "OIDC demo"
+# Target ODS server URL
+url = "https://demo.example.com/api"
+# Authentication mode: basic, m2m, oidc, or atfx
+auth_type = "oidc"
+# OAuth client ID used for the OIDC flow
+client_id = "oidc-client"
+# Redirect URI registered for the local callback
+redirect_uri = "http://127.0.0.1:12345"
+# Allow insecure redirect URLs for testing environments
+redirect_url_allow_insecure = true

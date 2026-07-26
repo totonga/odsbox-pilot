@@ -68,7 +68,7 @@ python -m odsbox_pilot
 4. Use the tabs to query, browse, and inspect your data.
 
 Right-click a saved server in the list to import or export portable
-`.ods-pilot.con.json` files. Exported files omit secrets and only keep the
+[`.ods-pilot.con.json`](https://github.com/totonga/odsbox-pilot/blob/main/docs/portable-connection-format.md) files. Exported files omit secrets and only keep the
 non-default fields needed to recreate the connection.
 
 **Command-line shortcuts**:

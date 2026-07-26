@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -233,6 +234,45 @@ class TestManagerPersistence:
 
         with pytest.raises(ValueError, match="schema"):
             manager.read_portable_config(export_path)
+
+    def test_export_to_file_writes_toml_when_suffix_is_toml(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        cfg = _cfg("toml")
+        manager.add(cfg)
+
+        export_path = tmp_path / "server.ods-pilot.con.toml"
+        manager.export_to_file(cfg, export_path)
+
+        text = export_path.read_text(encoding="utf-8")
+        assert 'name = "Server toml"' in text
+        assert 'auth_type = "basic"' in text
+        assert 'username = "usertoml"' in text
+
+    def test_read_portable_config_accepts_toml_with_comments(
+        self, manager: ServerConfigManager, tmp_path: Path
+    ) -> None:
+        export_path = tmp_path / "server.ods-pilot.con.toml"
+        export_path.write_text(
+            textwrap.dedent(
+                """
+                # Portable connection example
+                name = "Imported Server"
+                url = "https://import.example.com/api"
+                auth_type = "m2m"
+                token_endpoint = "https://auth.example.com/token"
+                client_id = "client-123"
+                """
+            ).strip(),
+            encoding="utf-8",
+        )
+
+        imported = manager.read_portable_config(export_path)
+
+        assert imported.name == "Imported Server"
+        assert imported.auth_type == AuthType.M2M
+        assert imported.client_id == "client-123"
+        assert manager.configs == []
 
 
 class TestKeyringIntegration:
