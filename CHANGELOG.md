@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.17.0 (2026-07-26)
+
+### Bug Fixes
+
+- Do delete secret entries only if last config is deleted
+  ([#22](https://github.com/totonga/odsbox-pilot/pull/22),
+  [`9f8dcf2`](https://github.com/totonga/odsbox-pilot/commit/9f8dcf2244d28b9aecab63df907f5bed7979ca94))
+
+### Features
+
+- Add JSON schema for portable connection format and improve secret handling
+  ([#22](https://github.com/totonga/odsbox-pilot/pull/22),
+  [`9f8dcf2`](https://github.com/totonga/odsbox-pilot/commit/9f8dcf2244d28b9aecab63df907f5bed7979ca94))
+
+- Added schema and some rework for connection format
+  ([#22](https://github.com/totonga/odsbox-pilot/pull/22),
+  [`9f8dcf2`](https://github.com/totonga/odsbox-pilot/commit/9f8dcf2244d28b9aecab63df907f5bed7979ca94))
+
+
 ## v1.16.0 (2026-07-25)
 
 ### Bug Fixes
