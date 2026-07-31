@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.18.0 (2026-07-31)
+
+### Features
+
+- Added usage of ASAM ODS queries
+  ([`17732bd`](https://github.com/totonga/odsbox-pilot/commit/17732bdf6970a8ae10f8cd8698870ff392e006d7))
+
+
 ## v1.17.1 (2026-07-26)
 
 ### Bug Fixes
