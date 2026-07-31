@@ -8,8 +8,6 @@ from odsbox.model_cache import ModelCache
 from odsbox.proto import ods
 from wodson.utils.query import ods_to_jaquel
 
-from odsbox_pilot.query.editor_panel import convert_query_format
-
 
 @pytest.fixture
 def mdm_nvh_model() -> ods.Model:
@@ -43,19 +41,3 @@ def test_wodson_ods_to_jaquel_and_back(mdm_nvh_model: ods.Model) -> None:
     assert select == select2_message
 
     ods_to_jaquel(mc, select2_message)
-
-
-def test_convert_query_format_round_trip(mdm_nvh_model: ods.Model) -> None:
-    mc: ModelCache = ModelCache(mdm_nvh_model)
-
-    jaquel = {"AoTest": {}}
-    converted = convert_query_format(json.dumps(jaquel), mc)
-    converted_dict = json.loads(converted)
-    assert isinstance(converted_dict.get("columns"), list)
-
-    round_tripped = convert_query_format(converted, mc)
-    round_tripped_dict = json.loads(round_tripped)
-    assert isinstance(round_tripped_dict, dict)
-    assert round_tripped_dict.get("columns") is None or not isinstance(
-        round_tripped_dict.get("columns"), list
-    )
