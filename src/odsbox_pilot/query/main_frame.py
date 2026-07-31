@@ -11,6 +11,12 @@ from pathlib import Path
 
 import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
+from google.protobuf.json_format import MessageToJson, ParseDict
+from odsbox import ConI
+from odsbox.jaquel import jaquel_to_ods
+from odsbox.model_cache import ModelCache
+from odsbox.proto import ods
+from wodson.utils.query import ods_to_jaquel
 
 from odsbox_pilot import styles
 from odsbox_pilot.browse._helpers import _load_prefs, _save_prefs
@@ -30,7 +36,7 @@ class MainFrame(wx.Frame):
 
     def __init__(
         self,
-        con_i,
+        con_i: ConI,
         server_name: str,
         server_config: ServerConfig | None = None,
         on_disconnect: Callable[[], None] | None = None,
@@ -49,7 +55,7 @@ class MainFrame(wx.Frame):
         )
         styles.apply_scaled_app_font(self)
         self.SetSize(self.FromDIP(wx.Size(1100, 750)))
-        self._con_i = con_i
+        self._con_i: ConI = con_i
         self._server_config = server_config
         self._history = QueryHistory()
         self._settings = AppSettings.load()
@@ -119,6 +125,7 @@ class MainFrame(wx.Frame):
             settings=self._settings,
             ai_context=ai_context,
             grid=self._grid,
+            on_convert=self._on_convert,
         )
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=self.FromDIP(280))
         inner_splitter.SetMinimumPaneSize(self.FromDIP(80))
@@ -303,7 +310,25 @@ class MainFrame(wx.Frame):
         wx.BeginBusyCursor()
         try:
             query_dict = json.loads(query_str)
-            df = self._con_i.query(query_dict, result_naming_mode=self._settings.result_naming_mode)
+            if isinstance(query_dict, dict) and isinstance(query_dict.get("columns"), list):
+                # its an ASAM ODS SelectStatement, not a query dict
+                select_statement = ods.SelectStatement()
+                ParseDict(query_dict, select_statement)
+            else:
+                # its a jaquel query
+                _, select_statement = jaquel_to_ods(self._con_i.mc.model(), query_dict)
+
+            if not isinstance(select_statement, ods.SelectStatement):
+                raise ValueError("Query did not produce a SelectStatement")
+
+            df = self._con_i.query_data(
+                select_statement,
+                date_as_timestamp=True,
+                enum_as_string=True,
+                is_null_to_nan=True,
+                result_naming_mode=self._settings.result_naming_mode,
+            )
+
             row_count = len(df)
             self._grid.load_dataframe(df)
             entry = HistoryEntry.success(query_str, row_count)
@@ -321,6 +346,36 @@ class MainFrame(wx.Frame):
         finally:
             with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
+
+    @staticmethod
+    def convert_query_format(query_text: str, model_cache: ModelCache | None) -> str:
+        """Convert a query between JAQueL and ODS SelectStatement JSON formats."""
+        if not query_text.strip():
+            return query_text
+        if model_cache is None:
+            raise ValueError("A model cache is required to convert query formats")
+
+        try:
+            query_data = json.loads(query_text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid JSON: {exc}") from exc
+
+        if isinstance(query_data, dict) and isinstance(query_data.get("columns"), list):
+            select_statement = ods.SelectStatement()
+            ParseDict(query_data, select_statement)
+            jaquel = ods_to_jaquel(model_cache, select_statement)
+            return json.dumps(jaquel, indent=2)
+
+        if isinstance(query_data, dict):
+            _, select_statement = jaquel_to_ods(model_cache.model(), query_data)
+            if not isinstance(select_statement, ods.SelectStatement):
+                raise ValueError("Query did not produce a SelectStatement")
+            return json.dumps(json.loads(MessageToJson(select_statement)), indent=2)
+
+        raise ValueError("Query content must be a JSON object")
+
+    def _on_convert(self, raw: str) -> str:
+        return self.convert_query_format(raw, self._con_i.mc)
 
     # ------------------------------------------------------------------
     # Log helpers

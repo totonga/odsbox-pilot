@@ -12,6 +12,7 @@ from typing import Any
 
 import wx  # type: ignore[import-untyped]
 import wx.html2  # type: ignore[import-untyped]
+from odsbox.model_cache import ModelCache
 
 from odsbox_pilot import styles
 from odsbox_pilot.models import AppSettings
@@ -27,11 +28,18 @@ class AiContext:
     """Context for AI query parsing (injected when AI is enabled)."""
 
     nl_parser: Any  # NlToConditions instance
-    model_cache: Any  # ModelCache instance
+    model_cache: ModelCache  # ModelCache instance
 
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"
 _EDITOR_HTML = _STATIC_DIR / "editor.html"
+
+
+def convert_query_format(query_text: str, model_cache: ModelCache | None) -> str:
+    """Compatibility wrapper for the main-frame conversion callback."""
+    from odsbox_pilot.query.main_frame import MainFrame
+
+    return MainFrame.convert_query_format(query_text, model_cache)
 
 
 class EditorPanel(wx.Panel):
@@ -45,6 +53,7 @@ class EditorPanel(wx.Panel):
         settings: AppSettings | None = None,
         ai_context: AiContext | None = None,
         grid: ResultGrid | None = None,
+        on_convert: Callable[[str], str] | None = None,
     ) -> None:
         super().__init__(parent)
         self._history = history
@@ -52,6 +61,7 @@ class EditorPanel(wx.Panel):
         self._settings = settings
         self._ai_context = ai_context
         self._grid = grid
+        self._convert_cb = on_convert
         self._webview_ready = False
 
         self._build_ui()
@@ -166,6 +176,11 @@ class EditorPanel(wx.Panel):
         btn_pretty = wx.Button(toolbar, label="Pretty Print")
         btn_pretty.Bind(wx.EVT_BUTTON, self._on_pretty_print)
         tbar_sizer.Add(btn_pretty, flag=wx.RIGHT, border=4)
+
+        # Convert
+        self._btn_convert = wx.Button(toolbar, label="Convert")
+        self._btn_convert.Bind(wx.EVT_BUTTON, self._on_convert_btn)
+        tbar_sizer.Add(self._btn_convert, flag=wx.RIGHT, border=4)
 
         # Execute
         self._btn_execute = wx.Button(toolbar, label="▶  Execute  (Alt+Enter)")
@@ -294,6 +309,24 @@ class EditorPanel(wx.Panel):
                 wx.OK | wx.ICON_WARNING,
                 self,
             )
+
+    def _on_convert_btn(self, _event: wx.Event) -> None:
+        raw = self.get_query().strip()
+        if not raw or self._convert_cb is None:
+            return
+
+        try:
+            converted = self._convert_cb(raw)
+        except (ValueError, TypeError) as exc:
+            wx.MessageBox(
+                f"Unable to convert query:\n\n{exc}",
+                "Convert Query",
+                wx.OK | wx.ICON_WARNING,
+                self,
+            )
+            return
+
+        self.set_query(converted)
 
     def _on_save_results_btn(self, _event: wx.Event) -> None:
         frame = wx.GetTopLevelParent(self)
