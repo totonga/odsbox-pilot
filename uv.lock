@@ -1215,7 +1215,7 @@ oidc = [
 
 [[package]]
 name = "odsbox-pilot"
-version = "1.17.1"
+version = "1.18.0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },

@@ -17,5 +17,6 @@
       ],
       "url": "./src/odsbox_pilot/connection/ods-pilot.con.schema.json"
     }
-  ]
+  ],
+  "debugpy.debugJustMyCode": false
 }

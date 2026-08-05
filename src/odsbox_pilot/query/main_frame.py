@@ -8,6 +8,7 @@ import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import wx  # type: ignore[import-untyped]
 import wx.adv  # type: ignore[import-untyped]
@@ -126,6 +127,7 @@ class MainFrame(wx.Frame):
             ai_context=ai_context,
             grid=self._grid,
             on_convert=self._on_convert,
+            on_settings_changed=self._set_settings,
         )
         inner_splitter.SplitHorizontally(self._editor, self._grid, sashPosition=self.FromDIP(280))
         inner_splitter.SetMinimumPaneSize(self.FromDIP(80))
@@ -285,6 +287,9 @@ class MainFrame(wx.Frame):
             self._editor.set_ai_context(ai_context)
         dlg.Destroy()
 
+    def _set_settings(self, settings: AppSettings) -> None:
+        self._settings = settings
+
     def _on_preferences(self, _event: wx.Event) -> None:
         from odsbox_pilot.query.settings_dialog import AppSettingsDialog
 
@@ -292,6 +297,7 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self._settings = dlg.get_settings()
             self._settings.save()
+            self._editor.set_settings(self._settings)
         dlg.Destroy()
 
     def _on_context_variables(self, _event: wx.Event) -> None:
@@ -309,23 +315,25 @@ class MainFrame(wx.Frame):
         self.GetStatusBar().SetStatusText("Executing…", 0)
         wx.BeginBusyCursor()
         try:
+            query : dict[str,Any] | ods.SelectStatement | None = None 
             query_dict = json.loads(query_str)
             if isinstance(query_dict, dict) and isinstance(query_dict.get("columns"), list):
                 # its an ASAM ODS SelectStatement, not a query dict
                 select_statement = ods.SelectStatement()
                 ParseDict(query_dict, select_statement)
+                query = select_statement
             else:
                 # its a jaquel query
-                _, select_statement = jaquel_to_ods(self._con_i.mc.model(), query_dict)
+                query = query_dict
 
-            if not isinstance(select_statement, ods.SelectStatement):
-                raise ValueError("Query did not produce a SelectStatement")
+            if query is None:
+                raise ValueError("Query is empty or invalid")
 
             df = self._con_i.query_data(
-                select_statement,
-                date_as_timestamp=True,
-                enum_as_string=True,
-                is_null_to_nan=True,
+                query=query,
+                date_as_timestamp=self._settings.date_as_timestamp,
+                enum_as_string=self._settings.enum_as_string,
+                is_null_to_nan=self._settings.is_null_to_nan,
                 result_naming_mode=self._settings.result_naming_mode,
             )
 

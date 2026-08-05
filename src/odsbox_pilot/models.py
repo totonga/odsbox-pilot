@@ -290,6 +290,9 @@ class AppSettings:
 
     result_naming_mode: str = "query"  # "query" or "model"
     startup_scaling: str = ScaleLevel.MEDIUM.value  # SMALL/MEDIUM/LARGE/XLARGE
+    date_as_timestamp: bool = True
+    enum_as_string: bool = True
+    is_null_to_nan: bool = True
 
     def save(self) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -305,6 +308,12 @@ class AppSettings:
                 obj.result_naming_mode = "query"
             if obj.startup_scaling not in _VALID_SCALING_LEVELS:
                 obj.startup_scaling = ScaleLevel.MEDIUM.value
+            if not isinstance(obj.date_as_timestamp, bool):
+                obj.date_as_timestamp = True
+            if not isinstance(obj.enum_as_string, bool):
+                obj.enum_as_string = True
+            if not isinstance(obj.is_null_to_nan, bool):
+                obj.is_null_to_nan = True
             return obj
         except Exception:
             return cls()

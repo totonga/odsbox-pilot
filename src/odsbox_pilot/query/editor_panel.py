@@ -42,6 +42,93 @@ def convert_query_format(query_text: str, model_cache: ModelCache | None) -> str
     return MainFrame.convert_query_format(query_text, model_cache)
 
 
+class _ResultSettingsDialog(wx.Dialog):
+    """Small dialog for result-formatting preferences."""
+
+    def __init__(
+        self,
+        parent: wx.Window,
+        settings: AppSettings,
+        on_apply: Callable[[AppSettings], None] | None = None,
+    ) -> None:
+        super().__init__(parent, title="Result display settings")
+        self._settings = settings
+        self._on_apply = on_apply
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        panel = wx.Panel(self)
+        outer = wx.BoxSizer(wx.VERTICAL)
+
+        naming_box = wx.StaticBox(panel, label="Result naming")
+        naming_sizer = wx.StaticBoxSizer(naming_box, wx.VERTICAL)
+        self._naming_choice = wx.RadioBox(
+            naming_box,
+            label="",
+            choices=[
+                "Use JAQueL query column names",
+                "Use ODS model column names",
+            ],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_ROWS,
+        )
+        self._naming_choice.SetSelection(1 if self._settings.result_naming_mode == "model" else 0)
+        naming_sizer.Add(self._naming_choice, flag=wx.ALL, border=8)
+
+        conversion_box = wx.StaticBox(panel, label="Result conversion")
+        conversion_sizer = wx.StaticBoxSizer(conversion_box, wx.VERTICAL)
+        self._date_checkbox = wx.CheckBox(conversion_box, label="Convert dates to timestamps")
+        self._enum_checkbox = wx.CheckBox(conversion_box, label="Convert enums to strings")
+        self._null_checkbox = wx.CheckBox(conversion_box, label="Convert nulls to NaN/NA")
+        self._date_checkbox.SetValue(self._settings.date_as_timestamp)
+        self._enum_checkbox.SetValue(self._settings.enum_as_string)
+        self._null_checkbox.SetValue(self._settings.is_null_to_nan)
+        conversion_sizer.Add(self._date_checkbox, flag=wx.ALL, border=4)
+        conversion_sizer.Add(self._enum_checkbox, flag=wx.ALL, border=4)
+        conversion_sizer.Add(self._null_checkbox, flag=wx.ALL, border=4)
+
+        button_row = wx.BoxSizer(wx.HORIZONTAL)
+        reset_button = wx.Button(panel, label="Reset defaults")
+        ok_button = wx.Button(panel, wx.ID_OK, label="OK")
+        cancel_button = wx.Button(panel, wx.ID_CANCEL, label="Cancel")
+        button_row.Add(reset_button, flag=wx.RIGHT, border=8)
+        button_row.AddStretchSpacer()
+        button_row.Add(ok_button, flag=wx.RIGHT, border=8)
+        button_row.Add(cancel_button)
+        outer.Add(naming_sizer, flag=wx.EXPAND | wx.ALL, border=8)
+        outer.Add(conversion_sizer, flag=wx.EXPAND | wx.ALL, border=8)
+        outer.Add(button_row, flag=wx.EXPAND | wx.ALL, border=8)
+
+        panel.SetSizer(outer)
+        panel.Layout()
+        panel.SetSizerAndFit(outer)
+        self.Fit()
+        self.Bind(wx.EVT_BUTTON, self._on_ok, id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._on_reset_defaults, reset_button)
+        self.Bind(wx.EVT_BUTTON, lambda _event: self.EndModal(wx.ID_CANCEL), cancel_button)
+
+    def _on_reset_defaults(self, _event: wx.Event) -> None:
+        defaults = AppSettings()
+        self._settings.result_naming_mode = defaults.result_naming_mode
+        self._settings.date_as_timestamp = defaults.date_as_timestamp
+        self._settings.enum_as_string = defaults.enum_as_string
+        self._settings.is_null_to_nan = defaults.is_null_to_nan
+        self._naming_choice.SetSelection(0)
+        self._date_checkbox.SetValue(self._settings.date_as_timestamp)
+        self._enum_checkbox.SetValue(self._settings.enum_as_string)
+        self._null_checkbox.SetValue(self._settings.is_null_to_nan)
+
+    def _on_ok(self, _event: wx.Event) -> None:
+        self._settings.result_naming_mode = "model" if self._naming_choice.GetSelection() == 1 else "query"
+        self._settings.date_as_timestamp = self._date_checkbox.GetValue()
+        self._settings.enum_as_string = self._enum_checkbox.GetValue()
+        self._settings.is_null_to_nan = self._null_checkbox.GetValue()
+        self._settings.save()
+        if self._on_apply is not None:
+            self._on_apply(self._settings)
+        self.EndModal(wx.ID_OK)
+
+
 class EditorPanel(wx.Panel):
     """Panel hosting the CodeMirror JSON editor and its toolbar."""
 
@@ -54,6 +141,7 @@ class EditorPanel(wx.Panel):
         ai_context: AiContext | None = None,
         grid: ResultGrid | None = None,
         on_convert: Callable[[str], str] | None = None,
+        on_settings_changed: Callable[[AppSettings], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self._history = history
@@ -62,6 +150,7 @@ class EditorPanel(wx.Panel):
         self._ai_context = ai_context
         self._grid = grid
         self._convert_cb = on_convert
+        self._on_settings_changed = on_settings_changed
         self._webview_ready = False
 
         self._build_ui()
@@ -95,6 +184,10 @@ class EditorPanel(wx.Panel):
         """Update the AI context (e.g. after settings change)."""
         self._ai_context = ai_context
         self._refresh_ai_bar()
+
+    def set_settings(self, settings: AppSettings | None) -> None:
+        """Keep the editor's local settings object in sync with the main frame."""
+        self._settings = settings
 
     # ------------------------------------------------------------------
     # UI construction
@@ -269,30 +362,18 @@ class EditorPanel(wx.Panel):
         menu.Destroy()
 
     def _on_settings_menu(self, _event: wx.Event) -> None:
-        menu = wx.Menu()
-        item_query = menu.AppendRadioItem(
-            wx.ID_ANY, "Result Naming: Query", "Column names from JAQueL query (default)"
-        )
-        item_model = menu.AppendRadioItem(
-            wx.ID_ANY, "Result Naming: Model", "Column names from ODS model schema"
-        )
-        if self._settings.result_naming_mode == "model":  # type: ignore[union-attr]
-            item_model.Check(True)
-        else:
-            item_query.Check(True)
+        if self._settings is None:
+            return
 
-        def _set_query(_e: wx.Event) -> None:
-            self._settings.result_naming_mode = "query"  # type: ignore[union-attr]
-            self._settings.save()  # type: ignore[union-attr]
+        def _persist_settings(settings: AppSettings) -> None:
+            self._settings = settings
+            settings.save()  # type: ignore[union-attr]
+            if self._on_settings_changed is not None:
+                self._on_settings_changed(settings)
 
-        def _set_model(_e: wx.Event) -> None:
-            self._settings.result_naming_mode = "model"  # type: ignore[union-attr]
-            self._settings.save()  # type: ignore[union-attr]
-
-        menu.Bind(wx.EVT_MENU, _set_query, item_query)
-        menu.Bind(wx.EVT_MENU, _set_model, item_model)
-        self._btn_settings.PopupMenu(menu)
-        menu.Destroy()
+        dialog = _ResultSettingsDialog(self, self._settings, _persist_settings)
+        dialog.ShowModal()
+        dialog.Destroy()
 
     def _on_pretty_print(self, _event: wx.Event) -> None:
         raw = self.get_query().strip()
