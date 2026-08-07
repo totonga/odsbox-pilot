@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v1.19.0 (2026-08-07)
+
+### Features
+
+- Add settings dialog for query results ([#27](https://github.com/totonga/odsbox-pilot/pull/27),
+  [`336258d`](https://github.com/totonga/odsbox-pilot/commit/336258d5a83666929cadf52bf5a50d75e77e1b47))
+
+- Query settings to drop down menu ([#28](https://github.com/totonga/odsbox-pilot/pull/28),
+  [`1d0b800`](https://github.com/totonga/odsbox-pilot/commit/1d0b800e4fb7363fcd492873d29889e197682271))
+
+
 ## v1.18.0 (2026-07-31)
 
 ### Features
