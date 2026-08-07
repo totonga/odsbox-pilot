@@ -293,6 +293,7 @@ class AppSettings:
     date_as_timestamp: bool = True
     enum_as_string: bool = True
     is_null_to_nan: bool = True
+    use_base_names: bool = False
 
     def save(self) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -314,6 +315,8 @@ class AppSettings:
                 obj.enum_as_string = True
             if not isinstance(obj.is_null_to_nan, bool):
                 obj.is_null_to_nan = True
+            if not isinstance(obj.use_base_names, bool):
+                obj.use_base_names = False
             return obj
         except Exception:
             return cls()

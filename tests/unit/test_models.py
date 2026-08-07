@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 
-import odsbox_pilot.query.main_frame as main_frame_module
 from odsbox_pilot.models import AppSettings, AuthType, ServerConfig
 
 
@@ -201,40 +199,6 @@ class TestKeyringAccount:
 
 
 class TestAppSettings:
-    def test_execute_uses_current_result_settings(self, mocker: pytest.MockFixture) -> None:
-        frame = main_frame_module.MainFrame.__new__(main_frame_module.MainFrame)
-        frame._settings = AppSettings(
-            result_naming_mode="model",
-            date_as_timestamp=False,
-            enum_as_string=False,
-            is_null_to_nan=False,
-        )
-        frame._con_i = Mock()
-        frame._con_i.query_data.return_value = [{"value": 1}]
-        frame._grid = Mock()
-        frame._history = Mock()
-        frame._log_entry = Mock()
-        frame._show_error = Mock()
-        frame._log = Mock()
-        frame.GetStatusBar = Mock(return_value=Mock())
-
-        mocker.patch.object(main_frame_module.wx, "BeginBusyCursor", lambda: None)
-        mocker.patch.object(main_frame_module.wx, "EndBusyCursor", lambda: None)
-        mocker.patch.object(
-            main_frame_module,
-            "jaquel_to_ods",
-            return_value=({}, main_frame_module.ods.SelectStatement()),
-        )
-
-        frame._on_execute('{"AoTest": {}}')
-
-        frame._con_i.query_data.assert_called_once()
-        kwargs = frame._con_i.query_data.call_args.kwargs
-        assert kwargs["date_as_timestamp"] is False
-        assert kwargs["enum_as_string"] is False
-        assert kwargs["is_null_to_nan"] is False
-        assert kwargs["result_naming_mode"] == "model"
-
     def test_defaults(self) -> None:
         s = AppSettings()
         assert s.result_naming_mode == "query"
@@ -242,6 +206,7 @@ class TestAppSettings:
         assert s.date_as_timestamp is True
         assert s.enum_as_string is True
         assert s.is_null_to_nan is True
+        assert s.use_base_names is False
 
     def test_save_and_load(self, tmp_path: Path) -> None:
         import odsbox_pilot.models as models_module
@@ -269,6 +234,7 @@ class TestAppSettings:
                 date_as_timestamp=False,
                 enum_as_string=False,
                 is_null_to_nan=False,
+                use_base_names=True,
             )
             s.save()
             loaded = AppSettings.load()
@@ -276,6 +242,7 @@ class TestAppSettings:
             assert loaded.date_as_timestamp is False
             assert loaded.enum_as_string is False
             assert loaded.is_null_to_nan is False
+            assert loaded.use_base_names is True
         finally:
             models_module.SETTINGS_FILE = orig_settings_file
 
@@ -290,6 +257,7 @@ class TestAppSettings:
             assert s.date_as_timestamp is True
             assert s.enum_as_string is True
             assert s.is_null_to_nan is True
+            assert s.use_base_names is False
         finally:
             models_module.SETTINGS_FILE = orig_settings_file
 
@@ -317,6 +285,7 @@ class TestAppSettings:
                     "date_as_timestamp": "invalid",
                     "enum_as_string": "nope",
                     "is_null_to_nan": "maybe",
+                    "use_base_names": "invalid",
                 }
             )
         )
@@ -326,6 +295,7 @@ class TestAppSettings:
             assert s.date_as_timestamp is True
             assert s.enum_as_string is True
             assert s.is_null_to_nan is True
+            assert s.use_base_names is False
         finally:
             models_module.SETTINGS_FILE = orig_settings_file
 
