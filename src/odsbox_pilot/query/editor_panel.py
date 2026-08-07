@@ -80,12 +80,18 @@ class _ResultSettingsDialog(wx.Dialog):
         self._date_checkbox = wx.CheckBox(conversion_box, label="Convert dates to timestamps")
         self._enum_checkbox = wx.CheckBox(conversion_box, label="Convert enums to strings")
         self._null_checkbox = wx.CheckBox(conversion_box, label="Convert nulls to NaN/NA")
+        self._base_names_checkbox = wx.CheckBox(
+            conversion_box,
+            label="Use base names when converting ODS SelectStatement to JAQueL",
+        )
         self._date_checkbox.SetValue(self._settings.date_as_timestamp)
         self._enum_checkbox.SetValue(self._settings.enum_as_string)
         self._null_checkbox.SetValue(self._settings.is_null_to_nan)
+        self._base_names_checkbox.SetValue(self._settings.use_base_names)
         conversion_sizer.Add(self._date_checkbox, flag=wx.ALL, border=4)
         conversion_sizer.Add(self._enum_checkbox, flag=wx.ALL, border=4)
         conversion_sizer.Add(self._null_checkbox, flag=wx.ALL, border=4)
+        conversion_sizer.Add(self._base_names_checkbox, flag=wx.ALL, border=4)
 
         button_row = wx.BoxSizer(wx.HORIZONTAL)
         reset_button = wx.Button(panel, label="Reset defaults")
@@ -113,17 +119,21 @@ class _ResultSettingsDialog(wx.Dialog):
         self._settings.date_as_timestamp = defaults.date_as_timestamp
         self._settings.enum_as_string = defaults.enum_as_string
         self._settings.is_null_to_nan = defaults.is_null_to_nan
+        self._settings.use_base_names = defaults.use_base_names
         self._naming_choice.SetSelection(0)
         self._date_checkbox.SetValue(self._settings.date_as_timestamp)
         self._enum_checkbox.SetValue(self._settings.enum_as_string)
         self._null_checkbox.SetValue(self._settings.is_null_to_nan)
+        self._base_names_checkbox.SetValue(self._settings.use_base_names)
 
     def _on_ok(self, _event: wx.Event) -> None:
-        self._settings.result_naming_mode = "model" if self._naming_choice.GetSelection() == 1 else "query"
+        self._settings.result_naming_mode = (
+            "model" if self._naming_choice.GetSelection() == 1 else "query"
+        )
         self._settings.date_as_timestamp = self._date_checkbox.GetValue()
         self._settings.enum_as_string = self._enum_checkbox.GetValue()
         self._settings.is_null_to_nan = self._null_checkbox.GetValue()
-        self._settings.save()
+        self._settings.use_base_names = self._base_names_checkbox.GetValue()
         if self._on_apply is not None:
             self._on_apply(self._settings)
         self.EndModal(wx.ID_OK)
@@ -365,15 +375,111 @@ class EditorPanel(wx.Panel):
         if self._settings is None:
             return
 
-        def _persist_settings(settings: AppSettings) -> None:
-            self._settings = settings
-            settings.save()  # type: ignore[union-attr]
-            if self._on_settings_changed is not None:
-                self._on_settings_changed(settings)
+        menu = wx.Menu()
 
-        dialog = _ResultSettingsDialog(self, self._settings, _persist_settings)
+        naming_menu = wx.Menu()
+        naming_query = naming_menu.AppendRadioItem(
+            wx.ID_ANY, "Result naming: JAQueL query column names"
+        )
+        naming_model = naming_menu.AppendRadioItem(
+            wx.ID_ANY, "Result naming: ODS model column names"
+        )
+        naming_query.Check(self._settings.result_naming_mode == "query")
+        naming_model.Check(self._settings.result_naming_mode == "model")
+        menu.AppendSubMenu(naming_menu, "Result naming")
+
+        menu.AppendSeparator()
+
+        item_date = menu.AppendCheckItem(wx.ID_ANY, "Convert dates to timestamps")
+        item_enum = menu.AppendCheckItem(wx.ID_ANY, "Convert enums to strings")
+        item_null = menu.AppendCheckItem(wx.ID_ANY, "Convert nulls to NaN/NA")
+        item_base_names = menu.AppendCheckItem(
+            wx.ID_ANY,
+            "Use base names when converting ODS SelectStatement to JAQueL",
+        )
+        item_date.Check(self._settings.date_as_timestamp)
+        item_enum.Check(self._settings.enum_as_string)
+        item_null.Check(self._settings.is_null_to_nan)
+        item_base_names.Check(self._settings.use_base_names)
+
+        menu.AppendSeparator()
+        item_edit_dialog = menu.Append(wx.ID_ANY, "Edit settings…")
+        item_reset = menu.Append(wx.ID_ANY, "Reset defaults")
+
+        menu.Bind(wx.EVT_MENU, lambda _evt: self._set_result_naming_mode("query"), naming_query)
+        menu.Bind(wx.EVT_MENU, lambda _evt: self._set_result_naming_mode("model"), naming_model)
+        menu.Bind(
+            wx.EVT_MENU,
+            lambda evt: self._set_boolean_setting("date_as_timestamp", evt.IsChecked()),
+            item_date,
+        )
+        menu.Bind(
+            wx.EVT_MENU,
+            lambda evt: self._set_boolean_setting("enum_as_string", evt.IsChecked()),
+            item_enum,
+        )
+        menu.Bind(
+            wx.EVT_MENU,
+            lambda evt: self._set_boolean_setting("is_null_to_nan", evt.IsChecked()),
+            item_null,
+        )
+        menu.Bind(
+            wx.EVT_MENU,
+            lambda evt: self._set_boolean_setting("use_base_names", evt.IsChecked()),
+            item_base_names,
+        )
+        menu.Bind(wx.EVT_MENU, self._open_result_settings_dialog, item_edit_dialog)
+        menu.Bind(wx.EVT_MENU, self._reset_result_settings_defaults, item_reset)
+
+        self._btn_settings.PopupMenu(menu)
+        menu.Destroy()
+
+    def _persist_settings(self, settings: AppSettings) -> None:
+        self._settings = settings
+        settings.save()
+        if self._on_settings_changed is not None:
+            self._on_settings_changed(settings)
+
+    def _set_result_naming_mode(self, mode: str) -> None:
+        if self._settings is None:
+            return
+        if mode not in {"query", "model"}:
+            return
+        self._settings.result_naming_mode = mode
+        self._persist_settings(self._settings)
+
+    def _set_boolean_setting(self, setting_name: str, value: bool) -> None:
+        if self._settings is None:
+            return
+        if setting_name not in {
+            "date_as_timestamp",
+            "enum_as_string",
+            "is_null_to_nan",
+            "use_base_names",
+        }:
+            return
+        setattr(self._settings, setting_name, value)
+        self._persist_settings(self._settings)
+
+    def _open_result_settings_dialog(self, _event: wx.Event) -> None:
+        if self._settings is None:
+            return
+
+        dialog = _ResultSettingsDialog(self, self._settings, self._persist_settings)
         dialog.ShowModal()
         dialog.Destroy()
+
+    def _reset_result_settings_defaults(self, _event: wx.Event) -> None:
+        if self._settings is None:
+            return
+
+        defaults = AppSettings()
+        self._settings.result_naming_mode = defaults.result_naming_mode
+        self._settings.date_as_timestamp = defaults.date_as_timestamp
+        self._settings.enum_as_string = defaults.enum_as_string
+        self._settings.is_null_to_nan = defaults.is_null_to_nan
+        self._settings.use_base_names = defaults.use_base_names
+        self._persist_settings(self._settings)
 
     def _on_pretty_print(self, _event: wx.Event) -> None:
         raw = self.get_query().strip()

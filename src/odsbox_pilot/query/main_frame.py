@@ -315,7 +315,7 @@ class MainFrame(wx.Frame):
         self.GetStatusBar().SetStatusText("Executing…", 0)
         wx.BeginBusyCursor()
         try:
-            query : dict[str,Any] | ods.SelectStatement | None = None 
+            query: dict[str, Any] | ods.SelectStatement | None = None
             query_dict = json.loads(query_str)
             if isinstance(query_dict, dict) and isinstance(query_dict.get("columns"), list):
                 # its an ASAM ODS SelectStatement, not a query dict
@@ -356,7 +356,11 @@ class MainFrame(wx.Frame):
                 wx.EndBusyCursor()
 
     @staticmethod
-    def convert_query_format(query_text: str, model_cache: ModelCache | None) -> str:
+    def convert_query_format(
+        query_text: str,
+        model_cache: ModelCache | None,
+        use_base_names: bool = False,
+    ) -> str:
         """Convert a query between JAQueL and ODS SelectStatement JSON formats."""
         if not query_text.strip():
             return query_text
@@ -371,7 +375,7 @@ class MainFrame(wx.Frame):
         if isinstance(query_data, dict) and isinstance(query_data.get("columns"), list):
             select_statement = ods.SelectStatement()
             ParseDict(query_data, select_statement)
-            jaquel = ods_to_jaquel(model_cache, select_statement)
+            jaquel = ods_to_jaquel(model_cache, select_statement, use_base_names=use_base_names)
             return json.dumps(jaquel, indent=2)
 
         if isinstance(query_data, dict):
@@ -383,7 +387,7 @@ class MainFrame(wx.Frame):
         raise ValueError("Query content must be a JSON object")
 
     def _on_convert(self, raw: str) -> str:
-        return self.convert_query_format(raw, self._con_i.mc)
+        return self.convert_query_format(raw, self._con_i.mc, self._settings.use_base_names)
 
     # ------------------------------------------------------------------
     # Log helpers
