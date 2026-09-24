@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.19.1 (2026-09-24)
+
+### Bug Fixes
+
+- Add missing ODSBOX_MCP_OIDC_REDIRECT_URI in mcp.json
+  ([#31](https://github.com/totonga/odsbox-pilot/pull/31),
+  [`22d9c04`](https://github.com/totonga/odsbox-pilot/commit/22d9c0435d699b1c117e34eddeeb6b5aecb2cda0))
+
+
 ## v1.19.0 (2026-08-07)
 
 ### Features
