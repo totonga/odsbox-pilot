@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Database :: Front-Ends",
 ]
 dependencies = [
+    "gitpython>=3.1.60",
     "jsonschema>=4.26.0",
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.6.0",
@@ -71,7 +72,7 @@ include-package-data = true
 constraint-dependencies = [
     "click>=8.3.3",          # PYSEC-2026-2132
     "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf
-    "gitpython>=3.1.51",    # CVE-2026-44244, GHSA-mv93-w799-cj2w, GHSA-2f96-g7mh-g2hx, GHSA-v396-v7q4-x2qj, GHSA-956x-8gvw-wg5v
+    "gitpython>=3.1.60",    # PYSEC-2026-3783..3788, 3837..3841, 3843, 3982..3984
     "idna>=3.15",            # CVE-2026-45409
     "msgpack>=1.2.1",       # GHSA-6v7p-g79w-8964
     "pip>=26.1",             # CVE-2026-6357

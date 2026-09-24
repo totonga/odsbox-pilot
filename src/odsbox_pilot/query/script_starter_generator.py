@@ -106,6 +106,9 @@ def _build_mcp_env_oidc(config: ServerConfig) -> dict[str, str]:
         "ODSBOX_MCP_URL": config.url,
         "ODSBOX_MCP_OIDC_CLIENT_ID": config.client_id,
         "ODSBOX_MCP_OIDC_REDIRECT_URI": config.redirect_uri,
+        "ODSBOX_MCP_OIDC_REDIRECT_INSECURE": "true"
+        if config.redirect_url_allow_insecure
+        else "false",
         "ODSBOX_MCP_VERIFY": "true" if config.verify_certificate else "false",
     }
     if config.webfinger_path_prefix:
