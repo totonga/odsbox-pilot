@@ -659,14 +659,14 @@ class ModelPanel(wx.Panel):
         item_copy_model.Enable(self._model is not None)
 
         if selected_message is not None:
-            self.Bind(
+            menu.Bind(
                 wx.EVT_MENU,
                 lambda _evt, msg=selected_message: self._copy_json_to_clipboard(msg),
                 item_copy_selected,
             )
 
         if self._model is not None:
-            self.Bind(
+            menu.Bind(
                 wx.EVT_MENU,
                 lambda _evt: self._copy_json_to_clipboard(self._model),
                 item_copy_model,
