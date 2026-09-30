@@ -111,11 +111,11 @@ class TestCustomExamples:
         custom_items = by_category_for_examples(examples, "Custom")
         assert ("one", '{\n  "AoTest": {}\n}') in custom_items
 
-    def test_resolve_examples_uses_raw_stem_when_normalized_label_is_empty(self, tmp_path) -> None:
+    def test_resolve_examples_uses_raw_stem_for_symbol_only_filename(self, tmp_path) -> None:
         folder = tmp_path / "custom"
         folder.mkdir()
-        (folder / "--.json").write_text('{"AoUnit": {}}', encoding="utf-8")
+        (folder / "_-.json").write_text('{"AoUnit": {}}', encoding="utf-8")
 
         examples = resolve_examples(custom_examples_folder=str(folder))
 
-        assert ("Custom", "--", '{\n  "AoUnit": {}\n}') in examples
+        assert ("Custom", "_-", '{\n  "AoUnit": {}\n}') in examples

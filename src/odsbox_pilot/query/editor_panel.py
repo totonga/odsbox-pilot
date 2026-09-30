@@ -389,7 +389,13 @@ class EditorPanel(wx.Panel):
                 self,
             )
             if decision != wx.YES:
-                return resolve_examples(custom_examples_folder=custom_examples_folder)
+                cache_key = ("", custom_examples_folder)
+                if self._examples_cache is None or self._examples_cache_key != cache_key:
+                    self._examples_cache = resolve_examples(
+                        custom_examples_folder=custom_examples_folder
+                    )
+                    self._examples_cache_key = cache_key
+                return self._examples_cache
             else:
                 self._trusted_custom_example_python_files.add(custom_python_file)
 
