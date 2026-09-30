@@ -389,7 +389,7 @@ class EditorPanel(wx.Panel):
                 self,
             )
             if decision != wx.YES:
-                custom_python_file = ""
+                return resolve_examples(custom_examples_folder=custom_examples_folder)
             else:
                 self._trusted_custom_example_python_files.add(custom_python_file)
 
