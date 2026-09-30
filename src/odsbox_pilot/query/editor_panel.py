@@ -166,6 +166,8 @@ class EditorPanel(wx.Panel):
         self._convert_cb = on_convert
         self._on_settings_changed = on_settings_changed
         self._webview_ready = False
+        self._examples_cache_key: tuple[str, str] | None = None
+        self._examples_cache: list[tuple[str, str, str]] | None = None
 
         self._build_ui()
         self._load_editor()
@@ -202,6 +204,8 @@ class EditorPanel(wx.Panel):
     def set_settings(self, settings: AppSettings | None) -> None:
         """Keep the editor's local settings object in sync with the main frame."""
         self._settings = settings
+        self._examples_cache_key = None
+        self._examples_cache = None
 
     # ------------------------------------------------------------------
     # UI construction
@@ -345,14 +349,7 @@ class EditorPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_examples_menu(self, _event: wx.Event) -> None:
-        examples = resolve_examples(
-            custom_python_file=self._settings.custom_examples_python_file
-            if self._settings is not None
-            else "",
-            custom_examples_folder=self._settings.custom_examples_folder
-            if self._settings is not None
-            else "",
-        )
+        examples = self._resolve_examples_for_menu()
         menu = wx.Menu()
         for cat in categories_for_examples(examples):
             submenu = wx.Menu()
@@ -366,6 +363,22 @@ class EditorPanel(wx.Panel):
             menu.AppendSubMenu(submenu, cat)
         self._btn_examples.PopupMenu(menu)
         menu.Destroy()
+
+    def _resolve_examples_for_menu(self) -> list[tuple[str, str, str]]:
+        custom_python_file = (
+            self._settings.custom_examples_python_file if self._settings is not None else ""
+        )
+        custom_examples_folder = (
+            self._settings.custom_examples_folder if self._settings is not None else ""
+        )
+        cache_key = (custom_python_file, custom_examples_folder)
+        if self._examples_cache is None or self._examples_cache_key != cache_key:
+            self._examples_cache = resolve_examples(
+                custom_python_file=custom_python_file,
+                custom_examples_folder=custom_examples_folder,
+            )
+            self._examples_cache_key = cache_key
+        return self._examples_cache
 
     def _on_history_menu(self, _event: wx.Event) -> None:
         entries = self._history.entries
