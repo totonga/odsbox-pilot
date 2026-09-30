@@ -203,9 +203,18 @@ class EditorPanel(wx.Panel):
 
     def set_settings(self, settings: AppSettings | None) -> None:
         """Keep the editor's local settings object in sync with the main frame."""
+        current_key = (
+            self._settings.custom_examples_python_file if self._settings is not None else "",
+            self._settings.custom_examples_folder if self._settings is not None else "",
+        )
+        next_key = (
+            settings.custom_examples_python_file if settings is not None else "",
+            settings.custom_examples_folder if settings is not None else "",
+        )
         self._settings = settings
-        self._examples_cache_key = None
-        self._examples_cache = None
+        if current_key != next_key:
+            self._examples_cache_key = None
+            self._examples_cache = None
 
     # ------------------------------------------------------------------
     # UI construction

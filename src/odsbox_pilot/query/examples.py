@@ -12,6 +12,8 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
+log = logging.getLogger(__name__)
+
 # Format: (category, label, json_str)
 EXAMPLES: list[tuple[str, str, str]] = [
     # ── Basic Access ────────────────────────────────────────────────────────
@@ -374,8 +376,6 @@ EXAMPLES: list[tuple[str, str, str]] = [
     ),
 ]
 
-log = logging.getLogger(__name__)
-
 
 def _normalize_example_item(item: object) -> tuple[str, str, str] | None:
     if isinstance(item, (list, tuple)) and len(item) == 3:
@@ -472,7 +472,7 @@ def resolve_examples(
     resolved = list(EXAMPLES)
 
     if custom_python_file.strip():
-        path = Path(custom_python_file).expanduser()
+        path = Path(custom_python_file).expanduser().resolve()
         try:
             if path.is_file():
                 resolved.extend(_load_custom_examples_from_python_file(path))
@@ -482,7 +482,7 @@ def resolve_examples(
             log.exception("Failed loading custom examples from python file: %s", path)
 
     if custom_examples_folder.strip():
-        folder = Path(custom_examples_folder).expanduser()
+        folder = Path(custom_examples_folder).expanduser().resolve()
         try:
             if folder.is_dir():
                 resolved.extend(_load_custom_examples_from_folder(folder))
