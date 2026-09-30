@@ -116,12 +116,14 @@ def test_on_save_connect_save_error_stays_open(mocker: MockerFixture) -> None:
     dialog = module.ConnectDialog.__new__(module.ConnectDialog)
     dialog._build_config = mocker.Mock(return_value=(_basic_config(), "secret"))
     dialog._save_config = mocker.Mock(side_effect=RuntimeError("permission denied"))
-    dialog._do_connect = mocker.Mock()
+    dialog._do_connect = mocker.Mock(return_value="connected")
+    dialog._cleanup_connection = mocker.Mock()
     dialog.EndModal = mocker.Mock()
 
     module.ConnectDialog._on_save_connect(dialog, mocker.Mock())
 
     dialog._do_connect.assert_called_once()
+    dialog._cleanup_connection.assert_called_once_with("connected")
     dialog.EndModal.assert_not_called()
     module.wx.MessageBox.assert_called_once()
 

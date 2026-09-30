@@ -555,6 +555,17 @@ class ConnectDialog(wx.Dialog):
     def _do_connect(self, config: ServerConfig, secret: str):  # type: ignore[return]
         return do_connect(config, secret)
 
+    def _cleanup_connection(self, con_i: object) -> None:
+        close = getattr(con_i, "close", None)
+        if callable(close):
+            with contextlib.suppress(Exception):
+                close()
+            return
+        exit_method = getattr(con_i, "__exit__", None)
+        if callable(exit_method):
+            with contextlib.suppress(Exception):
+                exit_method(None, None, None)
+
     def _show_save_error(self, config_id: str, exc: Exception) -> None:
         if isinstance(exc, KeyError):
             detail = f"GUID '{config_id}' could not be found."
@@ -616,6 +627,7 @@ class ConnectDialog(wx.Dialog):
         try:
             self._save_config(config, secret)
         except Exception as exc:
+            self._cleanup_connection(con_i)
             self._show_save_error(config.id, exc)
             return
 
