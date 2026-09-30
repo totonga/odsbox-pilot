@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import uuid
+from typing import Any
 
 import wx  # type: ignore[import-untyped]
 
@@ -20,7 +21,7 @@ from odsbox_pilot.models import AuthType, ServerConfig
 _log = logging.getLogger(__name__)
 
 
-def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
+def do_connect(config: ServerConfig, secret: str) -> Any:
     """Create a live ConI from *config* + *secret* without any UI."""
     if config.auth_type == AuthType.ATFX:
         from odsbox_pilot.connection.atfx_factory import open_atfx
@@ -552,7 +553,7 @@ class ConnectDialog(wx.Dialog):
     # Connect helper
     # ------------------------------------------------------------------
 
-    def _do_connect(self, config: ServerConfig, secret: str):  # type: ignore[return]
+    def _do_connect(self, config: ServerConfig, secret: str) -> Any:
         return do_connect(config, secret)
 
     def _cleanup_connection(self, con_i: object) -> None:
