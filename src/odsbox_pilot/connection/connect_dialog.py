@@ -592,11 +592,6 @@ class ConnectDialog(wx.Dialog):
         if result is None:
             return
         config, secret = result
-        try:
-            self._save_config(config, secret)
-        except Exception as exc:
-            self._show_save_error(config.id, exc)
-            return
 
         try:
             wx.BeginBusyCursor()
@@ -617,6 +612,12 @@ class ConnectDialog(wx.Dialog):
         finally:
             with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
+
+        try:
+            self._save_config(config, secret)
+        except Exception as exc:
+            self._show_save_error(config.id, exc)
+            return
 
         self._result_config = config
         self._con_i = con_i
