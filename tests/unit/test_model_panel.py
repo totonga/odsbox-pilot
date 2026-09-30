@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from types import ModuleType
 from typing import Any, cast
@@ -145,5 +146,5 @@ class TestMessageToPrettyJson:
         as_json = _message_to_pretty_json(entity)
 
         assert '"base_name": "AoBaseTest"' in as_json
-        assert '"aid":' in as_json
+        assert re.search(r'"aid":\s*(?:"42"|42)', as_json)
         assert "\n  " in as_json
