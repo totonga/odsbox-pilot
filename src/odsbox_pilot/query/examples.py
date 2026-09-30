@@ -11,6 +11,7 @@ import json
 import logging
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any, cast
 
 log = logging.getLogger(__name__)
 
@@ -409,10 +410,10 @@ def _normalize_example_item(item: object) -> tuple[str, str, str] | None:
 
 def _load_custom_examples_from_python_file(path: Path) -> list[tuple[str, str, str]]:
     spec = importlib.util.spec_from_file_location("_odsbox_pilot_custom_examples", path)
-    if spec is None or spec.loader is None:
+    if spec is None or spec.loader is None or not hasattr(spec.loader, "exec_module"):
         return []
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    cast(Any, spec.loader).exec_module(module)
 
     loaded: object = None
     if hasattr(module, "get_examples"):

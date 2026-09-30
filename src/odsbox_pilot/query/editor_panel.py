@@ -364,12 +364,18 @@ class EditorPanel(wx.Panel):
         menu.Destroy()
 
     def _resolve_examples_for_menu(self) -> list[tuple[str, str, str]]:
-        custom_python_file = (
+        custom_python_file_raw = (
             self._settings.custom_examples_python_file if self._settings is not None else ""
         )
-        custom_examples_folder = (
+        custom_examples_folder_raw = (
             self._settings.custom_examples_folder if self._settings is not None else ""
         )
+        custom_python_file = ""
+        if custom_python_file_raw.strip():
+            custom_python_file = str(Path(custom_python_file_raw).expanduser().resolve())
+        custom_examples_folder = ""
+        if custom_examples_folder_raw.strip():
+            custom_examples_folder = str(Path(custom_examples_folder_raw).expanduser().resolve())
 
         if custom_python_file and custom_python_file not in self._trusted_custom_example_python_files:
             decision = wx.MessageBox(
