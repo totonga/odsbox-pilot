@@ -140,6 +140,8 @@ class ModelPanel(wx.Panel):
         self._results_list.AppendColumn("Name", width=self.FromDIP(160))
         self._results_list.AppendColumn("Score", width=self.FromDIP(55))
         self._results_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_result_activated)
+        self._results_list.Bind(wx.EVT_CONTEXT_MENU, self._on_results_context_menu)
+        self._results_list.Bind(wx.EVT_KEY_DOWN, self._on_results_key_down)
         self._results_list.Hide()
         left_sizer.Add(self._results_list, proportion=0, flag=wx.EXPAND)
         self._left_panel.SetSizer(left_sizer)
@@ -197,6 +199,8 @@ class ModelPanel(wx.Panel):
         )
         self._props_list.AppendColumn("Property", width=self.FromDIP(160))
         self._props_list.AppendColumn("Value", width=self.FromDIP(260))
+        self._props_list.Bind(wx.EVT_CONTEXT_MENU, self._on_props_context_menu)
+        self._props_list.Bind(wx.EVT_KEY_DOWN, self._on_props_key_down)
         vbox.Add(
             self._props_list,
             proportion=1,
@@ -618,6 +622,46 @@ class ModelPanel(wx.Panel):
     def _clear_props(self, header: str = "Model") -> None:
         self._props_list.DeleteAllItems()
         self._props_header.SetLabel(header)
+
+    def _copy_selected_row(self, ctrl: wx.ListCtrl) -> None:
+        idx = ctrl.GetFirstSelected()
+        if idx == wx.NOT_FOUND:
+            return
+        text = ctrl.GetItemText(idx)
+        value = ctrl.GetItemText(idx, 1)
+        payload = f"{text}\t{value}"
+        data = wx.TextDataObject(payload)
+        if wx.TheClipboard.Open():
+            try:
+                wx.TheClipboard.SetData(data)
+            finally:
+                wx.TheClipboard.Close()
+
+    def _on_props_context_menu(self, event: wx.ContextMenuEvent) -> None:
+        menu = wx.Menu()
+        item_copy = menu.Append(wx.ID_COPY, "Copy")
+        menu.Bind(wx.EVT_MENU, lambda _evt: self._copy_selected_row(self._props_list), item_copy)
+        self._props_list.PopupMenu(menu)
+        menu.Destroy()
+
+    def _on_props_key_down(self, event: wx.KeyEvent) -> None:
+        if event.GetKeyCode() == ord("C") and event.ControlDown():
+            self._copy_selected_row(self._props_list)
+            return
+        event.Skip()
+
+    def _on_results_context_menu(self, event: wx.ContextMenuEvent) -> None:
+        menu = wx.Menu()
+        item_copy = menu.Append(wx.ID_COPY, "Copy")
+        menu.Bind(wx.EVT_MENU, lambda _evt: self._copy_selected_row(self._results_list), item_copy)
+        self._results_list.PopupMenu(menu)
+        menu.Destroy()
+
+    def _on_results_key_down(self, event: wx.KeyEvent) -> None:
+        if event.GetKeyCode() == ord("C") and event.ControlDown():
+            self._copy_selected_row(self._results_list)
+            return
+        event.Skip()
 
     def _set_props(self, header: str, rows: list[tuple[str, str]]) -> None:
         self._props_list.DeleteAllItems()

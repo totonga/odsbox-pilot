@@ -335,6 +335,8 @@ class BrowsePanel(wx.Panel):
         )
         self._props_list.AppendColumn("Property", width=self.FromDIP(280))
         self._props_list.AppendColumn("Value", width=self.FromDIP(250))
+        self._props_list.Bind(wx.EVT_CONTEXT_MENU, self._on_props_context_menu)
+        self._props_list.Bind(wx.EVT_KEY_DOWN, self._on_props_key_down)
         vbox.Add(
             self._props_list,
             proportion=1,
@@ -569,6 +571,33 @@ class BrowsePanel(wx.Panel):
     # ------------------------------------------------------------------
     # Selection / property panel
     # ------------------------------------------------------------------
+
+    def _copy_list_row(self, ctrl: wx.ListCtrl) -> None:
+        idx = ctrl.GetFirstSelected()
+        if idx == wx.NOT_FOUND:
+            return
+        text = ctrl.GetItemText(idx)
+        value = ctrl.GetItemText(idx, 1)
+        payload = f"{text}\t{value}"
+        data = wx.TextDataObject(payload)
+        if wx.TheClipboard.Open():
+            try:
+                wx.TheClipboard.SetData(data)
+            finally:
+                wx.TheClipboard.Close()
+
+    def _on_props_context_menu(self, event: wx.ContextMenuEvent) -> None:
+        menu = wx.Menu()
+        item_copy = menu.Append(wx.ID_COPY, "Copy")
+        menu.Bind(wx.EVT_MENU, lambda _evt: self._copy_list_row(self._props_list), item_copy)
+        self._props_list.PopupMenu(menu)
+        menu.Destroy()
+
+    def _on_props_key_down(self, event: wx.KeyEvent) -> None:
+        if event.GetKeyCode() == ord("C") and event.ControlDown():
+            self._copy_list_row(self._props_list)
+            return
+        event.Skip()
 
     def _on_tree_sel_changed(self, event: wx.TreeEvent) -> None:
         if self._closing:
