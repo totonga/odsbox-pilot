@@ -556,15 +556,16 @@ class ConnectDialog(wx.Dialog):
         return do_connect(config, secret)
 
     def _cleanup_connection(self, con_i: object) -> None:
-        close = getattr(con_i, "close", None)
-        if callable(close):
-            with contextlib.suppress(Exception):
-                close()
-            return
+        """Best-effort close for connection-like objects after partial failures."""
         exit_method = getattr(con_i, "__exit__", None)
         if callable(exit_method):
             with contextlib.suppress(Exception):
                 exit_method(None, None, None)
+            return
+        close = getattr(con_i, "close", None)
+        if callable(close):
+            with contextlib.suppress(Exception):
+                close()
 
     def _show_save_error(self, config_id: str, exc: Exception) -> None:
         if isinstance(exc, KeyError):
