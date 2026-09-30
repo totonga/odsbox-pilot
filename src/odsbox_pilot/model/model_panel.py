@@ -624,8 +624,6 @@ class ModelPanel(wx.Panel):
             return data.rel
         if isinstance(data, _EnumNode):
             return data.enum
-        if isinstance(data, _EnumItemNode):
-            return data.enum
         return None
 
     def _copy_json_to_clipboard(self, message: Any) -> None:
