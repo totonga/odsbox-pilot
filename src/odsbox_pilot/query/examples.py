@@ -510,11 +510,10 @@ def by_category(category: str) -> list[tuple[str, str]]:
 
 def categories_for_examples(examples: Iterable[tuple[str, str, str]]) -> list[str]:
     """Return unique category names for an arbitrary example list."""
-    seen: list[str] = []
+    seen: dict[str, None] = {}
     for cat, _, _ in examples:
-        if cat not in seen:
-            seen.append(cat)
-    return seen
+        seen.setdefault(cat, None)
+    return list(seen)
 
 
 def by_category_for_examples(

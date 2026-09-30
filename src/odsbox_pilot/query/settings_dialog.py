@@ -74,7 +74,7 @@ class AppSettingsDialog(wx.Dialog):
                 self,
                 label=(
                     "Optional custom examples:\n"
-                    "- Python file with EXAMPLES or get_examples()\n"
+                    "- Python file with EXAMPLES or get_examples() (will be executed)\n"
                     "- Folder with *.json query files"
                 ),
             ),

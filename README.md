@@ -101,7 +101,7 @@ Use **Examples ▾** for ready-made patterns (filters, joins, aggregations) and
 **History ▾** to re-run previous queries. Export any result with **Ctrl+S**.
 
 You can add your own custom examples in **Settings → Preferences…**:
-- **Custom examples Python file** (`.py`) with either `EXAMPLES = [...]` or `get_examples()`
+- **Custom examples Python file** (`.py`) with either `EXAMPLES = [...]` or `get_examples()` (the file is executed)
 - **Custom examples folder** with `*.json` files (each file can be a JAQueL query object)
 
 **🤖 AI-powered query parsing** (optional) — If you install the AI dependencies and

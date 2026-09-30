@@ -109,4 +109,4 @@ class TestCustomExamples:
         cats = categories_for_examples(examples)
         assert "Custom" in cats
         custom_items = by_category_for_examples(examples, "Custom")
-        assert custom_items[0][0] == "one"
+        assert ("one", '{\n  "AoTest": {}\n}') in custom_items
