@@ -666,7 +666,7 @@ class ModelPanel(wx.Panel):
         if self._model is not None:
             menu.Bind(
                 wx.EVT_MENU,
-                lambda _evt: self._copy_json_to_clipboard(self._model),
+                lambda _evt, model=self._model: self._copy_json_to_clipboard(model),
                 item_copy_model,
             )
 
