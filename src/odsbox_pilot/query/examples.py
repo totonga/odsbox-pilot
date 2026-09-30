@@ -416,7 +416,7 @@ def _load_custom_examples_from_python_file(path: Path) -> list[tuple[str, str, s
 
     loaded: object = None
     if hasattr(module, "get_examples"):
-        maybe_fn = getattr(module, "get_examples")
+        maybe_fn = module.get_examples
         if callable(maybe_fn):
             loaded = maybe_fn()
     if loaded is None:
