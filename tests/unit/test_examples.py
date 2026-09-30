@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import json
+import textwrap
 
 import pytest
 
-from odsbox_pilot.query.examples import EXAMPLES, by_category, categories
+from odsbox_pilot.query.examples import (
+    EXAMPLES,
+    by_category,
+    by_category_for_examples,
+    categories,
+    categories_for_examples,
+    resolve_examples,
+)
 
 
 class TestExamplesContent:
@@ -51,3 +59,54 @@ class TestCategoryHelpers:
 
     def test_by_category_unknown_returns_empty(self) -> None:
         assert by_category("__nonexistent__") == []
+
+
+class TestCustomExamples:
+    def test_resolve_examples_loads_custom_python_file(self, tmp_path) -> None:
+        custom_file = tmp_path / "custom_examples.py"
+        custom_file.write_text(
+            textwrap.dedent(
+                """
+                EXAMPLES = [
+                    ("Team", "My custom query", {"AoTest": {}})
+                ]
+                """
+            ),
+            encoding="utf-8",
+        )
+
+        examples = resolve_examples(custom_python_file=str(custom_file))
+
+        assert ("Team", "My custom query", '{\n  "AoTest": {}\n}') in examples
+
+    def test_resolve_examples_loads_custom_json_folder(self, tmp_path) -> None:
+        folder = tmp_path / "custom"
+        folder.mkdir()
+        (folder / "my_query.json").write_text('{"AoMeasurement": {}}', encoding="utf-8")
+
+        examples = resolve_examples(custom_examples_folder=str(folder))
+
+        assert ("Custom", "my query", '{\n  "AoMeasurement": {}\n}') in examples
+
+    def test_resolve_examples_handles_structured_json_entry(self, tmp_path) -> None:
+        folder = tmp_path / "custom"
+        folder.mkdir()
+        (folder / "entry.json").write_text(
+            json.dumps({"category": "Domain", "label": "By id", "query": {"AoUnit": {"id": 1}}}),
+            encoding="utf-8",
+        )
+
+        examples = resolve_examples(custom_examples_folder=str(folder))
+
+        assert ("Domain", "By id", '{\n  "AoUnit": {\n    "id": 1\n  }\n}') in examples
+
+    def test_categories_and_by_category_for_resolved_examples(self, tmp_path) -> None:
+        folder = tmp_path / "custom"
+        folder.mkdir()
+        (folder / "one.json").write_text('{"AoTest": {}}', encoding="utf-8")
+
+        examples = resolve_examples(custom_examples_folder=str(folder))
+        cats = categories_for_examples(examples)
+        assert "Custom" in cats
+        custom_items = by_category_for_examples(examples, "Custom")
+        assert custom_items[0][0] == "one"

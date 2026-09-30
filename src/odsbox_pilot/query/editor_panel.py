@@ -16,7 +16,11 @@ from odsbox.model_cache import ModelCache
 
 from odsbox_pilot import styles
 from odsbox_pilot.models import AppSettings
-from odsbox_pilot.query.examples import by_category, categories
+from odsbox_pilot.query.examples import (
+    by_category_for_examples,
+    categories_for_examples,
+    resolve_examples,
+)
 from odsbox_pilot.query.history import QueryHistory
 from odsbox_pilot.query.result_grid import ResultGrid
 
@@ -341,10 +345,18 @@ class EditorPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_examples_menu(self, _event: wx.Event) -> None:
+        examples = resolve_examples(
+            custom_python_file=self._settings.custom_examples_python_file
+            if self._settings is not None
+            else "",
+            custom_examples_folder=self._settings.custom_examples_folder
+            if self._settings is not None
+            else "",
+        )
         menu = wx.Menu()
-        for cat in categories():
+        for cat in categories_for_examples(examples):
             submenu = wx.Menu()
-            for label, query_str in by_category(cat):
+            for label, query_str in by_category_for_examples(examples, cat):
                 item = submenu.Append(wx.ID_ANY, label)
                 self.Bind(
                     wx.EVT_MENU,

@@ -22,11 +22,11 @@ class AppSettingsDialog(wx.Dialog):
         super().__init__(
             parent,
             title="Preferences",
-            size=(420, 260),
+            size=(620, 360),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         styles.apply_scaled_app_font(self)
-        self.SetSize(self.FromDIP(wx.Size(420, 260)))
+        self.SetSize(self.FromDIP(wx.Size(620, 360)))
         # Work on a copy so Cancel discards changes
         self._settings = copy(settings)
         self._build_ui()
@@ -66,7 +66,54 @@ class AppSettingsDialog(wx.Dialog):
 
         outer.Add(general_sizer, flag=wx.EXPAND | wx.ALL, border=10)
 
-        # Future application-level settings sections go here, below General.
+        examples_box = wx.StaticBox(self, label="Query examples")
+        examples_sizer = wx.StaticBoxSizer(examples_box, wx.VERTICAL)
+
+        examples_sizer.Add(
+            wx.StaticText(
+                self,
+                label=(
+                    "Optional custom examples:\n"
+                    "- Python file with EXAMPLES or get_examples()\n"
+                    "- Folder with *.json query files"
+                ),
+            ),
+            flag=wx.LEFT | wx.RIGHT | wx.TOP,
+            border=6,
+        )
+
+        self._picker_custom_examples_py = wx.FilePickerCtrl(
+            self,
+            path=self._settings.custom_examples_python_file,
+            wildcard="Python files (*.py)|*.py",
+            style=wx.FLP_USE_TEXTCTRL | wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST,
+        )
+        self._picker_custom_examples_dir = wx.DirPickerCtrl(
+            self,
+            path=self._settings.custom_examples_folder,
+            style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST,
+        )
+        examples_sizer.Add(
+            wx.StaticText(self, label="Custom examples Python file:"),
+            flag=wx.LEFT | wx.RIGHT | wx.TOP,
+            border=6,
+        )
+        examples_sizer.Add(
+            self._picker_custom_examples_py,
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=6,
+        )
+        examples_sizer.Add(
+            wx.StaticText(self, label="Custom examples folder:"),
+            flag=wx.LEFT | wx.RIGHT,
+            border=6,
+        )
+        examples_sizer.Add(
+            self._picker_custom_examples_dir,
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=6,
+        )
+        outer.Add(examples_sizer, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
 
         # --- Standard buttons ---
         btn_sizer = wx.StdDialogButtonSizer()
@@ -87,6 +134,8 @@ class AppSettingsDialog(wx.Dialog):
 
     def _on_ok(self, _event: wx.Event) -> None:
         self._settings.startup_scaling = self._choice_scaling.GetStringSelection()
+        self._settings.custom_examples_python_file = self._picker_custom_examples_py.GetPath().strip()
+        self._settings.custom_examples_folder = self._picker_custom_examples_dir.GetPath().strip()
         self.EndModal(wx.ID_OK)
 
     def get_settings(self) -> AppSettings:
