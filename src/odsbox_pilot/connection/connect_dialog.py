@@ -604,6 +604,7 @@ class ConnectDialog(wx.Dialog):
         if result is None:
             return
         config, secret = result
+        con_i: object | None = None
 
         try:
             wx.BeginBusyCursor()
@@ -628,7 +629,8 @@ class ConnectDialog(wx.Dialog):
         try:
             self._save_config(config, secret)
         except Exception as exc:
-            self._cleanup_connection(con_i)
+            if con_i is not None:
+                self._cleanup_connection(con_i)
             self._show_save_error(config.id, exc)
             return
 
