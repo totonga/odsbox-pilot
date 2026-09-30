@@ -6,6 +6,10 @@ without a wxPython installation.
 
 from __future__ import annotations
 
+import json
+
+from google.protobuf.json_format import MessageToJson
+from google.protobuf.message import Message
 from odsbox.proto import ods
 
 _UNBOUNDED = -1
@@ -25,3 +29,9 @@ def _rel_range(rel: ods.Model.Relation) -> str:
 def _rel_type_label(rel: ods.Model.Relation) -> str:
     """Return the ``RelationshipEnum`` name for *rel.relationship*."""
     return str(ods.Model.RelationshipEnum.Name(rel.relationship))
+
+
+def _message_to_pretty_json(message: Message) -> str:
+    """Return *message* as indented JSON using protobuf field names."""
+    raw_json = MessageToJson(message, preserving_proto_field_name=True)
+    return json.dumps(json.loads(raw_json), indent=2, ensure_ascii=False)

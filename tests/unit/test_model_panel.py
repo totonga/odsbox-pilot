@@ -9,7 +9,12 @@ from typing import Any, cast
 from odsbox.proto import ods
 from pytest_mock import MockerFixture
 
-from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
+from odsbox_pilot.model.helpers import (
+    _message_to_pretty_json,
+    _range_str,
+    _rel_range,
+    _rel_type_label,
+)
 
 
 class _FakeWxPanel:
@@ -74,6 +79,38 @@ def test_model_panel_ignores_stale_search_callbacks_after_destroy(mocker: Mocker
     panel._results_list.DeleteAllItems.assert_not_called()
 
 
+def test_model_panel_message_for_tree_item_returns_expected_protobuf_messages(
+    mocker: MockerFixture,
+) -> None:
+    _install_fake_wx(mocker)
+    import importlib
+
+    import odsbox_pilot.model.model_panel as model_panel_module
+
+    importlib.reload(model_panel_module)
+    panel = cast(Any, model_panel_module.ModelPanel.__new__(model_panel_module.ModelPanel))
+
+    model = ods.Model()
+    entity = model.entities["AoTest"]
+    entity.name = "AoTest"
+    attr = entity.attributes["id"]
+    attr.name = "id"
+    rel = entity.relations["measurement"]
+    rel.name = "measurement"
+    enum = model.enumerations["Severity"]
+    enum.name = "Severity"
+
+    assert panel._message_for_tree_item(model_panel_module._EntityNode(entity)) is entity
+    assert panel._message_for_tree_item(model_panel_module._AttrNode(entity, attr)) is attr
+    assert panel._message_for_tree_item(model_panel_module._RelNode(entity, rel)) is rel
+    assert panel._message_for_tree_item(model_panel_module._EnumNode(enum)) is enum
+    assert (
+        panel._message_for_tree_item(model_panel_module._EnumItemNode(enum, "HIGH", 3))
+        is enum
+    )
+    assert panel._message_for_tree_item(model_panel_module._EnumGroupNode()) is None
+
+
 class TestRangeStr:
     def test_unbounded_returns_n(self) -> None:
         assert _range_str(-1) == "n"
@@ -128,3 +165,17 @@ class TestRelTypeLabel:
         # 2 = RS_INFO_TO
         rel = self._make_rel(2)
         assert _rel_type_label(rel) == "RS_INFO_TO"
+
+
+class TestMessageToPrettyJson:
+    def test_uses_proto_field_names_and_indentation(self) -> None:
+        entity = ods.Model.Entity()
+        entity.name = "AoTest"
+        entity.base_name = "AoBaseTest"
+        entity.aid = 42
+
+        as_json = _message_to_pretty_json(entity)
+
+        assert '"base_name": "AoBaseTest"' in as_json
+        assert '"aid": 42' in as_json
+        assert "\n  " in as_json

@@ -22,7 +22,12 @@ from odsbox_pilot.browse._helpers import (
     _entity_icon,
     _ods_type_symbol,
 )
-from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
+from odsbox_pilot.model.helpers import (
+    _message_to_pretty_json,
+    _range_str,
+    _rel_range,
+    _rel_type_label,
+)
 from odsbox_pilot.model.search_index import (
     ModelMatch,
     ModelSearchIndex,
@@ -128,6 +133,7 @@ class ModelPanel(wx.Panel):
         )
         self._tree.Bind(wx.EVT_TREE_SEL_CHANGED, self._on_sel_changed)
         self._tree.Bind(wx.EVT_TREE_ITEM_EXPANDING, self._on_tree_expanding)
+        self._tree.Bind(wx.EVT_TREE_ITEM_MENU, self._on_tree_context_menu)
         left_sizer.Add(self._tree, proportion=1, flag=wx.EXPAND)
 
         # Search results list (hidden until a search is active)
@@ -608,6 +614,66 @@ class ModelPanel(wx.Panel):
     # ------------------------------------------------------------------
     # Selection → property panel
     # ------------------------------------------------------------------
+
+    def _message_for_tree_item(self, data: Any) -> Any | None:
+        if isinstance(data, _EntityNode):
+            return data.entity
+        if isinstance(data, _AttrNode):
+            return data.attr
+        if isinstance(data, _RelNode):
+            return data.rel
+        if isinstance(data, _EnumNode):
+            return data.enum
+        if isinstance(data, _EnumItemNode):
+            return data.enum
+        return None
+
+    def _copy_json_to_clipboard(self, message: Any) -> None:
+        payload = _message_to_pretty_json(message)
+        if not wx.TheClipboard.Open():
+            log.warning("Could not open clipboard.")
+            return
+        try:
+            wx.TheClipboard.SetData(wx.TextDataObject(payload))
+        finally:
+            wx.TheClipboard.Close()
+
+    def _on_tree_context_menu(self, event: wx.TreeEvent) -> None:
+        if self._destroyed:
+            return
+
+        item = event.GetItem()
+        if item.IsOk():
+            self._tree.SelectItem(item)
+        else:
+            item = self._tree.GetSelection()
+            if not item.IsOk():
+                return
+
+        selected_message = self._message_for_tree_item(self._tree.GetItemData(item))
+
+        menu = wx.Menu()
+        item_copy_selected = menu.Append(wx.ID_ANY, "Copy selected message as protobuf JSON")
+        item_copy_selected.Enable(selected_message is not None)
+        item_copy_model = menu.Append(wx.ID_ANY, "Copy full model as protobuf JSON")
+        item_copy_model.Enable(self._model is not None)
+
+        if selected_message is not None:
+            self.Bind(
+                wx.EVT_MENU,
+                lambda _evt, msg=selected_message: self._copy_json_to_clipboard(msg),
+                item_copy_selected,
+            )
+
+        if self._model is not None:
+            self.Bind(
+                wx.EVT_MENU,
+                lambda _evt: self._copy_json_to_clipboard(self._model),
+                item_copy_model,
+            )
+
+        self._tree.PopupMenu(menu)
+        menu.Destroy()
 
     def _on_sel_changed(self, event: wx.TreeEvent) -> None:
         if self._destroyed or not self._tree:
