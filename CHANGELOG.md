@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.19.2 (2026-10-01)
+
+### Bug Fixes
+
+- Prevent persisting new server entries when “Save & Connect” fails
+  ([#34](https://github.com/totonga/odsbox-pilot/pull/34),
+  [`2ee9a94`](https://github.com/totonga/odsbox-pilot/commit/2ee9a94fd0a4d5d4538054b214eac0d75cf7d3b2))
+
+
 ## v1.19.1 (2026-09-24)
 
 ### Bug Fixes
