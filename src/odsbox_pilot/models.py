@@ -294,7 +294,6 @@ class AppSettings:
     enum_as_string: bool = True
     is_null_to_nan: bool = True
     use_base_names: bool = False
-    custom_examples_python_file: str = ""
     custom_examples_folder: str = ""
 
     def save(self) -> None:
@@ -319,8 +318,6 @@ class AppSettings:
                 obj.is_null_to_nan = True
             if not isinstance(obj.use_base_names, bool):
                 obj.use_base_names = False
-            if not isinstance(obj.custom_examples_python_file, str):
-                obj.custom_examples_python_file = ""
             if not isinstance(obj.custom_examples_folder, str):
                 obj.custom_examples_folder = ""
             return obj

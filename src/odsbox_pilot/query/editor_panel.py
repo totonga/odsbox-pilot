@@ -166,9 +166,8 @@ class EditorPanel(wx.Panel):
         self._convert_cb = on_convert
         self._on_settings_changed = on_settings_changed
         self._webview_ready = False
-        self._examples_cache_key: tuple[str, str] | None = None
+        self._examples_cache_key: tuple[str, ...] | None = None
         self._examples_cache: list[tuple[str, str, str]] | None = None
-        self._trusted_custom_example_python_files: set[str] = set()
 
         self._build_ui()
         self._load_editor()
@@ -364,47 +363,16 @@ class EditorPanel(wx.Panel):
         menu.Destroy()
 
     def _resolve_examples_for_menu(self) -> list[tuple[str, str, str]]:
-        custom_python_file_raw = (
-            self._settings.custom_examples_python_file if self._settings is not None else ""
-        )
         custom_examples_folder_raw = (
             self._settings.custom_examples_folder if self._settings is not None else ""
         )
-        custom_python_file = ""
-        if custom_python_file_raw.strip():
-            custom_python_file = str(Path(custom_python_file_raw).expanduser().resolve())
         custom_examples_folder = ""
         if custom_examples_folder_raw.strip():
             custom_examples_folder = str(Path(custom_examples_folder_raw).expanduser().resolve())
 
-        if custom_python_file and custom_python_file not in self._trusted_custom_example_python_files:
-            decision = wx.MessageBox(
-                (
-                    "The configured custom examples Python file will be executed.\n\n"
-                    f"File: {custom_python_file}\n\n"
-                    "Only continue if you trust this file."
-                ),
-                "Trust custom examples file?",
-                wx.YES_NO | wx.ICON_WARNING,
-                self,
-            )
-            if decision != wx.YES:
-                cache_key = ("", custom_examples_folder)
-                if self._examples_cache is None or self._examples_cache_key != cache_key:
-                    self._examples_cache = resolve_examples(
-                        custom_examples_folder=custom_examples_folder
-                    )
-                    self._examples_cache_key = cache_key
-                return self._examples_cache
-            else:
-                self._trusted_custom_example_python_files.add(custom_python_file)
-
-        cache_key = (custom_python_file, custom_examples_folder)
+        cache_key = (custom_examples_folder,)
         if self._examples_cache is None or self._examples_cache_key != cache_key:
-            self._examples_cache = resolve_examples(
-                custom_python_file=custom_python_file,
-                custom_examples_folder=custom_examples_folder,
-            )
+            self._examples_cache = resolve_examples(custom_examples_folder=custom_examples_folder)
             self._examples_cache_key = cache_key
         return self._examples_cache
 

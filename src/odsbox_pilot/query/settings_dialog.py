@@ -45,12 +45,12 @@ class AppSettingsDialog(wx.Dialog):
 
         scaling_row = wx.BoxSizer(wx.HORIZONTAL)
         scaling_row.Add(
-            wx.StaticText(self, label="Startup UI scaling:"),
+            wx.StaticText(general_box, label="Startup UI scaling:"),
             flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
             border=8,
         )
         levels = [level.value for level in styles.ScaleLevel]
-        self._choice_scaling = wx.Choice(self, choices=levels)
+        self._choice_scaling = wx.Choice(general_box, choices=levels)
         selected = (
             self._settings.startup_scaling
             if self._settings.startup_scaling in levels
@@ -60,51 +60,22 @@ class AppSettingsDialog(wx.Dialog):
         scaling_row.Add(self._choice_scaling, flag=wx.ALIGN_CENTER_VERTICAL)
         general_sizer.Add(scaling_row, flag=wx.ALL, border=6)
 
-        hint = wx.StaticText(self, label="Takes effect the next time ODS Pilot is started.")
+        hint = wx.StaticText(general_box, label="Takes effect the next time ODS Pilot is started.")
         hint.SetForegroundColour(wx.Colour(100, 100, 100))
         general_sizer.Add(hint, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=6)
 
         outer.Add(general_sizer, flag=wx.EXPAND | wx.ALL, border=10)
 
-        examples_box = wx.StaticBox(self, label="Query examples")
+        examples_box = wx.StaticBox(self, label="Custom Query Examples")
         examples_sizer = wx.StaticBoxSizer(examples_box, wx.VERTICAL)
 
-        examples_sizer.Add(
-            wx.StaticText(
-                self,
-                label=(
-                    "Optional custom examples:\n"
-                    "- Python file with EXAMPLES or get_examples() (will be executed)\n"
-                    "- Folder with *.json query files"
-                ),
-            ),
-            flag=wx.LEFT | wx.RIGHT | wx.TOP,
-            border=6,
-        )
-
-        self._picker_custom_examples_py = wx.FilePickerCtrl(
-            self,
-            path=self._settings.custom_examples_python_file,
-            wildcard="Python files (*.py)|*.py",
-            style=wx.FLP_USE_TEXTCTRL | wx.FLP_OPEN | wx.FLP_FILE_MUST_EXIST,
-        )
         self._picker_custom_examples_dir = wx.DirPickerCtrl(
-            self,
+            examples_box,
             path=self._settings.custom_examples_folder,
             style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST,
         )
         examples_sizer.Add(
-            wx.StaticText(self, label="Custom examples Python file:"),
-            flag=wx.LEFT | wx.RIGHT | wx.TOP,
-            border=6,
-        )
-        examples_sizer.Add(
-            self._picker_custom_examples_py,
-            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
-            border=6,
-        )
-        examples_sizer.Add(
-            wx.StaticText(self, label="Custom examples folder:"),
+            wx.StaticText(examples_box, label="Query folder (*.json):"),
             flag=wx.LEFT | wx.RIGHT,
             border=6,
         )
@@ -134,7 +105,6 @@ class AppSettingsDialog(wx.Dialog):
 
     def _on_ok(self, _event: wx.Event) -> None:
         self._settings.startup_scaling = self._choice_scaling.GetStringSelection()
-        self._settings.custom_examples_python_file = self._picker_custom_examples_py.GetPath().strip()
         self._settings.custom_examples_folder = self._picker_custom_examples_dir.GetPath().strip()
         self.EndModal(wx.ID_OK)
 

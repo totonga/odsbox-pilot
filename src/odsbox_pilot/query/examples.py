@@ -6,12 +6,10 @@ All json_string values are valid JSON.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import logging
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, cast
 
 log = logging.getLogger(__name__)
 
@@ -408,31 +406,6 @@ def _normalize_example_item(item: object) -> tuple[str, str, str] | None:
     return category.strip(), label.strip(), json.dumps(query_obj, indent=2)
 
 
-def _load_custom_examples_from_python_file(path: Path) -> list[tuple[str, str, str]]:
-    spec = importlib.util.spec_from_file_location("_odsbox_pilot_custom_examples", path)
-    if spec is None or spec.loader is None or not hasattr(spec.loader, "exec_module"):
-        return []
-    module = importlib.util.module_from_spec(spec)
-    cast(Any, spec.loader).exec_module(module)
-
-    loaded: object = None
-    if hasattr(module, "get_examples"):
-        maybe_fn = module.get_examples
-        if callable(maybe_fn):
-            loaded = maybe_fn()
-    if loaded is None:
-        loaded = getattr(module, "EXAMPLES", None)
-    if not isinstance(loaded, Iterable):
-        return []
-
-    examples: list[tuple[str, str, str]] = []
-    for item in loaded:
-        normalized = _normalize_example_item(item)
-        if normalized is not None:
-            examples.append(normalized)
-    return examples
-
-
 def _load_custom_examples_from_folder(path: Path) -> list[tuple[str, str, str]]:
     examples: list[tuple[str, str, str]] = []
     for file_path in sorted(path.rglob("*.json")):
@@ -465,22 +438,9 @@ def _load_custom_examples_from_folder(path: Path) -> list[tuple[str, str, str]]:
     return examples
 
 
-def resolve_examples(
-    custom_python_file: str = "",
-    custom_examples_folder: str = "",
-) -> list[tuple[str, str, str]]:
-    """Return built-in examples and optional custom examples."""
+def resolve_examples(custom_examples_folder: str = "") -> list[tuple[str, str, str]]:
+    """Return built-in examples and optional custom examples from a JSON folder."""
     resolved = list(EXAMPLES)
-
-    if custom_python_file.strip():
-        path = Path(custom_python_file).expanduser().resolve()
-        try:
-            if path.is_file():
-                resolved.extend(_load_custom_examples_from_python_file(path))
-            else:
-                log.warning("Custom examples python file does not exist: %s", path)
-        except Exception:
-            log.exception("Failed loading custom examples from python file: %s", path)
 
     if custom_examples_folder.strip():
         folder = Path(custom_examples_folder).expanduser().resolve()

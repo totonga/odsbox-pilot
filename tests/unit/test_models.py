@@ -207,7 +207,6 @@ class TestAppSettings:
         assert s.enum_as_string is True
         assert s.is_null_to_nan is True
         assert s.use_base_names is False
-        assert s.custom_examples_python_file == ""
         assert s.custom_examples_folder == ""
 
     def test_save_and_load(self, tmp_path: Path) -> None:
@@ -237,7 +236,6 @@ class TestAppSettings:
                 enum_as_string=False,
                 is_null_to_nan=False,
                 use_base_names=True,
-                custom_examples_python_file="~/custom_examples.py",
                 custom_examples_folder="~/custom_examples",
             )
             s.save()
@@ -247,7 +245,6 @@ class TestAppSettings:
             assert loaded.enum_as_string is False
             assert loaded.is_null_to_nan is False
             assert loaded.use_base_names is True
-            assert loaded.custom_examples_python_file == "~/custom_examples.py"
             assert loaded.custom_examples_folder == "~/custom_examples"
         finally:
             models_module.SETTINGS_FILE = orig_settings_file
@@ -292,7 +289,6 @@ class TestAppSettings:
                     "enum_as_string": "nope",
                     "is_null_to_nan": "maybe",
                     "use_base_names": "invalid",
-                    "custom_examples_python_file": 123,
                     "custom_examples_folder": False,
                 }
             )
@@ -304,7 +300,6 @@ class TestAppSettings:
             assert s.enum_as_string is True
             assert s.is_null_to_nan is True
             assert s.use_base_names is False
-            assert s.custom_examples_python_file == ""
             assert s.custom_examples_folder == ""
         finally:
             models_module.SETTINGS_FILE = orig_settings_file

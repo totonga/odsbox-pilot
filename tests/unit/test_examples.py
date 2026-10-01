@@ -62,7 +62,7 @@ class TestCategoryHelpers:
 
 
 class TestCustomExamples:
-    def test_resolve_examples_loads_custom_python_file(self, tmp_path) -> None:
+    def test_resolve_examples_rejects_custom_python_file(self, tmp_path) -> None:
         custom_file = tmp_path / "custom_examples.py"
         custom_file.write_text(
             textwrap.dedent(
@@ -75,9 +75,8 @@ class TestCustomExamples:
             encoding="utf-8",
         )
 
-        examples = resolve_examples(custom_python_file=str(custom_file))
-
-        assert ("Team", "My custom query", '{\n  "AoTest": {}\n}') in examples
+        with pytest.raises(TypeError):
+            resolve_examples(custom_python_file=str(custom_file))
 
     def test_resolve_examples_loads_custom_json_folder(self, tmp_path) -> None:
         folder = tmp_path / "custom"
