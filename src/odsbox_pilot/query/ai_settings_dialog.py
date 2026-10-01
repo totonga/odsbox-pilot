@@ -50,13 +50,13 @@ class AiSettingsDialog(wx.Dialog):
         status_box = wx.StaticBox(self, label="Model Status")
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
 
-        self._lbl_model_id = wx.StaticText(self, label=f"Model: {self._settings.model_id}")
+        self._lbl_model_id = wx.StaticText(status_box, label=f"Model: {self._settings.model_id}")
         status_sizer.Add(self._lbl_model_id, flag=wx.ALL, border=4)
 
-        self._lbl_status = wx.StaticText(self, label="Checking…")
+        self._lbl_status = wx.StaticText(status_box, label="Checking…")
         status_sizer.Add(self._lbl_status, flag=wx.ALL, border=4)
 
-        self._lbl_model_path = wx.StaticText(self, label="")
+        self._lbl_model_path = wx.StaticText(status_box, label="")
         self._lbl_model_path.SetForegroundColour(wx.Colour(100, 100, 100))
         status_sizer.Add(self._lbl_model_path, flag=wx.ALL | wx.EXPAND, border=4)
 
@@ -66,17 +66,17 @@ class AiSettingsDialog(wx.Dialog):
         config_box = wx.StaticBox(self, label="Configuration")
         config_sizer = wx.StaticBoxSizer(config_box, wx.VERTICAL)
 
-        self._chk_enabled = wx.CheckBox(self, label="Enable AI Query Assistant")
+        self._chk_enabled = wx.CheckBox(config_box, label="Enable AI Query Assistant")
         self._chk_enabled.SetValue(self._settings.enabled)
         config_sizer.Add(self._chk_enabled, flag=wx.ALL, border=6)
 
         device_row = wx.BoxSizer(wx.HORIZONTAL)
         device_row.Add(
-            wx.StaticText(self, label="Inference device:"),
+            wx.StaticText(config_box, label="Inference device:"),
             flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
             border=8,
         )
-        self._choice_device = wx.Choice(self, choices=_DEVICES)
+        self._choice_device = wx.Choice(config_box, choices=_DEVICES)
         sel = self._settings.device if self._settings.device in _DEVICES else "CPU"
         self._choice_device.SetStringSelection(sel)
         device_row.Add(self._choice_device, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -89,15 +89,15 @@ class AiSettingsDialog(wx.Dialog):
         dl_sizer = wx.StaticBoxSizer(dl_box, wx.VERTICAL)
 
         dl_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._btn_download = wx.Button(self, label="Download Model")
+        self._btn_download = wx.Button(dl_box, label="Download Model")
         self._btn_download.Bind(wx.EVT_BUTTON, self._on_download)
         dl_row.Add(self._btn_download, flag=wx.RIGHT, border=8)
 
-        self._lbl_dl_status = wx.StaticText(self, label="")
+        self._lbl_dl_status = wx.StaticText(dl_box, label="")
         dl_row.Add(self._lbl_dl_status, flag=wx.ALIGN_CENTER_VERTICAL)
         dl_sizer.Add(dl_row, flag=wx.ALL, border=6)
 
-        self._gauge = wx.Gauge(self, range=100, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
+        self._gauge = wx.Gauge(dl_box, range=100, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
         self._gauge.Hide()
         dl_sizer.Add(
             self._gauge,

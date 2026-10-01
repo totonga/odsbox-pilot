@@ -100,6 +100,9 @@ against the server. Results appear in a sortable table.
 Use **Examples ▾** for ready-made patterns (filters, joins, aggregations) and
 **History ▾** to re-run previous queries. Export any result with **Ctrl+S**.
 
+You can add your own custom examples in **Settings → Preferences…**:
+- **Custom examples folder** with `*.json` files (each file can be a JAQueL query object)
+
 **🤖 AI-powered query parsing** (optional) — If you install the AI dependencies and
 download a model, an AI input bar appears above the editor. Type a natural language
 query like `"Show measurements Profile_* from last year"` and the AI will parse it into

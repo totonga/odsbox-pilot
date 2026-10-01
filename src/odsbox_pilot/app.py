@@ -9,6 +9,91 @@ from odsbox_pilot.connection.server_list_dialog import ServerListDialog
 from odsbox_pilot.models import AppSettings, ServerConfig
 from odsbox_pilot.styles import ScaleLevel, set_scale_level
 
+try:
+    import wx.adv  # type: ignore[import-untyped]  # noqa: PLC0415
+except Exception:  # pragma: no cover - only matters when wx.adv is unavailable
+    wx.adv = None  # type: ignore[attr-defined]
+
+
+def _ensure_wx_image_handlers() -> None:
+    """Ensure wx image/animation handlers are registered once and only once.
+
+    wxPython registers some standard bitmap handlers during import. Later helper
+    code can call the global initializers again when the app transitions from the
+    connection dialog to the main frame, which logs duplicate warnings. Guard the
+    actual AddHandler registrations for both image and animation types.
+    """
+    if getattr(wx, "_odsbox_pilot_image_handlers_guarded", False):
+        return
+    wx._odsbox_pilot_image_handlers_guarded = True  # type: ignore[attr-defined]
+
+    def _wrap_add_handler(target_cls: object, method_name: str) -> None:
+        original_add_handler = getattr(target_cls, method_name, None)
+        if original_add_handler is None:
+            return
+
+        def _safe_add_handler(handler: object, *args: object, **kwargs: object) -> object:
+            try:
+                handler_type = handler.GetType()  # type: ignore[attr-defined]
+            except Exception:  # pragma: no cover - defensive fallback
+                return original_add_handler(handler, *args, **kwargs)
+            try:
+                existing = target_cls.FindHandler(handler_type)  # type: ignore[attr-defined]
+            except Exception:  # pragma: no cover - defensive fallback
+                existing = None
+            if existing is not None:
+                return None
+            return original_add_handler(handler, *args, **kwargs)
+
+        setattr(target_cls, method_name, _safe_add_handler)  # type: ignore[arg-type]
+
+    image_cls = getattr(wx, "Image", None)
+    if image_cls is not None:
+        _wrap_add_handler(image_cls, "AddHandler")
+
+    animation_cls = getattr(getattr(wx, "adv", None), "Animation", None)
+    if animation_cls is not None:
+        _wrap_add_handler(animation_cls, "AddHandler")
+
+    if hasattr(wx, "Image") and hasattr(wx.Image, "InitStandardHandlers"):
+        original_init_standard = wx.Image.InitStandardHandlers  # type: ignore[attr-defined]
+
+        def _wrapped_init_standard() -> None:
+            if getattr(wx, "_odsbox_pilot_image_handlers_initialized", False):
+                return
+            wx._odsbox_pilot_image_handlers_initialized = True  # type: ignore[attr-defined]
+            original_init_standard()
+
+        wx.Image.InitStandardHandlers = _wrapped_init_standard  # type: ignore[attr-defined]
+
+    if hasattr(wx, "InitAllImageHandlers"):
+        original_init_all = wx.InitAllImageHandlers
+
+        def _wrapped_init_all() -> None:
+            if getattr(wx, "_odsbox_pilot_image_handlers_initialized", False):
+                return
+            wx._odsbox_pilot_image_handlers_initialized = True  # type: ignore[attr-defined]
+            original_init_all()
+
+        wx.InitAllImageHandlers = _wrapped_init_all  # type: ignore[attr-defined]
+
+    if animation_cls is not None and hasattr(animation_cls, "InitStandardHandlers"):
+        original_anim_init = animation_cls.InitStandardHandlers  # type: ignore[attr-defined]
+
+        def _wrapped_anim_init() -> None:
+            if getattr(wx, "_odsbox_pilot_animation_handlers_initialized", False):
+                return
+            wx._odsbox_pilot_animation_handlers_initialized = True  # type: ignore[attr-defined]
+            original_anim_init()
+
+        animation_cls.InitStandardHandlers = _wrapped_anim_init  # type: ignore[attr-defined]
+
+
+_ensure_wx_image_handlers()
+
+
+_ensure_wx_image_handlers()
+
 
 class OdsPilotApp(wx.App):
     def __init__(self, initial_server: str | None = None, scaling: str | None = None) -> None:

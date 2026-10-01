@@ -16,7 +16,11 @@ from odsbox.model_cache import ModelCache
 
 from odsbox_pilot import styles
 from odsbox_pilot.models import AppSettings
-from odsbox_pilot.query.examples import by_category, categories
+from odsbox_pilot.query.examples import (
+    by_category_for_examples,
+    categories_for_examples,
+    resolve_examples,
+)
 from odsbox_pilot.query.history import QueryHistory
 from odsbox_pilot.query.result_grid import ResultGrid
 
@@ -162,6 +166,8 @@ class EditorPanel(wx.Panel):
         self._convert_cb = on_convert
         self._on_settings_changed = on_settings_changed
         self._webview_ready = False
+        self._examples_cache_key: tuple[str, ...] | None = None
+        self._examples_cache: list[tuple[str, str, str]] | None = None
 
         self._build_ui()
         self._load_editor()
@@ -341,10 +347,11 @@ class EditorPanel(wx.Panel):
     # ------------------------------------------------------------------
 
     def _on_examples_menu(self, _event: wx.Event) -> None:
+        examples = self._resolve_examples_for_menu()
         menu = wx.Menu()
-        for cat in categories():
+        for cat in categories_for_examples(examples):
             submenu = wx.Menu()
-            for label, query_str in by_category(cat):
+            for label, query_str in by_category_for_examples(examples, cat):
                 item = submenu.Append(wx.ID_ANY, label)
                 self.Bind(
                     wx.EVT_MENU,
@@ -354,6 +361,20 @@ class EditorPanel(wx.Panel):
             menu.AppendSubMenu(submenu, cat)
         self._btn_examples.PopupMenu(menu)
         menu.Destroy()
+
+    def _resolve_examples_for_menu(self) -> list[tuple[str, str, str]]:
+        custom_examples_folder_raw = (
+            self._settings.custom_examples_folder if self._settings is not None else ""
+        )
+        custom_examples_folder = ""
+        if custom_examples_folder_raw.strip():
+            custom_examples_folder = str(Path(custom_examples_folder_raw).expanduser().resolve())
+
+        cache_key = (custom_examples_folder,)
+        if self._examples_cache is None or self._examples_cache_key != cache_key:
+            self._examples_cache = resolve_examples(custom_examples_folder=custom_examples_folder)
+            self._examples_cache_key = cache_key
+        return self._examples_cache
 
     def _on_history_menu(self, _event: wx.Event) -> None:
         entries = self._history.entries

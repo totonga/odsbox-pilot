@@ -22,11 +22,11 @@ class AppSettingsDialog(wx.Dialog):
         super().__init__(
             parent,
             title="Preferences",
-            size=(420, 260),
+            size=(620, 360),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         styles.apply_scaled_app_font(self)
-        self.SetSize(self.FromDIP(wx.Size(420, 260)))
+        self.SetSize(self.FromDIP(wx.Size(620, 360)))
         # Work on a copy so Cancel discards changes
         self._settings = copy(settings)
         self._build_ui()
@@ -45,12 +45,12 @@ class AppSettingsDialog(wx.Dialog):
 
         scaling_row = wx.BoxSizer(wx.HORIZONTAL)
         scaling_row.Add(
-            wx.StaticText(self, label="Startup UI scaling:"),
+            wx.StaticText(general_box, label="Startup UI scaling:"),
             flag=wx.ALIGN_CENTER_VERTICAL | wx.RIGHT,
             border=8,
         )
         levels = [level.value for level in styles.ScaleLevel]
-        self._choice_scaling = wx.Choice(self, choices=levels)
+        self._choice_scaling = wx.Choice(general_box, choices=levels)
         selected = (
             self._settings.startup_scaling
             if self._settings.startup_scaling in levels
@@ -60,13 +60,31 @@ class AppSettingsDialog(wx.Dialog):
         scaling_row.Add(self._choice_scaling, flag=wx.ALIGN_CENTER_VERTICAL)
         general_sizer.Add(scaling_row, flag=wx.ALL, border=6)
 
-        hint = wx.StaticText(self, label="Takes effect the next time ODS Pilot is started.")
+        hint = wx.StaticText(general_box, label="Takes effect the next time ODS Pilot is started.")
         hint.SetForegroundColour(wx.Colour(100, 100, 100))
         general_sizer.Add(hint, flag=wx.LEFT | wx.RIGHT | wx.BOTTOM, border=6)
 
         outer.Add(general_sizer, flag=wx.EXPAND | wx.ALL, border=10)
 
-        # Future application-level settings sections go here, below General.
+        examples_box = wx.StaticBox(self, label="Custom Query Examples")
+        examples_sizer = wx.StaticBoxSizer(examples_box, wx.VERTICAL)
+
+        self._picker_custom_examples_dir = wx.DirPickerCtrl(
+            examples_box,
+            path=self._settings.custom_examples_folder,
+            style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST,
+        )
+        examples_sizer.Add(
+            wx.StaticText(examples_box, label="Query folder (*.json):"),
+            flag=wx.LEFT | wx.RIGHT,
+            border=6,
+        )
+        examples_sizer.Add(
+            self._picker_custom_examples_dir,
+            flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=6,
+        )
+        outer.Add(examples_sizer, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=10)
 
         # --- Standard buttons ---
         btn_sizer = wx.StdDialogButtonSizer()
@@ -87,6 +105,7 @@ class AppSettingsDialog(wx.Dialog):
 
     def _on_ok(self, _event: wx.Event) -> None:
         self._settings.startup_scaling = self._choice_scaling.GetStringSelection()
+        self._settings.custom_examples_folder = self._picker_custom_examples_dir.GetPath().strip()
         self.EndModal(wx.ID_OK)
 
     def get_settings(self) -> AppSettings:
