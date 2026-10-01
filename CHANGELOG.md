@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.19.3 (2026-10-01)
+
+### Bug Fixes
+
+- Add copy and paste from model and browse tree
+  ([`60abcab`](https://github.com/totonga/odsbox-pilot/commit/60abcab6710d950b1f9ae7915e943b935e2bf971))
+
+
 ## v1.19.2 (2026-10-01)
 
 ### Bug Fixes
