@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.21.0 (2026-10-01)
+
+### Features
+
+- Add configurable Query-tab examples ([#36](https://github.com/totonga/odsbox-pilot/pull/36),
+  [`5752b77`](https://github.com/totonga/odsbox-pilot/commit/5752b7702cc37c2329f7250d218a24524ae710a5))
+
+
 ## v1.20.0 (2026-10-01)
 
 ### Features
