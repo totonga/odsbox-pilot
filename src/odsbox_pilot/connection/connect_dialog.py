@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import uuid
+from typing import Any
 
 import wx  # type: ignore[import-untyped]
 
@@ -20,7 +21,7 @@ from odsbox_pilot.models import AuthType, ServerConfig
 _log = logging.getLogger(__name__)
 
 
-def do_connect(config: ServerConfig, secret: str):  # type: ignore[return]
+def do_connect(config: ServerConfig, secret: str) -> Any:
     """Create a live ConI from *config* + *secret* without any UI."""
     if config.auth_type == AuthType.ATFX:
         from odsbox_pilot.connection.atfx_factory import open_atfx
@@ -552,8 +553,20 @@ class ConnectDialog(wx.Dialog):
     # Connect helper
     # ------------------------------------------------------------------
 
-    def _do_connect(self, config: ServerConfig, secret: str):  # type: ignore[return]
+    def _do_connect(self, config: ServerConfig, secret: str) -> Any:
         return do_connect(config, secret)
+
+    def _cleanup_connection(self, con_i: object) -> None:
+        """Best-effort close for connection-like objects after partial failures."""
+        exit_method = getattr(con_i, "__exit__", None)
+        if callable(exit_method):
+            with contextlib.suppress(Exception):
+                exit_method(None, None, None)
+            return
+        close = getattr(con_i, "close", None)
+        if callable(close):
+            with contextlib.suppress(Exception):
+                close()
 
     def _show_save_error(self, config_id: str, exc: Exception) -> None:
         if isinstance(exc, KeyError):
@@ -592,11 +605,7 @@ class ConnectDialog(wx.Dialog):
         if result is None:
             return
         config, secret = result
-        try:
-            self._save_config(config, secret)
-        except Exception as exc:
-            self._show_save_error(config.id, exc)
-            return
+        con_i: object | None = None
 
         try:
             wx.BeginBusyCursor()
@@ -617,6 +626,14 @@ class ConnectDialog(wx.Dialog):
         finally:
             with contextlib.suppress(Exception):
                 wx.EndBusyCursor()
+
+        try:
+            self._save_config(config, secret)
+        except Exception as exc:
+            if con_i is not None:
+                self._cleanup_connection(con_i)
+            self._show_save_error(config.id, exc)
+            return
 
         self._result_config = config
         self._con_i = con_i

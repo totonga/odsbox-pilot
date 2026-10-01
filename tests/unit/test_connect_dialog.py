@@ -116,12 +116,14 @@ def test_on_save_connect_save_error_stays_open(mocker: MockerFixture) -> None:
     dialog = module.ConnectDialog.__new__(module.ConnectDialog)
     dialog._build_config = mocker.Mock(return_value=(_basic_config(), "secret"))
     dialog._save_config = mocker.Mock(side_effect=RuntimeError("permission denied"))
-    dialog._do_connect = mocker.Mock()
+    dialog._do_connect = mocker.Mock(return_value="connected")
+    dialog._cleanup_connection = mocker.Mock()
     dialog.EndModal = mocker.Mock()
 
     module.ConnectDialog._on_save_connect(dialog, mocker.Mock())
 
-    dialog._do_connect.assert_not_called()
+    dialog._do_connect.assert_called_once()
+    dialog._cleanup_connection.assert_called_once_with("connected")
     dialog.EndModal.assert_not_called()
     module.wx.MessageBox.assert_called_once()
 
@@ -136,10 +138,35 @@ def test_on_save_connect_connect_error_stays_open(mocker: MockerFixture) -> None
 
     module.ConnectDialog._on_save_connect(dialog, mocker.Mock())
 
+    dialog._save_config.assert_not_called()
     dialog.EndModal.assert_not_called()
     module.wx.MessageBox.assert_called_once()
     module.wx.BeginBusyCursor.assert_called_once()
     module.wx.EndBusyCursor.assert_called()
+
+
+def test_on_save_connect_success_connects_before_persisting(mocker: MockerFixture) -> None:
+    module = _load_connect_dialog_module(mocker)
+    dialog = module.ConnectDialog.__new__(module.ConnectDialog)
+    config = _basic_config()
+    dialog._build_config = mocker.Mock(return_value=(config, "secret"))
+    events: list[str] = []
+
+    def _connect_side_effect(*_args: object, **_kwargs: object) -> str:
+        events.append("connect")
+        return "con_i"
+
+    def _save_side_effect(*_args: object, **_kwargs: object) -> None:
+        events.append("save")
+
+    dialog._do_connect = mocker.Mock(side_effect=_connect_side_effect)
+    dialog._save_config = mocker.Mock(side_effect=_save_side_effect)
+    dialog.EndModal = mocker.Mock()
+
+    module.ConnectDialog._on_save_connect(dialog, mocker.Mock())
+
+    assert events == ["connect", "save"]
+    dialog.EndModal.assert_called_once_with(module.wx.ID_OK)
 
 
 def test_on_save_only_missing_guid_error_message(mocker: MockerFixture) -> None:
