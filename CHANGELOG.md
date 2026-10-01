@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.20.0 (2026-10-01)
+
+### Features
+
+- Add protobuf-JSON copy actions to Model tree context menu
+  ([#35](https://github.com/totonga/odsbox-pilot/pull/35),
+  [`7f2557d`](https://github.com/totonga/odsbox-pilot/commit/7f2557d90e80e0e694b754b0515311213538596a))
+
+
 ## v1.19.3 (2026-10-01)
 
 ### Bug Fixes
