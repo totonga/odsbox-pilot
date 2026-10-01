@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from types import ModuleType
 from typing import Any, cast
@@ -9,7 +10,12 @@ from typing import Any, cast
 from odsbox.proto import ods
 from pytest_mock import MockerFixture
 
-from odsbox_pilot.model.helpers import _range_str, _rel_range, _rel_type_label
+from odsbox_pilot.model.helpers import (
+    _message_to_pretty_json,
+    _range_str,
+    _rel_range,
+    _rel_type_label,
+)
 
 
 class _FakeWxPanel:
@@ -128,3 +134,17 @@ class TestRelTypeLabel:
         # 2 = RS_INFO_TO
         rel = self._make_rel(2)
         assert _rel_type_label(rel) == "RS_INFO_TO"
+
+
+class TestMessageToPrettyJson:
+    def test_uses_proto_field_names_and_indentation(self) -> None:
+        entity = ods.Model.Entity()
+        entity.name = "AoTest"
+        entity.base_name = "AoBaseTest"
+        entity.aid = 42
+
+        as_json = _message_to_pretty_json(entity)
+
+        assert '"base_name": "AoBaseTest"' in as_json
+        assert re.search(r'"aid":\s*(?:"42"|42)', as_json)
+        assert "\n  " in as_json
