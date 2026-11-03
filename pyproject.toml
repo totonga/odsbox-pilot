@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Database :: Front-Ends",
 ]
 dependencies = [
-    "gitpython>=3.1.60",
+    "gitpython>=3.2.1",
     "jsonschema>=4.26.0",
     "keyring>=25.7.0",
     "odsbox[oidc]>=1.6.0",
@@ -70,11 +70,13 @@ include-package-data = true
 # CVE-2026-3219 / PYSEC-2026-196 affects pip itself (no fix released yet); ignore both
 # aliases so pip-audit is run with --ignore-vuln CVE-2026-3219 --ignore-vuln PYSEC-2026-196.
 constraint-dependencies = [
+    "certifi>=2026.10.18",   # PYSEC-2026-4320
     "click>=8.3.3",          # PYSEC-2026-2132
     "cryptography>=48.0.1", # GHSA-537c-gmf6-5ccf
-    "gitpython>=3.1.60",    # PYSEC-2026-3783..3788, 3837..3841, 3843, 3982..3984
+    "filelock>=4.2.1",       # CVE-2026-112907..112940
+    "gitpython>=3.2.1",      # CVE-2026-110855..110859, 114145
     "idna>=3.15",            # CVE-2026-45409
-    "msgpack>=1.2.1",       # GHSA-6v7p-g79w-8964
+    "msgpack>=1.2.3",        # CVE-2026-114613
     "oauthlib>=4.0.0",       # GHSA-hj66-6f7g-4r5v, GHSA-xpv3-w29h-x7cv
     "pip>=26.1",             # CVE-2026-6357
     "urllib3>=2.8.0",        # PYSEC-2026-141, PYSEC-2026-142, GHSA-8988-9cw3-xx77, GHSA-gh4c-6fx4-qh6g, GHSA-vxq7-64xx-v4gw
