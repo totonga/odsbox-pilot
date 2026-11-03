@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.21.1 (2026-11-03)
+
+### Bug Fixes
+
+- Raise vulnerable dependency minimums in Python constraints
+  ([#42](https://github.com/totonga/odsbox-pilot/pull/42),
+  [`e163061`](https://github.com/totonga/odsbox-pilot/commit/e163061d62679833119b1327a18ec79c3257e1bf))
+
+
 ## v1.21.0 (2026-10-01)
 
 ### Features
